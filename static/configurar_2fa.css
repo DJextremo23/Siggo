@@ -1,0 +1,92 @@
+:root {
+    --color-primario: #0f172a;
+}
+
+/* =============================================
+   QR & 2FA
+   ============================================= */
+.qr-section {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.qr-container {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #1e293b;
+    display: inline-block;
+    line-height: 0;
+}
+
+.qr-container svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 200px;
+    height: auto;
+}
+
+.secret-key {
+    text-align: center;
+    margin: 14px 0 6px 0;
+}
+
+.secret-key-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.secret-key code {
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: var(--color-primario);
+    word-break: break-all;
+    max-width: 100%;
+}
+
+.form-subtitle-2fa {
+    margin: 12px 0 0 0;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.qr-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 10px;
+}
+
+.secret-key-box {
+    margin-top: 4px;
+}
+
+.verificacion-form {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.verificacion-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.verificacion-desc {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+}

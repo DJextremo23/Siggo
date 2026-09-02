@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+{# Descripción: Panel principal del administrador con estadísticas y módulos de gestión #}
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Administración — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/index.css') }}">
+</head>
+
+<body>
+
+{% set active_page = 'inicio' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    {% set alertas_criticas = alertas|selectattr('dias_faltantes', 'lt', 0)|list %}
+    {% set alertas_proximas = alertas|selectattr('dias_faltantes', 'ge', 0)|selectattr('dias_faltantes', 'le', 15)|list %}
+    {% set alertas_sin_tomar = alertas|selectattr('dias_tomados', 'equalto', 0)|selectattr('dias_faltantes', 'lt', 0)|list %}
+    {% set total_notif_count = alertas_criticas|length + alertas_proximas|length + alertas_sin_tomar|length %}
+
+    <!-- SECCIÓN: Tarjeta de bienvenida con panel de notificaciones de vacaciones -->
+    <div class="welcome-card">
+        <div class="welcome-left">
+            <div class="welcome-avatar">{{ session.get('nombre', session.usuario)[:1].upper() }}</div>
+            <div class="welcome-text">
+                <h1>Panel de Administración</h1>
+                <p>Bienvenido, <strong>{{ session.nombre }}</strong></p>
+            </div>
+        </div>
+        <div class="welcome-right">
+            <div class="welcome-date-row">
+                <span class="welcome-date" id="fecha-hoy"></span>
+                <button class="notif-bell-btn" id="btnNotificaciones" title="Notificaciones">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    {% if total_notif_count > 0 %}
+                    <span class="notif-badge" id="notifBadge">{{ total_notif_count }}</span>
+                    {% endif %}
+                </button>
+            </div>
+            <span class="welcome-role">Administrador</span>
+
+            {% if total_notif_count > 0 %}
+            <div class="notif-panel" id="notifPanel">
+                <div class="notif-header">
+                    <div class="notif-header-left">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <h2>Notificaciones de Vacaciones</h2>
+                        <span class="notif-timer" id="notifTimer">5:00</span>
+                    </div>
+                    <div class="notif-header-right">
+                        <button class="notif-close" id="notifClose" title="Cerrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="notif-body">
+                    {% for a in alertas_criticas %}
+                    <div class="notif-item critico">
+                        <div class="notif-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ a.nombre }}</strong>
+                            <span>Debe tomar vacaciones (disponible hace {{ a.dias_faltantes|abs }} días) &mdash; {{ 30 - a.dias_tomados }} días pendientes este año</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% for a in alertas_proximas %}
+                    <div class="notif-item proximo">
+                        <div class="notif-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ a.nombre }}</strong>
+                            <span>
+                                {% if a.dias_faltantes == 0 %}
+                                    Vacaciones disponibles HOY &mdash; {{ 30 - a.dias_tomados }} días pendientes
+                                {% else %}
+                                    Faltan {{ a.dias_faltantes }} días para sus vacaciones &mdash; {{ 30 - a.dias_tomados }} días pendientes este año
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% for a in alertas_sin_tomar %}
+                    {% if a.dias_faltantes < 0 and a.dias_faltantes|abs > 15 %}
+                    <div class="notif-item info">
+                        <div class="notif-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ a.nombre }}</strong>
+                            <span>Aún no ha tomado vacaciones este año &mdash; 30 días disponibles</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- SECCIÓN: Tarjetas de estadísticas globales del sistema -->
+    <div class="kpi-grid">
+
+        <div class="kpi-card blue">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Usuarios</h4>
+                <p class="kpi-number">{{ total_usuarios | default('—') }}</p>
+            </div>
+        </div>
+
+        <div class="kpi-card green">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Guardias</h4>
+                <p class="kpi-number">{{ total_guardias | default('—') }}</p>
+            </div>
+        </div>
+
+        <div class="kpi-card amber">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Informes</h4>
+                <p class="kpi-number">{{ total_informes | default('—') }}</p>
+            </div>
+        </div>
+
+        <div class="kpi-card red">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Reportes</h4>
+                <p class="kpi-number">{{ total_reportes | default('—') }}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SECCIÓN: Tarjetas de acceso rápido a los módulos de administración -->
+    <div class="section-card">
+        <div class="section-header">
+            <h3>
+                <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                </svg>
+                Módulos de administración
+            </h3>
+        </div>
+
+        <div class="module-grid">
+            <a href="{{ url_for('fiscalizadores.listar_fiscalizadores') }}" class="module-card module-card--usuarios">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <h3>Usuarios</h3>
+                <p>Gestión de fiscalizadores y personal</p>
+            </a>
+
+            <a href="{{ url_for('asistencia_admin') }}" class="module-card module-card--asistencia">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <h3>Asistencia</h3>
+                <p>Control y registro de asistencia</p>
+            </a>
+
+            <a href="{{ url_for('ver_guardias') }}" class="module-card module-card--guardias">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                </div>
+                <h3>Guardias</h3>
+                <p>Programación de turnos y guardias</p>
+            </a>
+
+            <a href="{{ url_for('feriados') }}" class="module-card module-card--feriados">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <h3>Feriados</h3>
+                <p>Calendario oficial de feriados</p>
+            </a>
+
+            <a href="{{ url_for('vacaciones') }}" class="module-card module-card--vacaciones">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
+                <h3>Vacaciones</h3>
+                <p>Gestión de licencias del personal</p>
+            </a>
+
+            <a href="{{ url_for('compensaciones_admin') }}" class="module-card module-card--compensaciones">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <h3>Compensaciones</h3>
+                <p>Días compensatorios acumulados</p>
+            </a>
+
+            <a href="{{ url_for('informes.admin_informes') }}" class="module-card module-card--informes">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </div>
+                <h3>Informes</h3>
+                <p>Gestión y seguimiento de informes</p>
+            </a>
+
+            <a href="{{ url_for('reporte_bp.reporte') }}" class="module-card module-card--reportes">
+                <div class="module-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                </div>
+                <h3>Reportes</h3>
+                <p>Resúmenes y estadísticas generales</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer">
+        <div class="toast" id="toastMsg">
+            <div class="toast-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+            </div>
+            <div class="toast-body">
+                <strong class="toast-title"></strong>
+                <span class="toast-text"></span>
+            </div>
+            <button class="toast-close" id="toastClose" title="Cerrar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+/* --- FECHA HOY --- */
+(function() {
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var hoy = new Date();
+    var el = document.getElementById('fecha-hoy');
+    if (el) {
+        el.textContent = hoy.getDate() + ' de ' + meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+    }
+})();
+</script>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    var panel = document.getElementById('notifPanel');
+    var btn = document.getElementById('btnNotificaciones');
+    var closeBtn = document.getElementById('notifClose');
+    var timerEl = document.getElementById('notifTimer');
+    var badge = document.getElementById('notifBadge');
+
+    if (!panel) return;
+
+    var totalSeconds = 300;
+    var panelInterval;
+
+    function updateTimer() {
+        if (totalSeconds <= 0) {
+            panel.style.display = 'none';
+            if (panelInterval) clearInterval(panelInterval);
+            return;
+        }
+        var min = Math.floor(totalSeconds / 60);
+        var sec = totalSeconds % 60;
+        if (timerEl) {
+            timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+        }
+        totalSeconds--;
+    }
+
+    if (panel && timerEl) {
+        panelInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            panel.style.display = 'none';
+            if (panelInterval) clearInterval(panelInterval);
+        });
+    }
+
+    if (btn) {
+        btn.addEventListener('click', function() {
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                totalSeconds = 300;
+                if (panelInterval) clearInterval(panelInterval);
+                panelInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+            } else {
+                panel.style.display = 'none';
+                if (panelInterval) clearInterval(panelInterval);
+            }
+        });
+    }
+})();
+</script>
+
+</body>
+</html>

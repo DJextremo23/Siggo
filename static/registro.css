@@ -1,0 +1,187 @@
+/* =============================================
+   REGISTRO — extensiones sobre login.css
+   ============================================= */
+
+/* --- BODY: evitar que el formulario alto se corte --- */
+body.login-body {
+    align-items: flex-start;
+}
+
+/* --- CONTENEDOR DEL FORM MÁS ANCHO --- */
+.registro-container {
+    max-width: 580px;
+}
+
+/* --- CARD PADDING MÁS AMPLIO --- */
+.registro-card {
+    padding: 44px 48px;
+}
+
+/* --- SECCIÓN --- */
+.registro-section {
+    margin-bottom: 24px;
+}
+
+.registro-section + .registro-section {
+    padding-top: 6px;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 4px;
+}
+
+.registro-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+}
+
+.registro-section-title svg {
+    color: var(--color-acento);
+    flex-shrink: 0;
+}
+
+/* --- GRID 2 COLUMNAS --- */
+.registro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+}
+
+/* --- ÚLTIMO FIELD DE SECCIÓN SIN MARGEN INFERIOR --- */
+.registro-section > .field:last-child {
+    margin-bottom: 0;
+}
+
+/* --- FOTO UPLOAD --- */
+.foto-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.foto-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: #94a3b8;
+    font-size: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: border-color var(--transition);
+}
+
+.foto-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.foto-upload-wrapper:hover .foto-preview {
+    border-color: var(--color-acento);
+}
+
+.foto-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    font-weight: 500;
+    font-family: inherit;
+}
+
+.foto-upload-btn:hover {
+    background: #eff6ff;
+    border-color: var(--color-acento);
+    color: var(--color-acento);
+}
+
+.foto-upload-btn input[type="file"] {
+    display: none;
+}
+
+/* --- SELECT (mismo estilo que input) --- */
+.field-select {
+    position: relative;
+}
+
+.field-select select {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 13px 0;
+    font-size: 14px;
+    color: var(--color-primario);
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+}
+
+.field-select .field-select-arrow {
+    flex-shrink: 0;
+    color: #94a3b8;
+    transition: color var(--transition);
+    pointer-events: none;
+}
+
+.field-input:focus-within .field-select-arrow {
+    color: var(--color-acento);
+}
+
+/* --- FOOTER --- */
+.form-footer-text {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.form-footer-text a {
+    color: var(--color-acento);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color var(--transition);
+}
+
+.form-footer-text a:hover {
+    color: var(--color-hover);
+    text-decoration: underline;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 700px) {
+    .registro-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .registro-container {
+        max-width: 100%;
+    }
+
+    .registro-card {
+        padding: 32px 24px;
+    }
+
+    body.login-body {
+        align-items: flex-start;
+    }
+}

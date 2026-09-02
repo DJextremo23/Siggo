@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feriados — Fiscalizador SIGGO</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/lista_feriado.css') }}">
+</head>
+
+<body>
+
+    <!-- ==========================================================
+         PÁGINA: Mis Feriados (Fiscalizador)
+         Permite al fiscalizador consultar los días feriados registrados.
+         Secciones: Cabecera, Filtros, Tabla de feriados.
+    ========================================================== -->
+
+{% set active_page = 'mis_feriados' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- ===== CABECERA: Título y descripción de la sección de feriados ===== -->
+    <div class="page-header">
+        <div class="page-header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="page-header-text">
+            <h1>Feriados</h1>
+            <p>Calendario de días feriados registrados en el sistema</p>
+        </div>
+    </div>
+
+    <!-- ===== FILTROS: Búsqueda de feriados por año, rango de fechas y descripción ===== -->
+    <div class="filtros-card">
+        <form method="GET" action="{{ url_for('mis_feriados') }}" class="filtro-form" autocomplete="off">
+
+            <div class="filtro-field">
+                <label for="anio" class="filtro-label">Año</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="number"
+                           id="anio"
+                           name="anio"
+                           placeholder="Ej: 2025"
+                           min="2000"
+                           max="2099"
+                           value="{{ request.args.get('anio','') }}"
+                           class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="fecha_desde" class="filtro-label">Desde</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                        <polyline points="8 14 12 18 16 14"/>
+                    </svg>
+                    <input type="date"
+                           id="fecha_desde"
+                           name="fecha_desde"
+                           value="{{ request.args.get('fecha_desde','') }}"
+                           class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="fecha_hasta" class="filtro-label">Hasta</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                        <polyline points="8 10 12 6 16 10"/>
+                    </svg>
+                    <input type="date"
+                           id="fecha_hasta"
+                           name="fecha_hasta"
+                           value="{{ request.args.get('fecha_hasta','') }}"
+                           class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="descripcion" class="filtro-label">Descripción</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text"
+                           id="descripcion"
+                           name="descripcion"
+                           placeholder="Ej: Navidad"
+                           value="{{ request.args.get('descripcion','') }}"
+                           class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-actions">
+                <button type="submit" class="btn-filtrar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Buscar
+                </button>
+
+                <a href="{{ url_for('mis_feriados') }}" class="btn-limpiar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    Limpiar
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- ===== TABLA: Lista de feriados con ID, fecha, día y descripción ===== -->
+    <div class="tabla-card">
+        <table class="tabla-pro">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Día</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% if feriados %}
+
+                {% for f in feriados %}
+                <tr>
+                    <td class="td-id">
+                        <span class="id-badge">{{ f.id_feriado }}</span>
+                    </td>
+                    <td>{{ f.fecha }}</td>
+                    <td>
+                        <span class="badge-dia">{{ f.dia }}</span>
+                    </td>
+                    <td>
+                        <strong>{{ f.descripcion }}</strong>
+                    </td>
+                </tr>
+                {% endfor %}
+
+            {% else %}
+
+                <tr>
+                    <td colspan="4" class="empty">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="display:block;margin:0 auto 8px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        No tienes guardias en días feriados
+                    </td>
+                </tr>
+
+            {% endif %}
+
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editar Compensación — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/editar_form.css') }}">
+</head>
+
+<body>
+
+<!-- Página: Editar Compensación (Administrador) — Modificación de día compensatorio y observaciones -->
+
+{% set active_page = 'compensaciones' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- HEADER - Encabezado del formulario de edición -->
+    <div class="header-admin">
+        <h1>Editar Compensación</h1>
+        <p>Modificar día compensatorio</p>
+    </div>
+
+    <!-- FORM - Campos de solo lectura (fiscalizador, guardia, día, asistencia) y editables (fecha compensación, observaciones) -->
+    <div class="card">
+
+        <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="field">
+                <label for="fiscalizador" class="field-label">Fiscalizador</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <input type="text" id="fiscalizador" value="{{ data.fiscalizador }}" disabled>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="fecha_guardia" class="field-label">Fecha de Guardia</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="text" id="fecha_guardia" value="{{ data.fecha_guardia }}" disabled>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="tipo_dia" class="field-label">Día</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <input type="text" id="tipo_dia" value="{{ data.tipo_dia }}" disabled>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="asistencia" class="field-label">Asistencia</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <input type="text" id="asistencia" value="{{ data.asistencia }}" disabled>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="fecha_compensacion" class="field-label">Fecha de Compensación</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="date"
+                           id="fecha_compensacion"
+                           name="fecha_compensacion"
+                           value="{{ data.fecha_compensacion or '' }}"
+                           required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="observacion" class="field-label">Observaciones</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="align-self: flex-start; margin-top: 14px;">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    <textarea id="observacion"
+                              name="observacion"
+                              placeholder="Escribe una observación..."
+                              rows="3">{{ data.observacion or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('compensaciones_admin') }}" class="btn btn-cancel">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-save">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Guardar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

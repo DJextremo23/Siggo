@@ -1,0 +1,463 @@
+:root {
+    --color-primario: #0f172a;
+    --color-secundario: #1e293b;
+    --color-acento: #3b82f6;
+    --color-hover: #2563eb;
+    --color-texto: #e2e8f0;
+    --color-blanco: #ffffff;
+    --color-error: #ef4444;
+    --color-ok: #22c55e;
+    --color-warn: #f97316;
+    --color-pending: #64748b;
+    --color-yellow: #eab308;
+
+    --bg-main: #f1f5f9;
+    --bg-card: #ffffff;
+
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 14px;
+    --transition: 0.25s ease;
+    --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Content area - sidebar margin comes from menu.css */
+.content {
+    padding: 30px 36px;
+    animation: fadeIn 0.35s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================
+   PAGE HEADER (CON ICONO)
+   ============================================= */
+.page-header {
+    margin-bottom: 32px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.page-header-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-acento);
+}
+
+.page-header-text h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-primario);
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+}
+
+.page-header-text p {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin: 0;
+}
+
+/* =============================================
+   BUTTON — Marcar Asistencia
+   ============================================= */
+.btn-asistencia {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--color-acento);
+    color: var(--color-blanco);
+    border: none;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn-asistencia:hover {
+    background: var(--color-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+
+.btn-asistencia:active {
+    transform: translateY(0);
+}
+
+/* =============================================
+   KPI CARDS
+   ============================================= */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.kpi-card {
+    padding: 22px 24px;
+    border-radius: var(--radius);
+    color: #ffffff;
+    box-shadow: var(--shadow);
+    transition: transform var(--transition), box-shadow var(--transition);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.kpi-card::after {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -20px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+}
+
+.kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+}
+
+.kpi-card.blue {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.kpi-card.green {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.kpi-card.red {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.kpi-card.amber {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.kpi-icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpi-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.kpi-info h4 {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+    margin: 0 0 6px;
+}
+
+.kpi-info .kpi-number {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    margin: 0;
+}
+
+/* =============================================
+   TABLE CARD
+   ============================================= */
+.card {
+    background: var(--bg-card);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    transition: box-shadow var(--transition);
+}
+
+.tabla-card {
+    margin-bottom: 24px;
+}
+
+/* --- TABLE HEADER --- */
+.tabla-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.tabla-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primario);
+}
+
+/* --- TABLE CONTROLS --- */
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.table-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.table-controls button:hover {
+    background: var(--color-acento);
+    color: var(--color-blanco);
+    border-color: var(--color-acento);
+}
+
+.table-controls button:active {
+    transform: scale(0.97);
+}
+
+#contador {
+    margin: 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    min-width: 70px;
+    text-align: center;
+}
+
+/* =============================================
+   TABLE
+   ============================================= */
+.tabla-container {
+    overflow-x: auto;
+}
+
+.tabla-pro {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-pro thead th {
+    text-align: left;
+    padding: 13px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.tabla-pro tbody td {
+    padding: 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+    color: var(--text-main);
+    transition: background var(--transition);
+}
+
+.tabla-pro tbody tr {
+    transition: background var(--transition);
+}
+
+.tabla-pro tbody tr:hover {
+    background: #f8fafc;
+}
+
+.tabla-pro .fecha {
+    font-weight: 600;
+    color: var(--color-primario);
+}
+
+/* =============================================
+   BADGES
+   ============================================= */
+.badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--color-blanco);
+    white-space: nowrap;
+}
+
+.badge-feriado    { background: var(--color-error); }
+.badge-dia        { background: var(--color-acento); }
+.badge-compensado { background: var(--color-ok); }
+.badge-empty      { background: #cbd5e1; color: #475569; }
+
+/* =============================================
+   ESTADOS
+   ============================================= */
+.estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-blanco);
+    white-space: nowrap;
+    transition: transform var(--transition);
+}
+
+.estado svg {
+    flex-shrink: 0;
+}
+
+.estado-ok      { background: var(--color-ok); }
+.estado-bad     { background: var(--color-error); }
+.estado-warn    { background: var(--color-warn); }
+.estado-pending { background: var(--color-pending); }
+
+/* =============================================
+   EMPTY STATE
+   ============================================= */
+.empty-state {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.empty-state svg {
+    opacity: 0.4;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 768px) {
+    .content {
+        padding: 20px 16px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-header-text h1 {
+        font-size: 22px;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .kpi-card {
+        padding: 16px 18px;
+    }
+
+    .kpi-icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .kpi-info .kpi-number {
+        font-size: 24px;
+    }
+
+    .tabla-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tabla-pro thead {
+        display: none;
+    }
+
+    .tabla-pro tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .tabla-pro tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        margin-right: 12px;
+    }
+
+    .tabla-pro tbody tr {
+        display: block;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 4px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-asistencia {
+        width: 100%;
+        justify-content: center;
+    }
+}

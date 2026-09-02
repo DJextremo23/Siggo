@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrador — Informes | SIGGO</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='admin/informes.css') }}">
+</head>
+
+<body>
+
+    {% set active_page = 'informes' %}
+    {% include 'menu.html' %}
+
+    <div class="content">
+
+        <!-- Página: Informes (vista administrador) — Gestión de todos los informes del sistema -->
+
+        <!-- Cabecera de la página: título y descripción -->
+        <div class="page-header">
+            <div class="page-header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </div>
+        <div class="page-header-text">
+            <h1>Gestión de Informes</h1>
+            <p>Visualiza y administra todos los informes del sistema</p>
+        </div>
+    </div>
+
+    <!-- MENSAJES FLASH (éxito / error) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert {{ 'success' if category == 'success' else 'error' }}" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            {% if category == 'success' %}
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+            {% else %}
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+            {% endif %}
+        </svg>
+        <span>{{ message }}</span>
+        <button type="button" class="alert-close" aria-label="Cerrar" title="Cerrar">&times;</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+        <!-- Sección de filtros: año, fechas, tipo de archivo, fiscalizador y búsqueda por título -->
+        <div class="card filtros">
+        <form method="GET" action="{{ url_for('informes.admin_informes') }}" class="filtro-form">
+
+            <div class="filtro-field">
+                <label for="anio" class="filtro-label">Año</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="number" id="anio" name="anio" placeholder="Ej: 2025" min="2000" max="2099" value="{{ request.args.get('anio','') }}" class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-group">
+                <label class="filtro-label">Desde</label>
+                <input type="date"
+                       name="fecha_desde"
+                       value="{{ request.args.get('fecha_desde','') }}"
+                       class="input">
+            </div>
+
+            <div class="filtro-group">
+                <label class="filtro-label">Hasta</label>
+                <input type="date"
+                       name="fecha_hasta"
+                       value="{{ request.args.get('fecha_hasta','') }}"
+                       class="input">
+            </div>
+
+            <div class="filtro-group">
+                <label class="filtro-label">Tipo</label>
+                <select name="tipo" class="input input-select">
+                    <option value="">Todos los tipos</option>
+                    <option value="pdf"
+                        {{ 'selected' if request.args.get('tipo') == 'pdf' }}>
+                        PDF
+                    </option>
+                    <option value="xlsx"
+                        {{ 'selected' if request.args.get('tipo') == 'xlsx' }}>
+                        Excel
+                    </option>
+                    <option value="xlsm"
+                        {{ 'selected' if request.args.get('tipo') == 'xlsm' }}>
+                        Excel (Macro)
+                    </option>
+                    <option value="docx"
+                        {{ 'selected' if request.args.get('tipo') == 'docx' }}>
+                        Word
+                    </option>
+                </select>
+            </div>
+
+            <div class="filtro-group">
+                <label class="filtro-label">Fiscalizador</label>
+                <input type="text"
+                       name="fiscalizador"
+                       placeholder="Buscar fiscalizador..."
+                       value="{{ request.args.get('fiscalizador','') }}"
+                       class="input">
+            </div>
+
+            <div class="filtro-group filtro-buscar">
+                <label class="filtro-label">Buscar</label>
+                <div class="search-box">
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text"
+                           name="titulo"
+                           placeholder="Buscar por título..."
+                           value="{{ request.args.get('titulo','') }}"
+                           class="input search-input">
+                </div>
+            </div>
+
+            <div class="filtro-botones">
+                <button type="submit" class="btn btn-buscar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Buscar
+                </button>
+                <a href="{{ url_for('informes.admin_informes') }}"
+                   class="btn btn-limpiar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    Limpiar
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+        <!-- Barra de herramientas: contador de informes -->
+        <div class="card toolbar-card">
+        <div class="toolbar">
+            <div class="toolbar-info">
+                <span class="registros-count">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                    {{ informes|length }} informes
+                </span>
+            </div>
+            <div class="toolbar-actions"></div>
+        </div>
+    </div>
+
+        <!-- Tabla de informes: columnas con datos del fiscalizador, archivo, tipo y acciones -->
+        <div class="card tabla-card">
+
+        <div class="tabla-container">
+
+            {% if informes %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fiscalizador</th>
+                        <th>Fecha Guardia</th>
+                        <th>Título</th>
+                        <th>Descripción</th>
+                        <th>Archivo</th>
+                        <th>Tipo</th>
+                        <th>Registro</th>
+                        <th class="th-acciones">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in informes %}
+                    <tr>
+                        <td class="td-id">
+                            <span class="id-badge">{{ i.id_informe }}</span>
+                        </td>
+                        <td data-label="Fiscalizador">
+                            <div class="nombre-col">
+                                <div class="avatar">
+                                    {% if i.foto %}
+                                    <img src="{{ url_for('static', filename='fotos/' + i.foto) }}" alt="{{ i.fiscalizador }}" class="avatar-img">
+                                    {% else %}
+                                    {{ i.fiscalizador[0] }}
+                                    {% endif %}
+                                </div>
+                                <strong>{{ i.fiscalizador }}</strong>
+                            </div>
+                        </td>
+                        <td data-label="Fecha">
+                            <span class="badge-fecha">{{ i.fecha_guardia }}</span>
+                        </td>
+                        <td data-label="Título">
+                            <strong>{{ i.titulo }}</strong>
+                        </td>
+                        <td data-label="Descripción" class="td-desc">
+                            {{ i.descripcion }}
+                        </td>
+                        <td data-label="Archivo" class="td-archivo">
+                            <div class="archivo-cell">
+                                {% set ext = i.extension|lower %}
+                                {% if ext == 'pdf' %}
+                                    <svg class="file-icon pdf" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                {% elif ext in ('xlsx', 'xlsm') %}
+                                    <svg class="file-icon excel" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                {% elif ext == 'docx' %}
+                                    <svg class="file-icon word" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                {% else %}
+                                    <svg class="file-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                {% endif %}
+                                <span class="archivo-nombre">{{ i.nombre_archivo }}</span>
+                            </div>
+                        </td>
+                        <td data-label="Tipo">
+                            <span class="badge-tipo">{{ i.tipo_archivo|upper }}</span>
+                        </td>
+                        <td data-label="Registro" class="td-fecha">
+                            {{ i.fecha_subida }}
+                        </td>
+                        <td data-label="Acciones" class="acciones">
+                            <a class="btn-accion btn-ai"
+                               href="{{ url_for('informe.analizar_informe', id_informe=i.id_informe) }}"
+                               title="Analizar con IA">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="7" width="14" height="13" rx="3"/>
+                                    <circle cx="9.5" cy="12" r="1.5" fill="currentColor"/>
+                                    <circle cx="14.5" cy="12" r="1.5" fill="currentColor"/>
+                                    <line x1="9" y1="17" x2="15" y2="17"/>
+                                    <line x1="12" y1="3" x2="12" y2="7"/>
+                                    <circle cx="12" cy="3" r="1.5" fill="currentColor"/>
+                                </svg>
+                            </a>
+                            <a class="btn-accion btn-download"
+                               href="{{ url_for('informes.admin_descargar_informe', id_informe=i.id_informe) }}"
+                               title="Descargar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                            </a>
+                            <form method="POST"
+                                  action="{{ url_for('informes.admin_eliminar_informe', id_informe=i.id_informe) }}"
+                                  class="form-eliminar"
+                                  data-confirm="¿Eliminar este informe definitivamente?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit"
+                                        class="btn-accion btn-delete"
+                                        title="Eliminar">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <h3>No hay informes registrados</h3>
+                <p>No se encontraron informes con los filtros aplicados</p>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+document.querySelectorAll('.form-eliminar').forEach(function(f) {
+    f.addEventListener('submit', function(e) {
+        var msg = f.getAttribute('data-confirm');
+        if (msg && !confirm(msg)) {
+            e.preventDefault();
+        }
+    });
+});
+
+document.querySelectorAll('.alert-close').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var alert = btn.closest('.alert');
+        if (alert) alert.remove();
+    });
+});
+</script>
+
+</body>
+</html>

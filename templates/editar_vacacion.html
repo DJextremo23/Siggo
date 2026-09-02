@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editar Vacación — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/editar_form.css') }}">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+
+<body>
+
+<!-- Página: Editar Vacación (Administrador) — Modificación de fechas de una vacación existente -->
+
+{% set active_page = 'vacaciones' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- HEADER - Encabezado del formulario de edición -->
+    <div class="header-admin">
+        <h1>Editar Vacación</h1>
+        <p>Modifique las fechas de la vacación</p>
+    </div>
+
+    <!-- FORMULARIO - Campos para modificar fechas de inicio y fin -->
+    <div class="card">
+
+        <form method="POST" action="{{ url_for('actualizar_vacacion', id=data.id_vacacion) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="field">
+                <label for="inicio" class="field-label">Fecha de Inicio</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="text"
+                           id="inicio"
+                           name="fecha_inicio"
+                           value="{{ data.fecha_inicio }}"
+                           placeholder="AAAA-MM-DD"
+                           required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="fin" class="field-label">Fecha de Fin</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="text"
+                           id="fin"
+                           name="fecha_fin"
+                           value="{{ data.fecha_fin }}"
+                           placeholder="AAAA-MM-DD"
+                           required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('vacaciones') }}" class="btn btn-cancel">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-save">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Actualizar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- Flatpickr -->
+<script nonce="{{ csp_nonce() }}">
+flatpickr("#inicio", {
+    dateFormat: "Y-m-d"
+});
+
+flatpickr("#fin", {
+    dateFormat: "Y-m-d"
+});
+</script>
+
+<!-- SweetAlert -->
+{% if success %}
+<script nonce="{{ csp_nonce() }}">
+Swal.fire({
+    icon: 'success',
+    title: 'Actualizado',
+    text: 'La vacación se actualizó correctamente',
+    confirmButtonColor: '#27ae60'
+});
+</script>
+{% endif %}
+
+{% if error %}
+<script nonce="{{ csp_nonce() }}">
+Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text: '{{ error }}',
+    confirmButtonColor: '#e74c3c'
+});
+</script>
+{% endif %}
+
+</body>
+</html>

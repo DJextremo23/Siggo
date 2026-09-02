@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<!-- Página: Marcar Asistencia (vista del fiscalizador) — Permite al fiscalizador registrar su asistencia a guardias -->
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Asistencia — SIGGO</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/asistencia_fiscalizadores.css') }}">
+</head>
+
+<body>
+
+{% set active_page = 'mis_guardias' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- ENCABEZADO DE PÁGINA -->
+    <div class="page-header">
+        <div class="page-header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        </div>
+        <div class="page-header-text">
+            <h1>Mi Asistencia</h1>
+            <p>Marca tu asistencia según tu guardia asignada</p>
+        </div>
+    </div>
+
+    <!-- MENSAJES FLASH (éxito, error, advertencia, informativo) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="mensaje-flash mensaje-{{ 'exito' if category == 'success' else 'error' if category == 'danger' else 'info' }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            {% if category == 'success' %}
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+            {% elif category == 'danger' %}
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+            {% elif category == 'warning' %}
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+            {% else %}
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+            {% endif %}
+        </svg>
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- TARJETA CON LISTA DE ASISTENCIAS A GUARDIA -->
+    <div class="card">
+
+        <div class="tabla-header">
+            <h2>Lista de Asistencias a Guardia</h2>
+        </div>
+
+        <div class="tabla-container">
+
+            <table class="tabla-pro">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Día</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for d in datos %}
+
+                <tr>
+
+                    <!-- COLUMNA ID -->
+                    <td class="td-id" data-label="ID">
+                        <span class="id-badge">{{ d.id_guardia }}</span>
+                    </td>
+
+                    <!-- COLUMNA FECHA -->
+                    <td class="fecha" data-label="Fecha">
+                        {{ d.fecha_guardia }}
+                    </td>
+
+                    <!-- COLUMNA DÍA -->
+                    <td data-label="Día">
+                        {% if d.tipo_dia and d.tipo_dia|upper == 'FERIADO' %}
+                            <span class="badge badge-feriado">{{ d.dia_semana }} (Feriado)</span>
+                        {% else %}
+                            <span class="badge badge-dia">{{ d.dia_semana }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- COLUMNA ESTADO DE ASISTENCIA -->
+                    <td data-label="Estado">
+                        {% if d.asistencia == 'asistio' %}
+                            <span class="estado estado-ok">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Asististe
+                            </span>
+
+                        {% elif d.asistencia == 'falta' %}
+                            <span class="estado estado-bad">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                Falta
+                            </span>
+
+                        {% elif d.asistencia == 'justificado' %}
+                            <span class="estado estado-warn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                Justificado
+                            </span>
+
+                        {% else %}
+                            <span class="estado estado-pending">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Programada
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- COLUMNA ACCIÓN (marcar asistencia / estado bloqueado) -->
+                    <td class="accion-col" data-label="Acción">
+
+                        {% if d.estado_accion == 'registrado' %}
+
+                            <span class="estado estado-lock">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                Registrado
+                            </span>
+
+                        {% elif d.estado_accion == 'hoy' %}
+
+                            <form method="POST" action="{{ url_for('marcar_asistencia') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="id_guardia" value="{{ d.id_guardia }}">
+                                <button type="submit" class="btn-asistencia">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                    Marcar asistencia
+                                </button>
+                            </form>
+
+                        {% elif d.estado_accion == 'futuro' %}
+
+                            <span class="estado estado-pending">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Programada
+                            </span>
+
+                        {% else %}
+
+                            <span class="estado estado-lock">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                Cerrado
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% else %}
+
+                <tr>
+                    <td colspan="5" class="empty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <p class="empty-text">No tienes guardias asignadas</p>
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

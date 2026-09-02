@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+{# Descripción: Formulario de registro de nuevo usuario en el sistema SIGGO #}
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrar Usuario — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='registro.css') }}">
+</head>
+
+<body class="login-body">
+
+<div class="login-container registro-container">
+
+    <!-- SECCIÓN: Encabezado del formulario de registro -->
+    <div class="login-card registro-card">
+
+        <div class="login-header">
+            <h2>Registrar Usuario</h2>
+            <p>Complete los datos para crear una nueva cuenta</p>
+        </div>
+
+            <!-- SECCIÓN: Alerta de error en el registro -->
+            {% if error %}
+            <div class="alert-error">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('registro.registro') }}" method="POST" enctype="multipart/form-data" autocomplete="on">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <!-- SECCIÓN: Información personal del nuevo usuario -->
+                <div class="registro-section">
+                    <div class="registro-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Información Personal
+                    </div>
+
+                    <div class="registro-grid">
+                        <div class="field">
+                            <label class="field-label">Nombre</label>
+                            <div class="field-input">
+                                <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <input type="text" name="nombre" required autocomplete="given-name" placeholder="Nombre">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Apellidos</label>
+                            <div class="field-input">
+                                <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                <input type="text" name="apellidos" required autocomplete="family-name" placeholder="Apellidos">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Foto de perfil (opcional)</label>
+                        <div class="foto-upload-wrapper">
+                            <div class="foto-preview" id="fotoPreview">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span>Sin foto</span>
+                            </div>
+                            <label class="foto-upload-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                Seleccionar foto
+                                <input type="file" name="foto" id="fotoInput" accept="image/*">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: Datos de la cuenta de acceso -->
+                <div class="registro-section">
+                    <div class="registro-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        Datos de la Cuenta
+                    </div>
+
+                    <div class="registro-grid">
+                        <div class="field">
+                            <label class="field-label">Correo electrónico</label>
+                            <div class="field-input">
+                                <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                    <polyline points="22 6 12 13 2 6"/>
+                                </svg>
+                                <input type="email" name="correo" required placeholder="usuario@oigperu.com" autocomplete="email">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Usuario</label>
+                            <div class="field-input">
+                                <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <input type="text" name="usuario" required autocomplete="username" placeholder="Nombre de usuario">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: Contraseña y rol del sistema -->
+                <div class="registro-section">
+                    <div class="registro-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        Seguridad
+                    </div>
+
+                    <div class="registro-grid">
+                        <div class="field">
+                            <label class="field-label">Contraseña</label>
+                            <div class="field-input">
+                                <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                <input type="password" name="password" required autocomplete="new-password" placeholder="Mínimo 10 caracteres">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Confirmar contraseña</label>
+                            <div class="field-input">
+                                <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                <input type="password" name="confirm_password" required autocomplete="off" placeholder="Repita la contraseña">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Rol del sistema</label>
+                        <div class="field-input field-select">
+                            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <select name="rol" required>
+                                <option value="">Seleccione un rol</option>
+                                <option value="admin">Administrador</option>
+                                <option value="fiscalizador">Fiscalizador</option>
+                            </select>
+                            <svg class="field-select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: Botón de envío del formulario -->
+                <button type="submit" class="btn-login">
+                    <span>Registrar Usuario</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/>
+                        <line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                </button>
+
+            </form>
+
+        <!-- SECCIÓN: Pie del formulario con enlace a inicio de sesión -->
+        <div class="login-footer">
+            <p class="form-footer-text">¿Ya tiene una cuenta? <a href="{{ url_for('login.login') }}">Iniciar Sesión</a></p>
+        </div>
+
+    </div>
+
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+function previewFoto(input) {
+    var preview = document.getElementById('fotoPreview');
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = '<img src="' + e.target.result + '" alt="Vista previa">';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+document.getElementById('fotoInput').addEventListener('change', function() {
+    previewFoto(this);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,142 @@
+/* =========================
+   RESET BÁSICO
+========================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* =========================
+   LAYOUT GENERAL
+========================= */
+.container {
+    display: flex;
+}
+
+/* CONTENIDO PRINCIPAL */
+.content {
+    padding: 20px;
+    min-height: 100vh;
+    background: #f5f6fa;
+}
+
+/* =========================
+   HEADER
+========================= */
+.header-panel-pro {
+    margin-bottom: 20px;
+}
+
+.header-panel-pro h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* =========================
+   BOTONES
+========================= */
+.btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+}
+
+/* VERDE */
+.btn.edit {
+    background-color: #28a745;
+}
+
+.btn.edit:hover {
+    background-color: #218838;
+}
+
+/* AZUL */
+.btn.download {
+    background-color: #007bff;
+}
+
+.btn.download:hover {
+    background-color: #0056b3;
+}
+
+/* ROJO */
+.btn.cancel {
+    background-color: #dc3545;
+}
+
+.btn.cancel:hover {
+    background-color: #c82333;
+}
+
+/* =========================
+   ACCIONES SUPERIOR
+========================= */
+.acciones-superior {
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* =========================
+   CARDS / TABLAS
+========================= */
+.card {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tabla-card {
+    overflow-x: auto;
+}
+
+.tabla-pro {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-pro th,
+.tabla-pro td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+.tabla-pro th {
+    background-color: #f4f4f4;
+}
+
+/* =========================
+   FORMULARIOS
+========================= */
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+/* BOTÓN GENERAL FORM */
+button {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}

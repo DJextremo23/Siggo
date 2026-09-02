@@ -1,0 +1,144 @@
+<!-- Lista de fiscalizadores -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiscalizadores — SIGGO</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/lista_fiscalizadores.css') }}">
+
+</head>
+
+<body>
+
+{% set active_page = 'fiscalizadores' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <div class="page-header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+        </div>
+        <div class="page-header-text">
+            <h1>Fiscalizadores</h1>
+            <p>Listado de fiscalizadores activos en el sistema</p>
+        </div>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="card filtro-card">
+        <form id="form-buscar" method="GET" action="{{ url_for('fiscalizadores.fiscalizadores') }}" style="display:none;"></form>
+        <input
+            type="text"
+            id="buscador"
+            name="buscar"
+            placeholder="Buscar fiscalizador..."
+            value="{{ request.args.get('buscar','') }}"
+            form="form-buscar">
+    </div>
+
+    <!-- TABLA -->
+    <div class="card tabla-card">
+
+        <div class="tabla-header">
+            <h3>Listado de Fiscalizadores</h3>
+        </div>
+
+        <div class="tabla-container">
+            <table class="tabla-pro" id="tablaFiscalizadores">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre y Apellido</th>
+                        <th>Correo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for f in fiscalizadores %}
+                <tr>
+                    <td class="td-id"><span class="id-badge">{{ f.id_usuario }}</span></td>
+
+                    <td class="nombre-col">
+                        <div class="avatar">
+                            {% if f.foto %}
+                            <img src="{{ url_for('static', filename='fotos/' + f.foto) }}" alt="{{ f.nombre }}" class="avatar-img">
+                            {% else %}
+                            {{ f.nombre[0] }}{{ f.apellidos[0] }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong>{{ f.nombre }} {{ f.apellidos }}</strong>
+                        </div>
+                    </td>
+
+                    <td>{{ f.correo }}</td>
+
+                    <!-- 🔥 ESTADO CORREGIDO -->
+                    <td>
+                        {% set estado = f.estado|string|lower %}
+
+                        {% if estado in ['activo', '1', 'true', 'a'] %}
+                            <span class="estado activo">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Activo
+                            </span>
+                        {% else %}
+                            <span class="estado inactivo">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                Inactivo
+                            </span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- BUSCADOR -->
+<script nonce="{{ csp_nonce() }}">
+function filtrarTabla() {
+    let input = document.getElementById("buscador");
+    let filtro = input.value.toLowerCase();
+    let filas = document.querySelectorAll("#tablaFiscalizadores tbody tr");
+
+    filas.forEach(fila => {
+        let texto = fila.innerText.toLowerCase();
+        fila.style.display = texto.includes(filtro) ? "" : "none";
+    });
+}
+
+document.getElementById('buscador').addEventListener('keyup', filtrarTabla);
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('buscador').value !== '') {
+        filtrarTabla();
+    }
+});
+</script>
+
+</body>
+</html>

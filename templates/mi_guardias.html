@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!-- Página: Mis Guardias (vista del fiscalizador) — Historial de guardias registradas y su estado de asistencia -->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Guardias — SIGGO</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/mi_guardias.css') }}">
+</head>
+
+<body>
+
+{% set active_page = 'mis_guardias' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- ENCABEZADO DE PÁGINA -->
+    <div class="page-header">
+        <div class="page-header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        </div>
+        <div class="page-header-text">
+            <h1>Mis Guardias</h1>
+            <p>Consulta el historial de tus guardias registradas y su estado de asistencia.</p>
+        </div>
+    </div>
+
+    <!-- FILTROS DE BÚSQUEDA (año, fechas, asistencia, estado) -->
+    <div class="filtros-card">
+        <form method="GET" action="{{ url_for('mis_guardias') }}" class="filtro-form">
+
+            <div class="filtro-field">
+                <label for="anio" class="filtro-label">Año</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <input type="number" id="anio" name="anio" placeholder="Ej: 2025" min="2000" max="2099" value="{{ request.args.get('anio','') }}" class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="fecha_desde" class="filtro-label">Desde</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                        <polyline points="8 14 12 18 16 14"/>
+                    </svg>
+                    <input type="date" id="fecha_desde" name="fecha_desde" value="{{ request.args.get('fecha_desde','') }}" class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="fecha_hasta" class="filtro-label">Hasta</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                        <polyline points="8 10 12 6 16 10"/>
+                    </svg>
+                    <input type="date" id="fecha_hasta" name="fecha_hasta" value="{{ request.args.get('fecha_hasta','') }}" class="filtro-input">
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="asistencia" class="filtro-label">Asistencia</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <select name="asistencia" id="asistencia" class="filtro-input">
+                        <option value="">Todos</option>
+                        <option value="Asistió" {% if request.args.get('asistencia') == 'Asistió' %}selected{% endif %}>Asistió</option>
+                        <option value="Falta" {% if request.args.get('asistencia') == 'Falta' %}selected{% endif %}>Falta</option>
+                        <option value="Pendiente" {% if request.args.get('asistencia') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filtro-field">
+                <label for="estado_guardia" class="filtro-label">Estado</label>
+                <div class="filtro-input-wrap">
+                    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <select name="estado_guardia" id="estado_guardia" class="filtro-input">
+                        <option value="">Todos</option>
+                        <option value="realizada" {% if request.args.get('estado_guardia') == 'realizada' %}selected{% endif %}>Realizada</option>
+                        <option value="cancelada" {% if request.args.get('estado_guardia') == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                        <option value="programada" {% if request.args.get('estado_guardia') == 'programada' %}selected{% endif %}>Programada</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filtro-actions">
+                <button type="submit" class="btn-filtrar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Buscar
+                </button>
+
+                <a href="{{ url_for('mis_guardias') }}" class="btn-limpiar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    Limpiar
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- TABLA DE HISTORIAL DE GUARDIAS -->
+    <div class="tabla-card">
+        <table class="tabla-pro">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha Guardia</th>
+                    <th>Día</th>
+                    <th>Asistencia</th>
+                    <th>Estado</th>
+                    <th>Fecha Compensación</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% if guardias %}
+
+                {% for g in guardias %}
+
+                <tr>
+                    <td class="td-id">
+                        <span class="id-badge">{{ g.id_guardia }}</span>
+                    </td>
+                    <td>{{ g.fecha_guardia }}</td>
+
+                    <td>{{ g.dia_semana }}</td>
+
+                    <td>
+                        {% if g.asistencia == 'Asistió' %}
+                            <span class="badge aprobado">Asistió</span>
+                        {% elif g.asistencia == 'Falta' %}
+                            <span class="badge falta">Falta</span>
+                        {% else %}
+                            <span class="badge gris">Pendiente</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if g.estado_guardia == 'realizada' %}
+                            <span class="badge aprobado">Realizada</span>
+                        {% elif g.estado_guardia == 'cancelada' %}
+                            <span class="badge falta">Cancelada</span>
+                        {% elif g.estado_guardia == 'programada' %}
+                            <span class="badge gris">Programada</span>
+                        {% else %}
+                            <span class="badge gris">{{ g.estado_guardia or 'Pendiente' }}</span>
+                        {% endif %}
+                    </td>
+
+                    <td>{{ g.fecha_compensacion or '—' }}</td>
+
+                </tr>
+                {% endfor %}
+
+            {% else %}
+
+                <tr>
+                    <td colspan="6" class="vacio">No hay guardias registradas</td>
+                </tr>
+
+            {% endif %}
+
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

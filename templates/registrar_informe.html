@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Informe — SIGGO</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='fiscal/editar_informe.css') }}">
+</head>
+
+<body>
+
+{% set active_page = 'mis_informes' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    <!-- Página: Registrar Informe — Formulario para subir un nuevo informe de fiscalización -->
+
+    <!-- Cabecera de la página -->
+    <div class="page-header">
+        <div class="page-header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+        </div>
+        <div class="page-header-text">
+            <h1>Registrar Informe</h1>
+            <p>Sube un archivo Excel o Word asociado a una guardia</p>
+        </div>
+    </div>
+
+    <!-- Formulario de registro: selección de guardia, título, descripción, archivo y botones de acción -->
+    <div class="card">
+
+        <div class="form-header-bar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Formulario de registro</span>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="edit-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <!-- GUARDIA -->
+            <div class="field">
+                <label for="id_guardia" class="field-label">Guardia</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <select name="id_guardia"
+                            id="id_guardia"
+                            required>
+                        <option value="">Seleccione guardia</option>
+                        {% for g in guardias %}
+                            <option value="{{ g.id_guardia }}">
+                                {{ g.fecha_guardia }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- TITULO -->
+            <div class="field">
+                <label for="titulo" class="field-label">Título</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <input type="text"
+                           id="titulo"
+                           name="titulo"
+                           placeholder="Título del informe"
+                           required>
+                </div>
+            </div>
+
+            <!-- DESCRIPCION -->
+            <div class="field">
+                <label for="descripcion" class="field-label">Descripción</label>
+                <div class="field-input field-input-textarea">
+                    <svg class="field-icon field-icon-top" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                    <textarea id="descripcion"
+                              name="descripcion"
+                              rows="4"
+                              placeholder="Descripción del informe"></textarea>
+                </div>
+            </div>
+
+            <!-- ARCHIVO -->
+            <div class="field">
+                <label for="archivo" class="field-label">Archivo (PDF, Excel o Word)</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <input type="file"
+                           id="archivo"
+                           name="archivo"
+                           accept=".xlsx,.xlsm,.xls,.docx,.doc"
+                           required
+                           class="file-input">
+                </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Guardar Informe
+                </button>
+
+                <a href="{{ url_for('informe.mis_informes') }}"
+                   class="btn-cancel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Cancelar
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

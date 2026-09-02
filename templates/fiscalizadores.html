@@ -1,0 +1,350 @@
+<!-- Lista de usuarios (admin) -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/fiscalizadores.css') }}">
+</head>
+
+<body>
+
+<div class="layout">
+
+    {% set active_page = 'fiscalizadores' %}
+    {% include 'menu.html' %}
+
+    <div class="content">
+
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
+            <div class="page-header-text">
+                <h1>Panel de usuarios</h1>
+                <p>Control y monitoreo anual del personal fiscalizador</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="alert error" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ 'success' if category == 'success' else 'error' }}" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                {% if category == 'success' %}
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+                {% else %}
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                {% endif %}
+            </svg>
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- KPI CARDS -->
+        <div class="kpi-grid">
+
+            <div class="kpi-card blue">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Total usuarios</h4>
+                    <p class="kpi-number">{{ fiscalizadores|length }}</p>
+                </div>
+            </div>
+
+            <div class="kpi-card green">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Usuarios Activos</h4>
+                    <p class="kpi-number">{{
+                        fiscalizadores
+                        | selectattr("estado", "equalto", "activo")
+                        | list
+                        | length
+                    }}</p>
+                </div>
+            </div>
+
+            <div class="kpi-card red">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Usuarios inactivos</h4>
+                    <p class="kpi-number">{{
+                        fiscalizadores
+                        | selectattr("estado", "equalto", "inactivo")
+                        | list
+                        | length
+                    }}</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BARRA DE ACCIONES -->
+        <div class="acciones-bar">
+            <div class="buscador-wrapper">
+                <svg class="buscador-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                    type="text"
+                    id="buscador"
+                    placeholder="Buscar usuario..."
+                    aria-label="Buscar usuario"
+                    value="{{ request.args.get('buscar','') }}"
+                >
+            </div>
+
+            <a href="{{ url_for('registro.registro') }}" class="btn-agregar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>Nuevo usuario</span>
+            </a>
+
+        </div>
+
+        <!-- TABLA -->
+        <div class="card tabla-card">
+
+            <div class="card-header">
+                <h3>Listado de usuarios</h3>
+            </div>
+
+            <div class="tabla-container">
+
+                {% if fiscalizadores %}
+                <table id="tablaFiscalizadores" class="tabla-pro">
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre y apellidos</th>
+                            <th>Correo</th>
+                            <th>Usuario</th>
+                            <th>Roles</th>
+                            <th>Estado</th>
+                            <th class="th-acciones">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for f in fiscalizadores %}
+
+                    <tr>
+                        <td class="td-id">
+                            <span class="id-badge">{{ f.id_usuario }}</span>
+                        </td>
+
+                        <td class="nombre-col">
+                            <div class="avatar">
+                                {% if f.foto %}
+                                <img src="{{ url_for('static', filename='fotos/' + f.foto) }}" alt="{{ f.nombre }}" class="avatar-img">
+                                {% else %}
+                                {{ f.nombre[0] }}{{ f.apellidos[0] }}
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>{{ f.nombre }} {{ f.apellidos }}</strong>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="correo-text">{{ f.correo }}</span>
+                        </td>
+
+                        <td>
+                            <span class="usuario-text">{{ f.usuario }}</span>
+                        </td>
+
+                        <td>
+                            <span class="rol-badge">{{ f.roles }}</span>
+                        </td>
+
+                        <td>
+                            {% if f.estado == 'activo' %}
+                                <span class="estado activo">Activo</span>
+                            {% else %}
+                                <span class="estado inactivo">Inactivo</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="td-acciones">
+                            <div class="acciones-tabla">
+
+                                <a href="{{ url_for('fiscalizadores.editar_usuario', id=f.id_usuario) }}"
+                                   class="btn-icon btn-editar"
+                                   title="Editar usuario">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </a>
+
+                                <a href="#"
+                                   class="btn-icon btn-estado"
+                                   title="Cambiar estado"
+                                   data-toggle-url="{{ url_for('fiscalizadores.toggle_usuario', id=f.id_usuario) }}">
+                                    {% if f.estado == 'activo' %}
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                    </svg>
+                                    {% else %}
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                        <line x1="3" y1="3" x2="21" y2="21"/>
+                                    </svg>
+                                    {% endif %}
+                                </a>
+
+                                <a href="#"
+                                   class="btn-icon btn-eliminar"
+                                   title="Eliminar usuario"
+                                   data-delete-url="{{ url_for('fiscalizadores.eliminar_usuario', id=f.id_usuario) }}">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        <line x1="10" y1="11" x2="10" y2="17"/>
+                                        <line x1="14" y1="11" x2="14" y2="17"/>
+                                    </svg>
+                                </a>
+
+                            </div>
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+                {% else %}
+
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <line x1="17" y1="11" x2="23" y2="11"/>
+                    </svg>
+                    <h3>No hay usuarios registrados</h3>
+                    <p>Comience agregando un nuevo usuario</p>
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+function filtrarTabla() {
+    var input = document.getElementById("buscador");
+    if (!input) return;
+    var filtro = input.value.toLowerCase();
+    var tabla = document.getElementById("tablaFiscalizadores");
+    if (!tabla) return;
+    var filas = tabla.getElementsByTagName("tr");
+
+    for (var i = 1; i < filas.length; i++) {
+        var texto = filas[i].innerText.toLowerCase();
+        filas[i].style.display = texto.includes(filtro) ? "" : "none";
+    }
+}
+
+function confirmarPost(url, msg) {
+    if (msg && !confirm(msg)) return false;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+    var csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+    document.body.appendChild(form);
+    form.submit();
+    return false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var buscador = document.getElementById("buscador");
+    if (buscador) {
+        buscador.addEventListener("input", filtrarTabla);
+        if (buscador.value !== '') {
+            filtrarTabla();
+        }
+    }
+
+    var toggleBtns = document.querySelectorAll(".btn-estado");
+    for (var t = 0; t < toggleBtns.length; t++) {
+        toggleBtns[t].addEventListener("click", function(e) {
+            e.preventDefault();
+            confirmarPost(this.getAttribute("data-toggle-url"));
+        });
+    }
+
+    var deleteBtns = document.querySelectorAll(".btn-eliminar");
+    for (var d = 0; d < deleteBtns.length; d++) {
+        deleteBtns[d].addEventListener("click", function(e) {
+            e.preventDefault();
+            confirmarPost(this.getAttribute("data-delete-url"), "¿Seguro que deseas eliminar este usuario?");
+        });
+    }
+});
+</script>
+
+</body>
+</html>

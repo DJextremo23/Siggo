@@ -1,0 +1,272 @@
+/* =============================================
+   VARIABLES — alineadas con login.html
+   ============================================= */
+:root {
+    --color-primario: #0f172a;
+    --color-secundario: #1e293b;
+    --color-acento: #3b82f6;
+    --color-hover: #2563eb;
+    --color-texto: #e2e8f0;
+    --color-blanco: #ffffff;
+    --color-error: #ef4444;
+    --color-verde: #22c55e;
+
+    --bg-main: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+
+    --radius: 12px;
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --transition: 0.25s ease;
+}
+
+/* =============================================
+   RESET
+   ============================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-main);
+}
+
+/* =============================================
+   CONTENT (sidebar width from menu.css)
+   ============================================= */
+.content {
+    padding: 30px;
+}
+
+/* =============================================
+   PAGE HEADER — icono + título + subtítulo
+   ============================================= */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.page-header-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-acento);
+}
+
+.page-header-text h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.page-header-text p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.subtitulo {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+/* =============================================
+   CARDS
+   ============================================= */
+.card {
+    background: var(--bg-card);
+    padding: 22px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+/* =============================================
+   FILTRO / BUSCADOR
+   ============================================= */
+.filtro-card {
+    padding: 16px 22px;
+}
+
+.filtro-card input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 14px;
+    background: #f8fafc;
+    font-family: inherit;
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.filtro-card input:focus {
+    border-color: var(--color-acento);
+    background: var(--bg-card);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.filtro-card input::placeholder {
+    color: #94a3b8;
+}
+
+/* =============================================
+   TABLA HEADER
+   ============================================= */
+.tabla-header {
+    margin-bottom: 16px;
+}
+
+.tabla-header h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* =============================================
+   TABLA — collapsed, estilo estándar
+   ============================================= */
+.tabla-container {
+    overflow-x: auto;
+}
+
+.tabla-pro {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.tabla-pro thead th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.tabla-pro th:nth-child(4),
+.tabla-pro td:nth-child(4) {
+    text-align: center;
+}
+
+.tabla-pro tbody tr {
+    transition: background var(--transition);
+}
+
+.tabla-pro tbody tr:hover {
+    background: #f8fafc;
+}
+
+.tabla-pro td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.tabla-pro td:first-child {
+    font-weight: 600;
+    color: #334155;
+}
+
+/* =============================================
+   NOMBRE + AVATAR
+   ============================================= */
+.nombre-col {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-acento), var(--color-hover));
+    color: var(--color-blanco);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.avatar .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* =============================================
+   ESTADO — sólido, estilo estándar
+   ============================================= */
+.estado {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-blanco);
+    min-width: 90px;
+}
+
+.estado.activo {
+    background: var(--color-verde);
+}
+
+.estado.inactivo {
+    background: var(--color-error);
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 768px) {
+    .content {
+        margin-left: 0;
+        padding: 16px;
+        padding-top: 64px;
+    }
+
+    .page-header {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .page-header-text h1 {
+        font-size: 22px;
+    }
+
+    .tabla-pro td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .avatar {
+        width: 34px;
+        height: 34px;
+        font-size: 12px;
+    }
+}

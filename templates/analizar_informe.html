@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis IA — SIGGO</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/mis_informes.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/analizar_informe.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+
+<body>
+
+{% set active_page = 'mis_informes' %}
+{% include 'menu.html' %}
+
+<div class="content">
+    <div class="analisis-container">
+
+        <!-- Página: Análisis IA de Informe — Gemini analiza el documento y genera gráficas automáticamente -->
+
+        <!-- Cabecera de la página y botones de navegación -->
+        <div class="page-header">
+            <div class="page-header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </div>
+            <div class="page-header-text">
+                <h1>Analisis con IA</h1>
+                <p>analiza tu documento con IA y genera tu ppt</p>
+            </div>
+        </div>
+        <div class="header-actions" style="margin-bottom: 24px;">
+            <a href="{{ url_for('informes.admin_informes') if session.get('perfil_activo') == 'admin' else url_for('informe.mis_informes') }}" class="btn-volver">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Volver
+            </a>
+            <button class="btn-reanalizar" id="btn-reanalizar" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Re-analizar
+            </button>
+            <button class="btn-ppt" id="btn-ppt" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <polyline points="8 20 12 4 16 20"/>
+                    <line x1="12" y1="12" x2="12" y2="12"/>
+                    <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                </svg>
+                Generar PPT
+            </button>
+        </div>
+
+        <!-- Información del documento analizado: título, archivo, tipo y fecha de guardia -->
+        <div class="doc-info-card">
+            <div class="card-header">
+                <div class="icon-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <h2>Documento analizado</h2>
+            </div>
+            <div class="doc-info-grid">
+                <div class="doc-info-item">
+                    <span class="label">Titulo</span>
+                    <span class="value">{{ informe.titulo }}</span>
+                </div>
+                <div class="doc-info-item">
+                    <span class="label">Archivo</span>
+                    <span class="value">{{ informe.nombre_archivo }}</span>
+                </div>
+                <div class="doc-info-item">
+                    <span class="label">Tipo</span>
+                    <span class="value">{{ informe.tipo_archivo|upper }}</span>
+                </div>
+                <div class="doc-info-item">
+                    <span class="label">Fecha Guardia</span>
+                    <span class="value">{{ informe.fecha_guardia }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de carga: partículas animadas, barra de progreso (3 pasos) y mensajes de estado -->
+        <div class="loading-stage active" id="loading-stage">
+            <div class="loading-particles" id="particles"></div>
+            <div class="ai-orb">
+                <div class="ring"></div>
+                <div class="ring"></div>
+                <div class="ring"></div>
+                <div class="core">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="7" width="14" height="13" rx="3"/>
+                        <circle cx="9.5" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="14.5" cy="12" r="1.5" fill="currentColor"/>
+                        <line x1="9" y1="17" x2="15" y2="17"/>
+                        <line x1="12" y1="3" x2="12" y2="7"/>
+                        <circle cx="12" cy="3" r="1.5" fill="currentColor"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="progress-steps">
+                <div class="progress-step" id="step-extract">
+                    <span class="step-dot">1</span>
+                    <span>Extrayendo texto</span>
+                </div>
+                <div class="progress-connector" id="conn-1"></div>
+                <div class="progress-step" id="step-ai">
+                    <span class="step-dot">2</span>
+                    <span>Analizando con IA</span>
+                </div>
+                <div class="progress-connector" id="conn-2"></div>
+                <div class="progress-step" id="step-charts">
+                    <span class="step-dot">3</span>
+                    <span>Generando graficas</span>
+                </div>
+            </div>
+            <p class="loading-message typing-dots" id="loading-message">Preparando analisis</p>
+            <p class="loading-sub" id="loading-sub">Conectando con Gemini AI...</p>
+        </div>
+
+        <!-- Tarjeta de error: se muestra si falla el análisis (con reintentos automáticos por cuota) -->
+        <div class="error-card" id="error-card">
+            <div class="error-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+            <strong id="error-message"></strong>
+        </div>
+
+        <!-- Resultados del análisis: resumen ejecutivo, gráficas generadas y módulos 2 al 5 -->
+        <div class="resultados-wrapper" id="resultados-wrapper">
+            <!-- Resumen -->
+            <div class="result-card" id="resumen-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon resumen">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <h2>Resumen Ejecutivo</h2>
+                </div>
+                <div class="result-body">
+                    <div class="resumen-texto" id="resumen-texto"></div>
+                </div>
+            </div>
+
+            <!-- Graficas -->
+            <div class="graficas-grid" id="graficas-grid"></div>
+
+            <!-- MODULO 2: Eficacia por Taller -->
+            <div class="result-card" id="modulo2-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon modulo2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                    </div>
+                    <h2>MODULO 2: Control de Actividades y Eficacia por Taller</h2>
+                </div>
+                <div class="result-body">
+                    <div class="table-responsive" id="modulo2-tabla"></div>
+                </div>
+            </div>
+
+            <!-- MODULO 3: Trabajos Importantes -->
+            <div class="result-card" id="modulo3-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon modulo3">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </div>
+                    <h2>MODULO 3: Matriz de Trabajos Importantes (Celdas Amarillas)</h2>
+                </div>
+                <div class="result-body">
+                    <div id="modulo3-resumen-num"></div>
+                    <div class="table-responsive" id="modulo3-tabla"></div>
+                </div>
+            </div>
+
+            <!-- MODULO 4: Resumen Operativo Adicional -->
+            <div class="result-card" id="modulo4-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon modulo4">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                    <h2>MODULO 4: Resumen Operativo Adicional</h2>
+                </div>
+                <div class="result-body">
+                    <div class="modulo4-grid" id="modulo4-bopd"></div>
+                    <div class="modulo4-grid" id="modulo4-tipos"></div>
+                </div>
+            </div>
+
+            <!-- MODULO 5: Pendientes -->
+            <div class="result-card" id="modulo5-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon modulo5">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <h2>MODULO 5: Reporte de Actividades Pendientes</h2>
+                </div>
+                <div class="result-body">
+                    <div class="table-responsive" id="modulo5-tabla"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+Chart.register(ChartDataLabels);
+
+const INFORME_ID = {{ informe.id_informe }};
+let charts = [];
+let analisisData = null;
+let intentosAutoRetry = 0;
+let maxIntentosAutoRetry = 3;
+
+function destruirGraficas() {
+    charts.forEach(c => c.destroy());
+    charts = [];
+}
+
+function setPaso(stepNumber) {
+    document.querySelectorAll('.progress-step').forEach(el => el.classList.remove('active', 'done'));
+    document.querySelectorAll('.progress-connector').forEach(el => el.classList.remove('done'));
+
+    const steps = ['step-extract', 'step-ai', 'step-charts'];
+    const conns = ['conn-1', 'conn-2'];
+
+    steps.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (i < stepNumber - 1) {
+            el.classList.add('done');
+            el.querySelector('.step-dot').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        } else if (i === stepNumber - 1) {
+            el.classList.add('active');
+            el.querySelector('.step-dot').textContent = i + 1;
+        }
+    });
+    conns.forEach((id, i) => {
+        if (i < stepNumber - 1) document.getElementById(id).classList.add('done');
+    });
+}
+
+function mostrarError(mensaje) {
+    document.getElementById('loading-stage').classList.remove('active');
+    document.getElementById('error-card').classList.add('active');
+    document.getElementById('error-message').textContent = mensaje;
+    document.getElementById('resultados-wrapper').classList.remove('active');
+    document.getElementById('btn-reanalizar').style.display = 'inline-flex';
+
+    const esCuota = /límite de cuota|cuota|quota|RESOURCE_EXHAUSTED/i.test(mensaje);
+    if (esCuota && intentosAutoRetry < maxIntentosAutoRetry) {
+        intentosAutoRetry++;
+        const espera = intentosAutoRetry * 30;
+        document.getElementById('error-message').textContent =
+            mensaje + ' Reintentando automaticamente en ' + espera + 's (intento ' + intentosAutoRetry + '/' + maxIntentosAutoRetry + ')...';
+        document.getElementById('btn-reanalizar').style.display = 'none';
+        setTimeout(function() {
+            document.getElementById('error-card').classList.remove('active');
+            iniciarAnalisis(true);
+        }, espera * 1000);
+    }
+}
+
+function mostrarResultados(data) {
+    document.getElementById('loading-stage').classList.remove('active');
+    document.getElementById('error-card').classList.remove('active');
+    document.getElementById('resultados-wrapper').classList.add('active');
+    document.getElementById('btn-reanalizar').style.display = 'inline-flex';
+    document.getElementById('btn-ppt').style.display = 'inline-flex';
+
+    analisisData = data;
+
+    destruirGraficas();
+
+    // Resumen
+    const resumenCard = document.getElementById('resumen-card');
+    if (data.resumen) {
+        resumenCard.style.display = 'block';
+        resumenCard.style.animation = 'none';
+        resumenCard.offsetHeight;
+        resumenCard.style.animation = 'card-enter .5s ease backwards';
+        document.getElementById('resumen-texto').textContent = data.resumen;
+    } else {
+        resumenCard.style.display = 'none';
+    }
+
+    // MODULO 2: Eficacia por Taller
+    const modulo2Card = document.getElementById('modulo2-card');
+    if (data.modulo2_eficacia_taller && data.modulo2_eficacia_taller.length > 0) {
+        modulo2Card.style.display = 'block';
+        modulo2Card.style.animation = 'none';
+        modulo2Card.offsetHeight;
+        modulo2Card.style.animation = 'card-enter .5s .2s ease backwards';
+        let html2 = '<table class="data-table"><thead><tr><th>Taller Unificado</th><th>Ejecutadas</th><th>Completadas 100%</th><th>Eficacia %</th></tr></thead><tbody>';
+        data.modulo2_eficacia_taller.forEach(row => {
+            const eficacia = row.eficacia != null ? Number(row.eficacia).toFixed(1) + '%' : 'N/A';
+            html2 += `<tr><td><strong>${row.taller || ''}</strong></td><td>${row.ejecutadas ?? '-'}</td><td>${row.completadas ?? '-'}</td><td><span class="badge-efficiency">${eficacia}</span></td></tr>`;
+        });
+        html2 += '</tbody></table>';
+        document.getElementById('modulo2-tabla').innerHTML = html2;
+    } else {
+        modulo2Card.style.display = 'none';
+    }
+
+    // MODULO 3: Trabajos Importantes
+    const modulo3Card = document.getElementById('modulo3-card');
+    if (data.modulo3_trabajos_importantes && data.modulo3_trabajos_importantes.length > 0) {
+        modulo3Card.style.display = 'block';
+        modulo3Card.style.animation = 'none';
+        modulo3Card.offsetHeight;
+        modulo3Card.style.animation = 'card-enter .5s .3s ease backwards';
+        const totalCriticos = data.modulo3_trabajos_importantes.length;
+        document.getElementById('modulo3-resumen-num').innerHTML = `<p class="resumen-criticos"><strong>Total de trabajos importantes/críticos identificados: ${totalCriticos}</strong></p>`;
+        let html3 = '<table class="data-table"><thead><tr><th>Taller</th><th>Pozo (Celda Amarilla)</th><th>Falla Detectada</th><th>Solución Operativa</th></tr></thead><tbody>';
+        data.modulo3_trabajos_importantes.forEach(row => {
+            html3 += `<tr><td><strong>${row.taller || ''}</strong></td><td>${row.pozo || ''}</td><td>${row.falla || ''}</td><td>${row.solucion || ''}</td></tr>`;
+        });
+        html3 += '</tbody></table>';
+        document.getElementById('modulo3-tabla').innerHTML = html3;
+    } else {
+        modulo3Card.style.display = 'none';
+    }
+
+    // MODULO 4: Resumen Operativo Adicional
+    const modulo4Card = document.getElementById('modulo4-card');
+    if (data.modulo4_resumen_operativo && (Object.keys(data.modulo4_resumen_operativo.bopd_por_taller || {}).length > 0 || Object.keys(data.modulo4_resumen_operativo.trabajos_por_tipo || {}).length > 0)) {
+        modulo4Card.style.display = 'block';
+        modulo4Card.style.animation = 'none';
+        modulo4Card.offsetHeight;
+        modulo4Card.style.animation = 'card-enter .5s .35s ease backwards';
+        let htmlBopd = '<h4 class="sub-title">Volumen CNP Recuperado por Taller (BOPD)</h4><table class="data-table"><thead><tr><th>Taller</th><th>BOPD Recuperados</th></tr></thead><tbody>';
+        const bopd = data.modulo4_resumen_operativo.bopd_por_taller || {};
+        let totalBopd = 0;
+        Object.entries(bopd).forEach(([taller, valor]) => {
+            htmlBopd += `<tr><td><strong>${taller}</strong></td><td>${valor}</td></tr>`;
+            totalBopd += Number(valor) || 0;
+        });
+        htmlBopd += `<tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${totalBopd}</strong></td></tr></tbody></table>`;
+        document.getElementById('modulo4-bopd').innerHTML = htmlBopd;
+
+        let htmlTipos = '<h4 class="sub-title">Cantidad de Trabajos por Tipo</h4><table class="data-table"><thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead><tbody>';
+        const tipos = data.modulo4_resumen_operativo.trabajos_por_tipo || {};
+        Object.entries(tipos).forEach(([tipo, cantidad]) => {
+            htmlTipos += `<tr><td><strong>${tipo}</strong></td><td>${cantidad}</td></tr>`;
+        });
+        htmlTipos += '</tbody></table>';
+        document.getElementById('modulo4-tipos').innerHTML = htmlTipos;
+    } else {
+        modulo4Card.style.display = 'none';
+    }
+
+    // MODULO 5: Pendientes
+    const modulo5Card = document.getElementById('modulo5-card');
+    if (data.modulo5_pendientes && data.modulo5_pendientes.length > 0) {
+        modulo5Card.style.display = 'block';
+        modulo5Card.style.animation = 'none';
+        modulo5Card.offsetHeight;
+        modulo5Card.style.animation = 'card-enter .5s .4s ease backwards';
+        let html5 = '<table class="data-table"><thead><tr><th>Taller</th><th>Pozo</th><th>Requerimiento</th><th>Estado</th></tr></thead><tbody>';
+        data.modulo5_pendientes.forEach(row => {
+            html5 += `<tr><td><strong>${row.taller || ''}</strong></td><td>${row.pozo || ''}</td><td>${row.requerimiento || ''}</td><td><span class="badge-pending">${row.estado || 'Pendiente'}</span></td></tr>`;
+        });
+        html5 += '</tbody></table>';
+        document.getElementById('modulo5-tabla').innerHTML = html5;
+    } else {
+        modulo5Card.style.display = 'none';
+    }
+
+    // Graficas
+    const grid = document.getElementById('graficas-grid');
+    grid.innerHTML = '';
+
+    if (data.graficas && data.graficas.length > 0) {
+        data.graficas.forEach((g, idx) => {
+            const card = document.createElement('div');
+            card.className = 'grafica-card';
+            card.style.animation = `card-enter .6s ${0.3 + idx * 0.15}s ease backwards`;
+
+            const titulo = document.createElement('h3');
+            titulo.textContent = g.titulo || 'Grafica ' + (idx + 1);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'grafica-wrapper';
+
+            const canvas = document.createElement('canvas');
+            canvas.id = 'grafica-' + idx;
+
+            wrapper.appendChild(canvas);
+            card.appendChild(titulo);
+            card.appendChild(wrapper);
+            grid.appendChild(card);
+
+            const ctx = canvas.getContext('2d');
+            const tipo = g.tipo || 'bar';
+            const labels = g.labels || [];
+            const isPieLike = tipo === 'pie' || tipo === 'doughnut' || tipo === 'polarArea';
+            const isRadarLinear = tipo === 'radar' || tipo === 'line';
+
+            // Paleta profesional por dataset
+            const paletas = [
+                ['#1e3a5f', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'],
+                ['#14532d', '#16a34a', '#22c55e', '#4ade80', '#86efac'],
+                ['#7c2d12', '#ea580c', '#f97316', '#fb923c', '#fdba74'],
+                ['#4a1d96', '#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd'],
+                ['#831843', '#db2777', '#ec4899', '#f472b6', '#f9a8d4'],
+                ['#164e63', '#0891b2', '#06b6d4', '#22d3ee', '#67e8f9'],
+                ['#1e293b', '#475569', '#64748b', '#94a3b8', '#cbd5e1']
+            ];
+
+            const datasets = (g.datasets || []).map((ds, dsIdx) => {
+                const paleta = ds.backgroundColor || paletas[dsIdx % paletas.length];
+                const esSolo = (g.datasets || []).length === 1;
+                // Para dataset único, usa la paleta de colores como backgroundColor multicolor
+                const bg = (esSolo && !ds.backgroundColor)
+                    ? labels.map((_, i) => paleta[i % paleta.length])
+                    : paleta;
+                return {
+                    label: ds.label || 'Serie',
+                    data: ds.data || [],
+                    backgroundColor: bg,
+                    borderColor: esSolo ? 'transparent' : (Array.isArray(paleta) ? paleta[0] : paleta),
+                    borderWidth: tipo === 'bar' ? 0 : 1.5,
+                    borderRadius: tipo === 'bar' ? 6 : undefined,
+                    borderSkipped: false,
+                    barPercentage: 0.75,
+                    categoryPercentage: 0.7,
+                    tension: isRadarLinear ? 0.35 : undefined,
+                    fill: tipo === 'line' ? { target: 'origin', above: 'rgba(37,99,235,0.08)' } : undefined,
+                    pointBackgroundColor: tipo === 'line' ? (Array.isArray(paleta) ? paleta[0] : paleta) : undefined,
+                    pointBorderColor: tipo === 'line' ? '#fff' : undefined,
+                    pointBorderWidth: tipo === 'line' ? 2 : undefined,
+                    pointRadius: tipo === 'line' ? 4.5 : undefined,
+                    pointHoverRadius: tipo === 'line' ? 7 : undefined,
+                    hoverBorderWidth: 3
+                };
+            });
+
+            const chart = new Chart(ctx, {
+                type: tipo,
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    devicePixelRatio: 2,
+                    animation: {
+                        duration: 1200,
+                        easing: 'easeOutCubic'
+                    },
+                    layout: {
+                        padding: { top: 10, bottom: 5 }
+                    },
+                    plugins: {
+                        datalabels: isPieLike ? {
+                            color: '#fff',
+                            font: { size: 12, weight: '700', family: "'Inter','Segoe UI',sans-serif" },
+                            formatter: function(value, context) {
+                                const dataset = context.chart.data.datasets[context.datasetIndex];
+                                const total = dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return pct + '%';
+                            },
+                            display: function(context) {
+                                const dataset = context.chart.data.datasets[context.datasetIndex];
+                                const total = dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? Math.round((context.dataset.data[context.dataIndex] / total) * 100) : 0;
+                                return pct >= 4;
+                            },
+                            anchor: 'center',
+                            clamp: true
+                        } : {
+                            display: false
+                        },
+                        legend: {
+                            position: 'bottom',
+                            align: 'center',
+                            labels: {
+                                padding: 28,
+                                usePointStyle: true,
+                                pointStyle: 'rectRounded',
+                                pointStyleWidth: 10,
+                                pointStyleHeight: 10,
+                                borderRadius: 3,
+                                font: { size: 12, family: "'Inter', 'Segoe UI', system-ui, sans-serif", weight: '500' },
+                                color: '#475569',
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    return data.datasets.map((ds, i) => ({
+                                        text: ds.label,
+                                        fillStyle: Array.isArray(ds.backgroundColor)
+                                            ? ds.backgroundColor[0]
+                                            : ds.backgroundColor,
+                                        strokeStyle: ds.borderColor,
+                                        lineWidth: 0,
+                                        hidden: !chart.isDatasetVisible(i),
+                                        index: i,
+                                        borderRadius: 3,
+                                        pointStyle: 'rectRounded'
+                                    }));
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15,23,42,0.92)',
+                            titleFont: { size: 13, weight: '700', family: "'Inter','Segoe UI',sans-serif" },
+                            bodyFont: { size: 12, weight: '500', family: "'Inter','Segoe UI',sans-serif" },
+                            padding: 14,
+                            cornerRadius: 10,
+                            displayColors: true,
+                            usePointStyle: true,
+                            boxPadding: 4,
+                            titleMarginBottom: 8,
+                            bodySpacing: 5,
+                            borderColor: 'rgba(255,255,255,0.08)',
+                            borderWidth: 1,
+                            callbacks: isPieLike ? {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const dataset = context.dataset;
+                                    const total = dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return ' ' + label + ': ' + value + ' (' + pct + '%)';
+                                }
+                            } : undefined
+                        }
+                    },
+                    scales: isPieLike ? {} : {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 11, family: "'Inter','Segoe UI',sans-serif", weight: '500' },
+                                color: '#64748b',
+                                padding: 8
+                            },
+                            border: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(148,163,184,0.12)',
+                                drawBorder: false,
+                                lineWidth: 0.5
+                            },
+                            ticks: {
+                                font: { size: 11, family: "'Inter','Segoe UI',sans-serif", weight: '500' },
+                                color: '#64748b',
+                                padding: 10,
+                                callback: function(v) {
+                                    return v >= 1000 ? (v/1000).toFixed(v%1000===0?0:1) + 'k' : v;
+                                }
+                            },
+                            border: { display: false }
+                        }
+                    },
+                    elements: {
+                        arc: {
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverBorderColor: '#ffffff',
+                            hoverBorderWidth: 3,
+                            spacing: 3,
+                            borderRadius: 4
+                        }
+                    }
+                }
+            });
+            charts.push(chart);
+        });
+    }
+}
+
+// Particulas flotantes en el loading
+function crearParticulas() {
+    const container = document.getElementById('particles');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDelay = Math.random() * 4 + 's';
+        p.style.animationDuration = 2 + Math.random() * 3 + 's';
+        p.style.width = 3 + Math.random() * 5 + 'px';
+        p.style.height = p.style.width;
+        const colors = ['#a78bfa', '#8b5cf6', '#6366f1', '#c4b5fd'];
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        container.appendChild(p);
+    }
+}
+
+async function iniciarAnalisis(forzar = false) {
+    destruirGraficas();
+
+    document.getElementById('loading-stage').classList.add('active');
+    document.getElementById('error-card').classList.remove('active');
+    document.getElementById('resultados-wrapper').classList.remove('active');
+    document.getElementById('btn-reanalizar').style.display = 'none';
+    document.getElementById('btn-ppt').style.display = 'none';
+    analisisData = null;
+    intentosAutoRetry = 0;
+    document.getElementById('loading-message').textContent = 'Preparando analisis';
+    document.getElementById('loading-sub').textContent = forzar ? 'Forzando re-analisis con Gemini AI...' : 'Conectando con Gemini AI...';
+    setPaso(1);
+
+    crearParticulas();
+
+    const url = `/analizar_informe/${INFORME_ID}/api` + (forzar ? '?force=1' : '');
+
+    if (!forzar) {
+        document.getElementById('loading-message').textContent = 'Buscando analisis en cache';
+        document.getElementById('loading-sub').textContent = 'Verificando si ya existe un analisis previo...';
+    }
+
+    // Paso 1: Extrayendo texto
+    await new Promise(r => setTimeout(r, 600));
+    document.getElementById('loading-message').textContent = 'Extrayendo texto del documento';
+    document.getElementById('loading-sub').textContent = 'Leyendo contenido de {{ informe.nombre_archivo }}...';
+
+    try {
+        const response = await fetch(url);
+
+        // Paso 2: IA analizando
+        setPaso(2);
+        document.getElementById('loading-message').textContent = 'Analizando con inteligencia artificial';
+        document.getElementById('loading-sub').textContent = 'Gemini esta procesando el contenido...';
+
+        const data = await response.json();
+
+        // Paso 3: Generando graficas
+        setPaso(3);
+        document.getElementById('loading-message').textContent = 'Generando graficas';
+        document.getElementById('loading-sub').textContent = 'Preparando visualizaciones...';
+        await new Promise(r => setTimeout(r, 700));
+
+        if (data.error) {
+            mostrarError(data.error);
+            return;
+        }
+
+        mostrarResultados(data);
+    } catch (err) {
+        mostrarError('Error de conexion: ' + err.message);
+    }
+}
+
+async function generarPPT() {
+    const btn = document.getElementById('btn-ppt');
+    if (!btn) return;
+    if (!analisisData) {
+        alert('No hay datos de analisis disponibles. Re-analiza el documento primero.');
+        return;
+    }
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Generando PPT...';
+
+    try {
+        const response = await fetch(`/analizar_informe/${INFORME_ID}/ppt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(analisisData)
+        });
+
+        if (!response.ok) {
+            let errorMsg = 'Error desconocido';
+            try {
+                const err = await response.json();
+                errorMsg = err.error || errorMsg;
+            } catch {
+                const text = await response.text().catch(() => '');
+                errorMsg = text.substring(0, 200) || 'Error del servidor (HTTP ' + response.status + ')';
+            }
+            alert('Error al generar PPT: ' + errorMsg);
+            return;
+        }
+
+        const blob = await response.blob();
+        if (!blob || blob.size === 0) {
+            alert('El servidor devolvio un archivo vacio. Intenta de nuevo.');
+            return;
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Analisis_IA.pptx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { window.URL.revokeObjectURL(url); }, 500);
+    } catch (err) {
+        alert('Error de conexion: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+document.getElementById('btn-reanalizar').addEventListener('click', function() { iniciarAnalisis(true); });
+document.getElementById('btn-ppt').addEventListener('click', generarPPT);
+
+iniciarAnalisis();
+</script>
+
+</body>
+</html>

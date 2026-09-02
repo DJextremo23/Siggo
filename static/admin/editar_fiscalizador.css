@@ -1,0 +1,334 @@
+:root {
+    --color-primario: #0f172a;
+    --color-secundario: #1e293b;
+    --color-acento: #3b82f6;
+    --color-hover: #2563eb;
+    --color-texto: #e2e8f0;
+    --color-blanco: #ffffff;
+    --color-error: #ef4444;
+    --color-success: #10b981;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --transition: 0.25s ease;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f1f5f9;
+    color: var(--color-primario);
+    min-height: 100vh;
+}
+
+/* =============================================
+   CONTENT
+   ============================================= */
+.content {
+    padding: 32px;
+    min-height: 100vh;
+}
+
+/* =============================================
+   HEADER
+   ============================================= */
+.header-admin {
+    margin-bottom: 28px;
+}
+
+.header-admin h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-primario);
+    margin-bottom: 4px;
+}
+
+.header-admin p {
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* =============================================
+   CARD
+   ============================================= */
+.card {
+    background: var(--color-blanco);
+    border-radius: var(--radius);
+    padding: 32px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid #e2e8f0;
+}
+
+/* =============================================
+   FORM GRID
+   ============================================= */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+/* =============================================
+   FIELD
+   ============================================= */
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-field.span-2 {
+    grid-column: span 2;
+}
+
+.form-field.span-3 {
+    grid-column: span 3;
+}
+
+.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.field-input {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0 14px;
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.field-input:focus-within {
+    border-color: var(--color-acento);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    background: var(--color-blanco);
+}
+
+.field-icon {
+    flex-shrink: 0;
+    color: #94a3b8;
+    margin-right: 10px;
+    transition: color var(--transition);
+}
+
+.field-input:focus-within .field-icon {
+    color: var(--color-acento);
+}
+
+.field-input input,
+.field-input select {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 13px 0;
+    font-size: 14px;
+    color: var(--color-primario);
+    font-family: inherit;
+    width: 100%;
+}
+
+.field-input input::placeholder {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.field-input select {
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0 center;
+    padding-right: 24px;
+}
+
+/* =============================================
+   FORM ACTIONS
+   ============================================= */
+.form-actions {
+    grid-column: span 3;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn svg {
+    flex-shrink: 0;
+}
+
+/* --- SAVE --- */
+.btn-save {
+    background: var(--color-acento);
+    color: var(--color-blanco);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.btn-save:hover {
+    background: var(--color-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+/* --- CANCEL --- */
+.btn-cancel {
+    background: var(--color-blanco);
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-cancel:hover {
+    background: #f8fafc;
+    color: var(--color-primario);
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+/* =============================================
+   PHOTO EDIT
+   ============================================= */
+.foto-edit-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.foto-edit-preview {
+    width: 90px;
+    height: 90px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border: 2px dashed #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.foto-edit-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.foto-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #94a3b8;
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+}
+
+.foto-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    color: #334155;
+    padding: 10px 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.foto-edit-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.foto-edit-btn input[type="file"] {
+    display: none;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 1024px) {
+    .content {
+        padding: 20px;
+        padding-top: 70px;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .form-field.span-2,
+    .form-field.span-3 {
+        grid-column: span 2;
+    }
+
+    .form-actions {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 600px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-field.span-2,
+    .form-field.span-3 {
+        grid-column: span 1;
+    }
+
+    .form-actions {
+        grid-column: span 1;
+        flex-direction: column;
+    }
+
+    .btn {
+        justify-content: center;
+        width: 100%;
+    }
+}
+
+.alert-error{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-left:3px solid var(--color-error);border-radius:8px;color:#991b1b;font-size:13px;margin-bottom:20px;}

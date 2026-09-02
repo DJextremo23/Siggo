@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+{# Descripción: Panel principal del fiscalizador con KPIs, desempeño y últimas guardias #}
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Fiscalizador — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/index.css') }}">
+</head>
+
+<body>
+
+{% set active_page = 'inicio' %}
+{% include 'menu.html' %}
+
+<div class="content">
+
+    {% set alertas_criticas = alertas|selectattr('dias_faltantes', 'lt', 0)|list %}
+    {% set alertas_proximas = alertas|selectattr('dias_faltantes', 'ge', 0)|selectattr('dias_faltantes', 'le', 15)|list %}
+    {% set alertas_sin_tomar = alertas|selectattr('dias_tomados', 'equalto', 0)|selectattr('dias_faltantes', 'lt', 0)|list %}
+    {% set total_notif_count = notif_no_leidas|default(0) + alertas_criticas|length + alertas_proximas|length + alertas_sin_tomar|length %}
+
+    <!-- SECCIÓN: Tarjeta de bienvenida con notificaciones -->
+    <div class="welcome-card">
+        <div class="welcome-left">
+            <div class="welcome-avatar">{{ session.get('nombre', session.usuario)[:1].upper() }}</div>
+            <div class="welcome-text">
+                <h1>Panel de Fiscalizador</h1>
+                <p>Bienvenido, <strong>{{ session.usuario }}</strong></p>
+            </div>
+        </div>
+        <div class="welcome-right">
+            <div class="welcome-date-row">
+                <span class="welcome-date" id="fecha-hoy"></span>
+                <button class="notif-bell-btn" id="btnNotificaciones" title="Notificaciones">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    {% if total_notif_count > 0 %}
+                    <span class="notif-badge" id="notifBadge">{{ total_notif_count }}</span>
+                    {% endif %}
+                </button>
+            </div>
+            <span class="welcome-role">Fiscalizador</span>
+
+            {% if notificaciones or alertas_criticas|length + alertas_proximas|length + alertas_sin_tomar|length > 0 %}
+            <div class="notif-panel" id="notifPanel">
+                <div class="notif-header">
+                    <div class="notif-header-left">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <h2>Notificaciones</h2>
+                        <span class="notif-timer" id="notifTimer">5:00</span>
+                    </div>
+                    <div class="notif-header-right">
+                        {% if notificaciones %}
+                        <button class="notif-mark-all" id="notifMarkAll" title="Marcar todas como leídas">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Marcar todo leído
+                        </button>
+                        {% endif %}
+                        <button class="notif-close" id="notifClose" title="Cerrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="notif-body">
+                    {% for n in notificaciones %}
+                    <div class="notif-item{% if not n.leida %} notif-unread{% endif %}" data-id="{{ n.id_notificacion }}">
+                        <div class="notif-item-icon">
+                            {% if 'Vacaciones registradas' in n.titulo %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            {% elif 'eliminadas' in n.titulo %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            {% else %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            {% endif %}
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ n.titulo }}</strong>
+                            <span>{{ n.mensaje }}</span>
+                            <small class="notif-date">{{ n.fecha_creacion_str }}</small>
+                        </div>
+                        {% if not n.leida %}
+                        <button class="notif-mark-read" data-id="{{ n.id_notificacion }}" title="Marcar como leída">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% for a in alertas_criticas %}
+                    <div class="notif-item critico">
+                        <div class="notif-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ a.nombre }}</strong>
+                            <span>Debe tomar vacaciones (disponible hace {{ a.dias_faltantes|abs }} días) &mdash; {{ 30 - a.dias_tomados }} días pendientes este año</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% for a in alertas_proximas %}
+                    <div class="notif-item proximo">
+                        <div class="notif-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ a.nombre }}</strong>
+                            <span>
+                                {% if a.dias_faltantes == 0 %}
+                                    Vacaciones disponibles HOY &mdash; {{ 30 - a.dias_tomados }} días pendientes
+                                {% else %}
+                                    Faltan {{ a.dias_faltantes }} días para sus vacaciones &mdash; {{ 30 - a.dias_tomados }} días pendientes este año
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% for a in alertas_sin_tomar %}
+                    {% if a.dias_faltantes < 0 and a.dias_faltantes|abs > 15 %}
+                    <div class="notif-item info">
+                        <div class="notif-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                        </div>
+                        <div class="notif-item-text">
+                            <strong>{{ a.nombre }}</strong>
+                            <span>Aún no ha tomado vacaciones este año &mdash; 30 días disponibles</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- SECCIÓN: Tarjetas KPI de guardias, asistencias, faltas y pendientes -->
+    <div class="kpi-grid">
+
+        <div class="kpi-card blue">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Total Guardias</h4>
+                <p class="kpi-number">{{ datos | length }}</p>
+            </div>
+        </div>
+
+        <div class="kpi-card green">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Asistencias</h4>
+                <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','asistio') | list | length }}</p>
+            </div>
+        </div>
+
+        <div class="kpi-card red">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Faltas</h4>
+                <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','falta') | list | length }}</p>
+            </div>
+        </div>
+
+        <div class="kpi-card blue">
+            <div class="kpi-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+            </div>
+            <div class="kpi-info">
+                <h4>Asistencias pendientes</h4>
+                <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','sin registro') | list | length }}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SECCIÓN: Resumen de desempeño con barras de progreso -->
+    {% set total = datos|length if datos|length > 0 else 1 %}
+    {% set asistencias = datos | selectattr('asistencia','equalto','asistio') | list | length %}
+    {% set faltas = datos | selectattr('asistencia','equalto','falta') | list | length %}
+    {% set pendientes = datos | selectattr('asistencia','equalto','sin registro') | list | length %}
+
+    <div class="section-card">
+        <div class="section-header">
+            <h3>
+                <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                Resumen de desempeño
+            </h3>
+        </div>
+
+        <div class="progress-list">
+
+            {% set pct_asist = (asistencias * 100 // total) %}
+            <div class="progress-item">
+                <div class="progress-label">
+                    <span>Asistencias</span>
+                    <span class="progress-pct">{{ pct_asist }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill green" style="width: {{ (asistencias * 100 / total) | round(1) }}%"></div>
+                </div>
+            </div>
+
+            {% set pct_faltas = (faltas * 100 // total) %}
+            <div class="progress-item">
+                <div class="progress-label">
+                    <span>Faltas</span>
+                    <span class="progress-pct">{{ pct_faltas }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill red" style="width: {{ (faltas * 100 / total) | round(1) }}%"></div>
+                </div>
+            </div>
+
+            {% set pct_pend = (pendientes * 100 // total) %}
+            <div class="progress-item">
+                <div class="progress-label">
+                    <span>Asistencias pendientes</span>
+                    <span class="progress-pct">{{ pct_pend }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill blue" style="width: {{ (pendientes * 100 / total) | round(1) }}%"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SECCIÓN: Tabla de últimas guardias con paginación -->
+    <div class="section-card">
+        <div class="section-header">
+            <h3>
+                <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                Últimas guardias
+            </h3>
+
+            <div class="pagination">
+                <button id="btn-prev" aria-label="Anterior">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+                <span id="contador"></span>
+                <button id="btn-next" aria-label="Siguiente">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="tabla-pro">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Día</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if datos %}
+                    {% for d in datos %}
+                    <tr class="fila">
+                        <td>{{ d.fecha_guardia }}</td>
+                        <td class="dia-guardia">{{ d.dia_semana }}</td>
+                        <td>
+                            {% if d.asistencia == 'asistio' %}
+                                <span class="badge green">Realizada</span>
+                            {% elif d.asistencia == 'falta' %}
+                                <span class="badge red">Cancelada</span>
+                            {% else %}
+                                <span class="badge gray">Programada</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="3">
+                            <div class="empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h3>Sin guardias aún</h3>
+                                <p>No se encontraron registros de guardias</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECCIÓN: Acciones rápidas del fiscalizador -->
+    <div class="quick-actions">
+
+        <a href="{{ url_for('asistencia') }}" class="action-card">
+            <div class="action-icon blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+            </div>
+            <div class="action-info">
+                <h3>Ver Asistencia</h3>
+                <p>Consulta tu historial completo</p>
+            </div>
+            <svg class="action-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        </a>
+
+        <a href="{{ url_for('fiscalizadores.fiscalizadores') }}" class="action-card">
+            <div class="action-icon green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
+            <div class="action-info">
+                <h3>Fiscalizadores</h3>
+                <p>Lista del sistema</p>
+            </div>
+            <svg class="action-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        </a>
+
+    </div>
+
+    <div class="toast-container" id="toastContainer">
+        <div class="toast" id="toastMsg">
+            <div class="toast-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+            </div>
+            <div class="toast-body">
+                <strong class="toast-title"></strong>
+                <span class="toast-text"></span>
+            </div>
+            <button class="toast-close" id="toastClose" title="Cerrar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+/* --- FECHA HOY --- */
+(function() {
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var hoy = new Date();
+    var el = document.getElementById('fecha-hoy');
+    if (el) {
+        el.textContent = hoy.getDate() + ' de ' + meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+    }
+})();
+
+/* --- TRADUCIR DIAS AL ESPANOL --- */
+(function() {
+    var diasEN = {
+        'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
+        'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+    };
+    document.querySelectorAll('.dia-guardia').forEach(function(td) {
+        var txt = td.textContent.trim();
+        td.textContent = diasEN[txt] || txt;
+    });
+})();
+
+/* --- PAGINACION --- */
+var inicio = 0;
+var tamano = 6;
+var filas = document.querySelectorAll('.fila');
+var contador = document.getElementById('contador');
+var btnPrev = document.getElementById('btn-prev');
+var btnNext = document.getElementById('btn-next');
+
+function mostrar() {
+    filas.forEach(function(fila, i) {
+        fila.style.display = (i >= inicio && i < inicio + tamano) ? '' : 'none';
+    });
+
+    var desde = filas.length === 0 ? 0 : inicio + 1;
+    var hasta = Math.min(inicio + tamano, filas.length);
+    contador.innerText = desde + ' - ' + hasta + ' de ' + filas.length;
+
+    if (btnPrev) btnPrev.disabled = inicio === 0;
+    if (btnNext) btnNext.disabled = inicio + tamano >= filas.length;
+}
+
+function siguiente() {
+    if (inicio + tamano < filas.length) {
+        inicio += tamano;
+        mostrar();
+    }
+}
+
+function anterior() {
+    if (inicio - tamano >= 0) {
+        inicio -= tamano;
+        mostrar();
+    }
+}
+
+mostrar();
+
+document.getElementById('btn-prev').addEventListener('click', anterior);
+document.getElementById('btn-next').addEventListener('click', siguiente);
+</script>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    var panel = document.getElementById('notifPanel');
+    var btn = document.getElementById('btnNotificaciones');
+    var closeBtn = document.getElementById('notifClose');
+    var markAllBtn = document.getElementById('notifMarkAll');
+    var timerEl = document.getElementById('notifTimer');
+    var badge = document.getElementById('notifBadge');
+    var toastContainer = document.getElementById('toastContainer');
+    var toastEl = document.getElementById('toastMsg');
+    var toastClose = document.getElementById('toastClose');
+    var toastTitle = toastEl ? toastEl.querySelector('.toast-title') : null;
+    var toastText = toastEl ? toastEl.querySelector('.toast-text') : null;
+
+    var totalSeconds = 300; // 5 minutos
+    var panelInterval;
+    var toastInterval;
+    var lastNotifCount = {{ notif_no_leidas|default(0) }};
+    var vacAlertCount = {{ alertas_criticas|length + alertas_proximas|length + alertas_sin_tomar|length }};
+
+    function updateTimer() {
+        if (totalSeconds <= 0) {
+            if (panel) panel.style.display = 'none';
+            if (panelInterval) clearInterval(panelInterval);
+            return;
+        }
+        var min = Math.floor(totalSeconds / 60);
+        var sec = totalSeconds % 60;
+        if (timerEl) {
+            timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+        }
+        totalSeconds--;
+    }
+
+    if (panel && timerEl) {
+        panelInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+    }
+
+    if (closeBtn && panel) {
+        closeBtn.addEventListener('click', function() {
+            panel.style.display = 'none';
+            if (panelInterval) clearInterval(panelInterval);
+        });
+    }
+
+    if (btn && panel) {
+        btn.addEventListener('click', function() {
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                totalSeconds = 300;
+                if (panelInterval) clearInterval(panelInterval);
+                panelInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+            } else {
+                panel.style.display = 'none';
+                if (panelInterval) clearInterval(panelInterval);
+            }
+        });
+    }
+
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', function() {
+            var formData = new FormData();
+            formData.append('csrf_token', '{{ csrf_token }}');
+            fetch('/notificaciones/leer_todas', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.ok) {
+                        var items = panel ? panel.querySelectorAll('.notif-item') : [];
+                        items.forEach(function(item) {
+                            item.classList.remove('notif-unread');
+                            var btnRead = item.querySelector('.notif-mark-read');
+                            if (btnRead) btnRead.remove();
+                        });
+                        lastNotifCount = 0;
+                        if (badge) {
+                            if (vacAlertCount > 0) {
+                                badge.textContent = vacAlertCount;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                    }
+                });
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        var markBtn = e.target.closest('.notif-mark-read');
+        if (!markBtn) return;
+        var id = markBtn.getAttribute('data-id');
+        if (!id) return;
+        fetch('/notificaciones/leer/' + id, {
+                method: 'POST',
+                body: new URLSearchParams({ csrf_token: '{{ csrf_token }}' })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    markBtn.remove();
+                    var item = markBtn.closest('.notif-item');
+                    if (item) item.classList.remove('notif-unread');
+                    if (badge) {
+                        var current = parseInt(badge.textContent) || 0;
+                        current = Math.max(vacAlertCount, current - 1);
+                        badge.textContent = current;
+                        if (current <= 0) badge.style.display = 'none';
+                    }
+                }
+            });
+    });
+
+    function showToast(titulo, mensaje) {
+        if (!toastEl || !toastTitle || !toastText) return;
+        toastTitle.textContent = titulo;
+        toastText.textContent = mensaje;
+        toastEl.classList.add('show');
+
+        if (toastInterval) clearTimeout(toastInterval);
+        toastInterval = setTimeout(function() {
+            toastEl.classList.remove('show');
+        }, 300000); // 5 minutos
+    }
+
+    if (toastClose && toastEl) {
+        toastClose.addEventListener('click', function() {
+            toastEl.classList.remove('show');
+            if (toastInterval) clearTimeout(toastInterval);
+        });
+    }
+
+    function checkNewNotifications() {
+        fetch('/notificaciones/nuevas')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.ok || !data.notificaciones) return;
+                var newNotifs = data.notificaciones;
+                if (newNotifs.length > lastNotifCount && newNotifs.length > 0) {
+                    showToast(newNotifs[0].titulo, newNotifs[0].mensaje);
+                }
+                lastNotifCount = newNotifs.length;
+                if (badge) {
+                    var total = newNotifs.length + vacAlertCount;
+                    if (total > 0) {
+                        badge.textContent = total;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            });
+    }
+
+    setInterval(checkNewNotifications, 30000); // cada 30 segundos
+})();
+</script>
+
+</body>
+</html>

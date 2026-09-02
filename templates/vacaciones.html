@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vacaciones — SIGGO</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/vacaciones.css') }}">
+
+</head>
+
+<body>
+
+<!-- Página: Gestión de Vacaciones (Administrador) — Control y monitoreo anual del personal fiscalizador -->
+
+<div class="layout">
+
+    {% set active_page = 'vacaciones' %}
+    {% include 'menu.html' %}
+
+    <div class="main">
+
+        <!-- HEADER - Encabezado de la página -->
+        <div class="page-header">
+            <div class="page-header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
+            <div class="page-header-text">
+                <h1>Gestión de Vacaciones</h1>
+                <p>Control y monitoreo anual del personal fiscalizador</p>
+            </div>
+        </div>
+
+        <!-- MENSAJES FLASH (éxito / error) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ 'success' if category == 'success' else 'error' }}" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                {% if category == 'success' %}
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+                {% else %}
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                {% endif %}
+            </svg>
+            <span>{{ message }}</span>
+            <button type="button" class="alert-close" aria-label="Cerrar" title="Cerrar">&times;</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% if error %}
+        <div class="alert error" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ error }}</span>
+            <button type="button" class="alert-close" aria-label="Cerrar" title="Cerrar">&times;</button>
+        </div>
+        {% endif %}
+
+        <!-- KPI CARDS - Tarjetas de indicadores: totales, finalizadas, próximas y disponibles -->
+        <div class="kpi-grid">
+
+            <div class="kpi-card blue">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Registros totales</h4>
+                    <p class="kpi-number">{{ vacaciones|length }}</p>
+                </div>
+            </div>
+
+            <div class="kpi-card green">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Finalizadas</h4>
+                    <p class="kpi-number">{{ vacaciones|selectattr('estado', 'equalto', 'finalizado')|list|length }}</p>
+                </div>
+            </div>
+
+            <div class="kpi-card amber">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Próximas (≤15 días)</h4>
+                    <p class="kpi-number">{{ alertas|selectattr('dias_faltantes', 'le', 15)|selectattr('dias_faltantes', 'ge', 0)|list|length }}</p>
+                </div>
+            </div>
+
+            <div class="kpi-card red">
+                <div class="kpi-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="kpi-info">
+                    <h4>Disponibles YA</h4>
+                    <p class="kpi-number">{{ alertas|selectattr('dias_faltantes', 'lt', 0)|list|length }}</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FILTROS SEMÁFORO DE ALERTAS - Búsqueda por año, fechas, fiscalizador y estado -->
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtros-alertas" id="filtrosAlertas">
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Año</label>
+                        <input type="number" id="filtroAnio" name="anio_alerta" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_alerta','') }}">
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Desde</label>
+                        <input type="date" id="filtroDesde" name="desde_alerta" class="filtro-input" value="{{ request.args.get('desde_alerta','') }}">
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Hasta</label>
+                        <input type="date" id="filtroHasta" name="hasta_alerta" class="filtro-input" value="{{ request.args.get('hasta_alerta','') }}">
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Fiscalizador</label>
+                        <select id="filtroFiscalizador" name="fiscalizador_alerta" class="filtro-input">
+                            <option value="">Todos</option>
+                            {% for u in usuarios %}
+                            <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_alerta') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Estado</label>
+                        <select id="filtroSemaforo" name="estado_alerta" class="filtro-input">
+                            <option value="">Todos</option>
+                            <option value="LISTO" {% if request.args.get('estado_alerta') == 'LISTO' %}selected{% endif %}>LISTO</option>
+                            <option value="PRÓXIMO" {% if request.args.get('estado_alerta') == 'PRÓXIMO' %}selected{% endif %}>PRÓXIMO</option>
+                            <option value="NORMAL" {% if request.args.get('estado_alerta') == 'NORMAL' %}selected{% endif %}>NORMAL</option>
+                        </select>
+                    </div>
+                    <div class="filtro-acciones">
+                        <label class="filtro-label">&nbsp;</label>
+                        <div class="filtro-botones">
+                            <button type="submit" class="btn btn-primary btn-filtro">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                Buscar
+                            </button>
+                            <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <polyline points="1 4 1 10 7 10"/>
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                                </svg>
+                                Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ALERTAS - Tabla de disponibilidad de vacaciones del personal -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </div>
+                <div class="card-header-text">
+                    <h2>Alerta</h2>
+                    <p>Disponibilidad de vacaciones del personal</p>
+                </div>
+            </div>
+            <div class="card-body no-padding">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscalizador</th>
+                                <th>Fecha de habilitación</th>
+                                <th>Estado de derecho</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertas-tbody">
+                            {% for a in alertas %}
+                            <tr>
+                                <td>
+                                    <strong>{{ a.nombre }}</strong>
+                                </td>
+                                <td>{{ a.fecha_vacaciones }}</td>
+                                <td>
+                                    {% if a.dias_faltantes < 0 %}
+                                        <span class="status-disponible">Disponible hace {{ a.dias_faltantes|abs }} días</span>
+                                    {% elif a.dias_faltantes == 0 %}
+                                        <span class="status-hoy">Disponible HOY</span>
+                                    {% else %}
+                                        <span class="status-faltante">Faltan {{ a.dias_faltantes }} días</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if a.dias_faltantes < 0 %}
+                                        <span class="badge listo">
+                                            <span class="badge-dot"></span>LISTO
+                                        </span>
+                                    {% elif a.dias_faltantes <= 15 %}
+                                        <span class="badge proximo">
+                                            <span class="badge-dot"></span>PRÓXIMO
+                                        </span>
+                                    {% else %}
+                                        <span class="badge normal">
+                                            <span class="badge-dot"></span>NORMAL
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row">
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                                            <polyline points="13 2 13 9 20 9"/>
+                                        </svg>
+                                        <span>No hay alertas registradas</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="pagination-bar" id="alertas-pagination" style="display:none;">
+                <button class="pagination-btn" id="alertas-prev" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+                <span class="pagination-info" id="alertas-page-info"></span>
+                <button class="pagination-btn" id="alertas-next">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- FORMULARIO - Registro de una nueva vacación -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                </div>
+                <div class="card-header-text">
+                    <h2>Registrar Vacación</h2>
+                    <p>Complete los datos para asignar un nuevo período</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('guardar_vacacion') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="form-group">
+                        <label class="form-label">Fiscalizador</label>
+                        <div class="form-input-wrap">
+                            <svg class="form-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <select name="id_usuario" required>
+                                <option value="">Seleccionar fiscalizador...</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.id_usuario }}">
+                                    {{ u.nombre }} {{ u.apellidos }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Fecha de inicio</label>
+                            <input type="date" id="inicio" name="fecha_inicio" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Fecha de fin</label>
+                            <input type="date" id="fin" name="fecha_fin" required>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                <polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                            Registrar vacación
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- FILTROS LISTADO DE VACACIONES - Búsqueda por año, fechas, fiscalizador y estado -->
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtros-alertas" id="filtrosVacaciones">
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Año</label>
+                        <input type="number" id="filtroVacAnio" name="anio_vac" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_vac','') }}">
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Desde</label>
+                        <input type="date" id="filtroVacDesde" name="desde_vac" class="filtro-input" value="{{ request.args.get('desde_vac','') }}">
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Hasta</label>
+                        <input type="date" id="filtroVacHasta" name="hasta_vac" class="filtro-input" value="{{ request.args.get('hasta_vac','') }}">
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Fiscalizador</label>
+                        <select id="filtroVacFiscalizador" name="fiscalizador_vac" class="filtro-input">
+                            <option value="">Todos</option>
+                            {% for u in usuarios %}
+                            <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_vac') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filtro-campo">
+                        <label class="filtro-label">Estado</label>
+                        <select id="filtroVacEstado" name="estado_vac" class="filtro-input">
+                            <option value="">Todos</option>
+                            <option value="Pendiente" {% if request.args.get('estado_vac') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="En curso" {% if request.args.get('estado_vac') == 'En curso' %}selected{% endif %}>En curso</option>
+                            <option value="Finalizado" {% if request.args.get('estado_vac') == 'Finalizado' %}selected{% endif %}>Finalizado</option>
+                        </select>
+                    </div>
+                    <div class="filtro-acciones">
+                        <label class="filtro-label">&nbsp;</label>
+                        <div class="filtro-botones">
+                            <button type="submit" class="btn btn-primary btn-filtro">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                Buscar
+                            </button>
+                            <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <polyline points="1 4 1 10 7 10"/>
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                                </svg>
+                                Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- LISTADO - Tabla con historial de períodos de vacaciones registrados -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                </div>
+                <div class="card-header-text">
+                    <h2>Listado de Vacaciones</h2>
+                    <p>Historial de períodos registrados</p>
+                </div>
+            </div>
+            <div class="card-body no-padding">
+                <div class="table-container">
+                    <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fiscalizador</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                            <th>Días</th>
+                            <th>Estado</th>
+                            <th style="width:120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                        <tbody id="vacaciones-tbody">
+                            {% for v in vacaciones %}
+                            <tr>
+                                <td class="td-id">
+                                    <span class="id-badge">{{ v.id_vacacion }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ v.nombre }}</strong>
+                                </td>
+                                <td>{{ v.fecha_inicio }}</td>
+                                <td>{{ v.fecha_fin }}</td>
+                                <td>
+                                    <strong>{{ v.dias }}</strong> días
+                                </td>
+                                <td>
+                                    {% if v.estado == 'pendiente' %}
+                                        <span class="badge pendiente">
+                                            <span class="badge-dot"></span>Pendiente
+                                        </span>
+                                    {% elif v.estado == 'en_curso' %}
+                                        <span class="badge en_curso">
+                                            <span class="badge-dot"></span>En curso
+                                        </span>
+                                    {% else %}
+                                        <span class="badge finalizado">
+                                            <span class="badge-dot"></span>Finalizado
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="acciones-tabla">
+                                        <a href="{{ url_for('editar_vacacion', id=v.id_vacacion) }}"
+                                           class="btn-editar"
+                                           title="Editar vacación">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </a>
+                                        <a href="#"
+                                           class="btn-eliminar"
+                                           title="Eliminar vacación"
+                                           data-url="{{ url_for('eliminar_vacacion', id=v.id_vacacion) }}"
+                                           data-confirm="¿Seguro que deseas eliminar esta vacación?">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                                <line x1="14" y1="11" x2="14" y2="17"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row">
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="12" y1="18" x2="12" y2="12"/>
+                                            <line x1="9" y1="15" x2="15" y2="15"/>
+                                        </svg>
+                                        <span>No hay vacaciones registradas</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="pagination-bar" id="vacaciones-pagination" style="display:none;">
+                <button class="pagination-btn" id="vacaciones-prev" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+                <span class="pagination-info" id="vacaciones-page-info"></span>
+                <button class="pagination-btn" id="vacaciones-next">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+<script nonce="{{ csp_nonce() }}">
+/* ===== CONFIG ===== */
+var PAGE_SIZE = 6;
+
+/* ===== PAGINACION ALERTAS ===== */
+var alertasPage = 0;
+
+function alertasGetVisible() {
+    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
+    var visible = [];
+    for (var i = 0; i < rows.length; i++) {
+        if (!rows[i].classList.contains('oculta-filtro')) {
+            visible.push(rows[i]);
+        }
+    }
+    return visible;
+}
+
+function alertasRender() {
+    var pag = document.getElementById('alertas-pagination');
+    var prevBtn = document.getElementById('alertas-prev');
+    var nextBtn = document.getElementById('alertas-next');
+    var info = document.getElementById('alertas-page-info');
+    var visible = alertasGetVisible();
+    var count = visible.length;
+
+    for (var i = 0; i < visible.length; i++) {
+        visible[i].style.display = 'none';
+    }
+
+    if (count <= PAGE_SIZE) {
+        for (var j = 0; j < visible.length; j++) {
+            visible[j].style.removeProperty('display');
+        }
+        if (pag) pag.style.display = 'none';
+        return;
+    }
+
+    if (pag) pag.style.display = 'flex';
+
+    var start = alertasPage * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, count);
+
+    for (var k = start; k < end; k++) {
+        visible[k].style.removeProperty('display');
+    }
+
+    if (info) info.textContent = (start + 1) + '-' + end + ' de ' + count;
+    if (prevBtn) prevBtn.disabled = alertasPage === 0;
+    if (nextBtn) nextBtn.disabled = end >= count;
+}
+
+function alertasCambiarPagina(cambio) {
+    var visible = alertasGetVisible();
+    var max = Math.ceil(visible.length / PAGE_SIZE) || 1;
+    alertasPage += cambio;
+    if (alertasPage < 0) alertasPage = 0;
+    if (alertasPage >= max) alertasPage = max - 1;
+    alertasRender();
+}
+
+/* ===== BUSCAR ALERTAS (filtro client-side) ===== */
+function buscarAlertas() {
+    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
+    var anio = document.getElementById('filtroAnio').value.trim();
+    var desde = document.getElementById('filtroDesde').value;
+    var hasta = document.getElementById('filtroHasta').value;
+    var fiscalizador = document.getElementById('filtroFiscalizador').value.trim().toLowerCase();
+    var semaforo = document.getElementById('filtroSemaforo').value.trim();
+
+    for (var i = 0; i < rows.length; i++) {
+        var cells = rows[i].querySelectorAll('td');
+        var nombre = cells[0].textContent.trim().toLowerCase();
+        var fechaStr = cells[1].textContent.trim();
+        var badgeEl = cells[3].querySelector('.badge');
+        var badgeText = badgeEl ? badgeEl.textContent.trim() : '';
+        var ocultar = false;
+
+        if (fiscalizador && nombre.indexOf(fiscalizador) === -1) ocultar = true;
+        if (semaforo && badgeText !== semaforo) ocultar = true;
+
+        if (fechaStr && fechaStr !== '—') {
+            var fecha = new Date(fechaStr + 'T00:00:00');
+            if (anio && fecha.getFullYear() !== parseInt(anio)) ocultar = true;
+            if (desde && fecha < new Date(desde + 'T00:00:00')) ocultar = true;
+            if (hasta && fecha > new Date(hasta + 'T00:00:00')) ocultar = true;
+        } else if (anio || desde || hasta) {
+            ocultar = true;
+        }
+
+        rows[i].classList.toggle('oculta-filtro', ocultar);
+        if (ocultar) rows[i].style.display = 'none';
+    }
+
+    alertasPage = 0;
+    alertasRender();
+}
+
+/* ===== PAGINACION VACACIONES ===== */
+var vacacionesPage = 0;
+
+function vacacionesGetVisible() {
+    var rows = document.querySelectorAll('#vacaciones-tbody tr:not(.empty-row)');
+    var visible = [];
+    for (var i = 0; i < rows.length; i++) {
+        if (!rows[i].classList.contains('oculta-filtro')) {
+            visible.push(rows[i]);
+        }
+    }
+    return visible;
+}
+
+function vacacionesRender() {
+    var pag = document.getElementById('vacaciones-pagination');
+    var prevBtn = document.getElementById('vacaciones-prev');
+    var nextBtn = document.getElementById('vacaciones-next');
+    var info = document.getElementById('vacaciones-page-info');
+    var visible = vacacionesGetVisible();
+    var count = visible.length;
+
+    for (var i = 0; i < visible.length; i++) {
+        visible[i].style.display = 'none';
+    }
+
+    if (count <= PAGE_SIZE) {
+        for (var j = 0; j < visible.length; j++) {
+            visible[j].style.removeProperty('display');
+        }
+        if (pag) pag.style.display = 'none';
+        return;
+    }
+
+    if (pag) pag.style.display = 'flex';
+
+    var start = vacacionesPage * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, count);
+
+    for (var k = start; k < end; k++) {
+        visible[k].style.removeProperty('display');
+    }
+
+    if (info) info.textContent = (start + 1) + '-' + end + ' de ' + count;
+    if (prevBtn) prevBtn.disabled = vacacionesPage === 0;
+    if (nextBtn) nextBtn.disabled = end >= count;
+}
+
+function vacacionesCambiarPagina(cambio) {
+    var visible = vacacionesGetVisible();
+    var max = Math.ceil(visible.length / PAGE_SIZE) || 1;
+    vacacionesPage += cambio;
+    if (vacacionesPage < 0) vacacionesPage = 0;
+    if (vacacionesPage >= max) vacacionesPage = max - 1;
+    vacacionesRender();
+}
+
+/* ===== BUSCAR VACACIONES (filtro client-side) ===== */
+function buscarVacaciones() {
+    var rows = document.querySelectorAll('#vacaciones-tbody tr:not(.empty-row)');
+    var anio = document.getElementById('filtroVacAnio').value.trim();
+    var desde = document.getElementById('filtroVacDesde').value;
+    var hasta = document.getElementById('filtroVacHasta').value;
+    var fiscalizador = document.getElementById('filtroVacFiscalizador').value.trim().toLowerCase();
+    var estado = document.getElementById('filtroVacEstado').value.trim();
+
+    for (var i = 0; i < rows.length; i++) {
+        var cells = rows[i].querySelectorAll('td');
+        var nombre = cells[1].textContent.trim().toLowerCase();
+        var fechaInicioStr = cells[2].textContent.trim();
+        var badgeEl = cells[5].querySelector('.badge');
+        var badgeText = badgeEl ? badgeEl.textContent.trim() : '';
+        var ocultar = false;
+
+        if (fiscalizador && nombre.indexOf(fiscalizador) === -1) ocultar = true;
+        if (estado && badgeText !== estado) ocultar = true;
+
+        if (fechaInicioStr && fechaInicioStr !== '—') {
+            var fecha = new Date(fechaInicioStr + 'T00:00:00');
+            if (anio && fecha.getFullYear() !== parseInt(anio)) ocultar = true;
+            if (desde && fecha < new Date(desde + 'T00:00:00')) ocultar = true;
+            if (hasta && fecha > new Date(hasta + 'T00:00:00')) ocultar = true;
+        } else if (anio || desde || hasta) {
+            ocultar = true;
+        }
+
+        rows[i].classList.toggle('oculta-filtro', ocultar);
+        if (ocultar) rows[i].style.display = 'none';
+    }
+
+    vacacionesPage = 0;
+    vacacionesRender();
+}
+
+function limpiarFiltrosAlertas() {
+    document.getElementById('filtroAnio').value = '';
+    document.getElementById('filtroDesde').value = '';
+    document.getElementById('filtroHasta').value = '';
+    document.getElementById('filtroFiscalizador').value = '';
+    document.getElementById('filtroSemaforo').value = '';
+
+    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].classList.remove('oculta-filtro');
+        rows[i].style.removeProperty('display');
+    }
+    alertasPage = 0;
+    alertasRender();
+}
+
+function limpiarFiltrosVacaciones() {
+    document.getElementById('filtroVacAnio').value = '';
+    document.getElementById('filtroVacDesde').value = '';
+    document.getElementById('filtroVacHasta').value = '';
+    document.getElementById('filtroVacFiscalizador').value = '';
+    document.getElementById('filtroVacEstado').value = '';
+
+    var rows = document.querySelectorAll('#vacaciones-tbody tr:not(.empty-row)');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].classList.remove('oculta-filtro');
+        rows[i].style.removeProperty('display');
+    }
+    vacacionesPage = 0;
+    vacacionesRender();
+}
+
+function confirmarPost(url, msg) {
+    if (msg && !confirm(msg)) return false;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+    var csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+    document.body.appendChild(form);
+    form.submit();
+    return false;
+}
+</script>
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+    alertasRender();
+    vacacionesRender();
+
+    var tieneFiltroAlerta = document.getElementById('filtroAnio').value
+        || document.getElementById('filtroDesde').value
+        || document.getElementById('filtroHasta').value
+        || document.getElementById('filtroFiscalizador').value
+        || document.getElementById('filtroSemaforo').value;
+    if (tieneFiltroAlerta && typeof buscarAlertas === 'function') buscarAlertas();
+
+    var tieneFiltroVac = document.getElementById('filtroVacAnio').value
+        || document.getElementById('filtroVacDesde').value
+        || document.getElementById('filtroVacHasta').value
+        || document.getElementById('filtroVacFiscalizador').value
+        || document.getElementById('filtroVacEstado').value;
+    if (tieneFiltroVac && typeof buscarVacaciones === 'function') buscarVacaciones();
+
+    document.getElementById('alertas-prev').addEventListener('click', function() { alertasCambiarPagina(-1); });
+    document.getElementById('alertas-next').addEventListener('click', function() { alertasCambiarPagina(1); });
+    document.getElementById('vacaciones-prev').addEventListener('click', function() { vacacionesCambiarPagina(-1); });
+    document.getElementById('vacaciones-next').addEventListener('click', function() { vacacionesCambiarPagina(1); });
+
+    document.querySelectorAll('.btn-eliminar').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            confirmarPost(a.dataset.url, a.dataset.confirm);
+        });
+    });
+
+    document.querySelectorAll('.btn-limpiar[data-url]').forEach(function(b) {
+        b.addEventListener('click', function() {
+            window.location.href = b.dataset.url;
+        });
+    });
+
+    document.querySelectorAll('.alert-close').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var alert = btn.closest('.alert');
+            if (alert) alert.remove();
+        });
+    });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,442 @@
+/* ================= VARIABLES ================= */
+:root {
+    --color-primario: #0f172a;
+    --color-secundario: #1e293b;
+    --color-acento: #3b82f6;
+    --color-hover: #2563eb;
+
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+
+    --bg-main: #f1f5f9;
+    --bg-card: #ffffff;
+
+    --verde: #22c55e;
+    --rojo: #ef4444;
+    --ambar: #f59e0b;
+    --gris: #64748b;
+
+    --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    --radius: 12px;
+    --transition: 0.25s ease;
+}
+
+/* ================= RESET ================= */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ================= BODY ================= */
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-main);
+}
+
+/* ================= CONTENIDO ================= */
+.content {
+    padding: 30px;
+    min-height: 100vh;
+}
+
+/* ================= PAGE HEADER ================= */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.page-header-text h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-main);
+}
+
+.page-header-text p {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* ================= FILTROS CARD ================= */
+.filtros-card {
+    background: var(--bg-card);
+    padding: 20px 24px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.filtro-form {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filtro-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 150px;
+    flex: 1;
+}
+
+.filtro-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.filtro-input-wrap {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0 12px;
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.filtro-input-wrap:focus-within {
+    border-color: var(--color-acento);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    background: #ffffff;
+}
+
+.filtro-icon {
+    flex-shrink: 0;
+    color: #94a3b8;
+    margin-right: 8px;
+    transition: color var(--transition);
+}
+
+.filtro-input-wrap:focus-within .filtro-icon {
+    color: var(--color-acento);
+}
+
+.filtro-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 11px 0;
+    font-size: 14px;
+    color: var(--text-main);
+    font-family: inherit;
+}
+
+.filtro-input::placeholder {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+select.filtro-input {
+    cursor: pointer;
+}
+
+.filtro-actions {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+/* ================= BOTONES FILTRO ================= */
+.btn-filtrar {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 10px;
+    padding: 0 20px;
+    background: var(--color-acento);
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn-filtrar:hover {
+    background: var(--color-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+
+.btn-filtrar:active {
+    transform: translateY(0);
+}
+
+.btn-limpiar {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px;
+    border-radius: 10px;
+    background: var(--gris);
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn-limpiar:hover {
+    background: #475569;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(100, 116, 139, 0.35);
+}
+
+.btn-limpiar:active {
+    transform: translateY(0);
+}
+
+/* ================= TABLA CARD ================= */
+.tabla-card {
+    background: var(--bg-card);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+/* ================= TABLA ================= */
+.tabla-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tabla-pro {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.tabla-pro th {
+    background: #f8fafc;
+    padding: 12px 10px;
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.tabla-pro td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.tabla-pro tbody tr {
+    transition: background var(--transition);
+}
+
+.tabla-pro tbody tr:hover {
+    background: #f1f5f9;
+}
+
+/* ================= NOMBRE FISCALIZADOR ================= */
+.nombre-fiscalizador {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar-mini {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--color-acento);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* ================= BADGES DE ESTADO ================= */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge.asistio {
+    background: var(--verde);
+}
+
+.badge.falta {
+    background: var(--rojo);
+}
+
+.badge.justificado {
+    background: var(--ambar);
+}
+
+.badge.pendiente {
+    background: var(--gris);
+}
+
+.badge.feriado {
+    background: #8e44ad;
+}
+
+/* ================= COMPENSACIÓN ================= */
+.compensacion-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--verde);
+    font-weight: 600;
+}
+
+.compensacion-no {
+    color: #94a3b8;
+}
+
+/* ================= ACCIONES ================= */
+.acciones {
+    white-space: nowrap;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    flex-shrink: 0;
+}
+
+.btn-icon.edit {
+    background: var(--color-acento);
+}
+
+.btn-icon.edit:hover {
+    background: var(--color-hover);
+    transform: translateY(-2px);
+}
+
+.btn-icon.delete {
+    background: var(--rojo);
+}
+
+.btn-icon.delete:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+}
+
+/* ================= FILA VACÍA ================= */
+.empty-row {
+    text-align: center;
+    padding: 40px 20px !important;
+    color: var(--text-muted);
+}
+
+.empty-row svg {
+    display: block;
+    margin: 0 auto 12px;
+}
+
+.empty-row p {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 900px) {
+    .filtro-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filtro-field {
+        min-width: auto;
+    }
+
+    .filtro-actions {
+        flex-direction: row;
+    }
+
+    .filtro-actions .btn-filtrar,
+    .filtro-actions .btn-limpiar {
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .content {
+        padding: 20px;
+    }
+
+    .page-header-text h1 {
+        font-size: 24px;
+    }
+
+    .page-header-text p {
+        font-size: 14px;
+    }
+
+    .filtros-card {
+        padding: 16px;
+    }
+
+    .tabla-card {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    .content {
+        padding: 15px;
+    }
+
+    .tabla-pro th,
+    .tabla-pro td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+
+    .avatar-mini {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .btn-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+.inline-flex-center{display:inline-flex;align-items:center;gap:6px;}
+
+.flex-col-center{display:flex;flex-direction:column;align-items:center;gap:8px;}

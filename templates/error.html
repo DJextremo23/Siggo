@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Error — SIGGO</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='error.css') }}">
+</head>
+<body>
+
+    <!-- ==========================================================
+         PÁGINA: Error genérico
+         Muestra un código de error, título, mensaje descriptivo y
+         un enlace para volver. Plantilla reutilizable desde cualquier ruta.
+    ========================================================== -->
+
+<!-- ===== TARJETA DE ERROR: Muestra el ícono, código, título, mensaje y botón de regreso ===== -->
+<div class="error-card">
+    <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+    </div>
+    {% if codigo %}
+    <div class="error-code">{{ codigo }}</div>
+    {% endif %}
+    <h1 class="error-title">{{ titulo|default('Error') }}</h1>
+    <p class="error-message">{{ mensaje|default('Ha ocurrido un error inesperado. Intente nuevamente.') }}</p>
+    <div class="error-actions">
+        <a href="{{ volver_url|default('/') }}" class="btn btn-primary">
+            {% if volver_texto|default('') %}{{ volver_texto }}{% else %}Volver al inicio{% endif %}
+        </a>
+    </div>
+</div>
+</body>
+</html>
