@@ -34,6 +34,28 @@
             </div>
         </div>
 
+        <!-- MENSAJES FLASH (éxito / error) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ 'success' if category == 'success' else 'error' }}" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                {% if category == 'success' %}
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+                {% else %}
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                {% endif %}
+            </svg>
+            <span>{{ message }}</span>
+            <button type="button" class="alert-close" aria-label="Cerrar" title="Cerrar">&times;</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
         <!-- FORM CARD - Formulario con campos de fecha de compensación y observación -->
         <div class="card form-card">
 
@@ -78,8 +100,7 @@
                             </svg>
                             <textarea id="observacion"
                                       name="observacion"
-                                      placeholder="Escribe una observación..."
-                                      required>{{ compensacion.observacion or '' }}</textarea>
+                                      placeholder="Escribe una observación...">{{ compensacion.observacion or '' }}</textarea>
                         </div>
                     </div>
 
@@ -121,5 +142,14 @@
         </div>
 
     </div>
+
+<script nonce="{{ csp_nonce() }}">
+document.querySelectorAll('.alert-close').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var alert = btn.closest('.alert');
+        if (alert) alert.remove();
+    });
+});
+</script>
 </body>
 </html>

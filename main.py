@@ -169,9 +169,9 @@ def administrador():
             SELECT
                 u.id_usuario,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
-                DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR) AS fecha_vacaciones,
+                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
-                    DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR),
+                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
                 COALESCE(
@@ -180,7 +180,13 @@ def administrador():
                      WHERE v.id_usuario = u.id_usuario
                        AND YEAR(v.fecha_inicio) = YEAR(CURDATE())
                     ), 0
-                ) AS dias_tomados
+                ) AS dias_tomados,
+                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
+                COALESCE(
+                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
+                     FROM vacaciones v
+                     WHERE v.id_usuario = u.id_usuario), 0
+                ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -189,6 +195,14 @@ def administrador():
         """)
 
         alertas = cursor.fetchall()
+
+        for a in alertas:
+            pendientes_este_anio = max(0, 30 - a["dias_tomados"])
+            a["dias_pendientes_este_anio"] = pendientes_este_anio
+            a["dias_pendientes_anteriores"] = max(
+                0,
+                (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
+            )
 
         # Totales del dashboard
         cursor.execute("SELECT COUNT(*) AS total FROM usuarios u INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario INNER JOIN roles r ON ur.id_rol = r.id_rol WHERE r.nombre_rol = 'fiscalizador' AND u.estado = 'activo'")
@@ -834,32 +848,45 @@ def vacaciones():
         params_alerta = []
 
         if anio_alerta:
-            filtro_alerta += " AND YEAR(DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR)) = %s"
+            filtro_alerta += " AND YEAR(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR)) = %s"
             params_alerta.append(int(anio_alerta))
         if desde_alerta:
-            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR) >= %s"
+            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) >= %s"
             params_alerta.append(desde_alerta)
         if hasta_alerta:
-            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR) <= %s"
+            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) <= %s"
             params_alerta.append(hasta_alerta)
         if fiscalizador_alerta:
             filtro_alerta += " AND CONCAT(u.nombre,' ',u.apellidos) = %s"
             params_alerta.append(fiscalizador_alerta)
         if estado_alerta == "LISTO":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR), CURDATE()) <= 30"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 30"
         elif estado_alerta == "PRÓXIMO":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR), CURDATE()) BETWEEN 31 AND 90"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) BETWEEN 31 AND 90"
         elif estado_alerta == "NORMAL":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR), CURDATE()) > 90"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) > 90"
 
         cursor.execute(f"""
             SELECT 
+                u.id_usuario,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
-                DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR) AS fecha_vacaciones,
+                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
-                    DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR),
+                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR),
                     CURDATE()
-                ) AS dias_faltantes
+                ) AS dias_faltantes,
+                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
+                COALESCE(
+                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
+                     FROM vacaciones v
+                     WHERE v.id_usuario = u.id_usuario), 0
+                ) AS dias_tomados_total,
+                COALESCE(
+                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
+                     FROM vacaciones v
+                     WHERE v.id_usuario = u.id_usuario
+                       AND YEAR(v.fecha_inicio) = YEAR(CURDATE())), 0
+                ) AS dias_tomados_anio
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -868,6 +895,13 @@ def vacaciones():
         """, params_alerta)
 
         alertas = cursor.fetchall()
+
+        for a in alertas:
+            pendientes_este_anio = max(0, 30 - a["dias_tomados_anio"])
+            a["dias_pendientes_anteriores"] = max(
+                0,
+                (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
+            )
 
         return render_template(
             "vacaciones.html",
@@ -1234,9 +1268,9 @@ def panel_fiscalizador():
             SELECT
                 u.id_usuario,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
-                DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR) AS fecha_vacaciones,
+                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
-                    DATE_ADD(u.fecha_ingreso, INTERVAL 1 YEAR),
+                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
                 COALESCE(
@@ -1245,7 +1279,13 @@ def panel_fiscalizador():
                      WHERE v.id_usuario = u.id_usuario
                        AND YEAR(v.fecha_inicio) = YEAR(CURDATE())
                     ), 0
-                ) AS dias_tomados
+                ) AS dias_tomados,
+                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
+                COALESCE(
+                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
+                     FROM vacaciones v
+                     WHERE v.id_usuario = u.id_usuario), 0
+                ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -1254,6 +1294,14 @@ def panel_fiscalizador():
               AND u.usuario = %s
         """, (session["usuario"],))
         alertas = cursor.fetchall()
+
+        for a in alertas:
+            pendientes_este_anio = max(0, 30 - a["dias_tomados"])
+            a["dias_pendientes_este_anio"] = pendientes_este_anio
+            a["dias_pendientes_anteriores"] = max(
+                0,
+                (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
+            )
 
         # 🔥 CONTADORES
         total = len(datos)
@@ -2088,8 +2136,8 @@ def actualizar_mi_compensacion(id_compensacion):
         fecha = request.form.get("fecha_compensacion")
         obs = request.form.get("observacion")
 
-        if not fecha or not obs:
-            return datos_invalidos("Campos obligatorios")
+        if not fecha:
+            return datos_invalidos("La fecha de compensación es obligatoria")
 
         cursor.execute("""
             SELECT g.id_usuario FROM compensaciones c
@@ -2116,7 +2164,14 @@ def actualizar_mi_compensacion(id_compensacion):
         conexion.commit()
 
         flash("Compensación actualizada correctamente", "success")
-        return redirect(url_for("mis_compensaciones"))
+        compensacion = {
+            "id_compensacion": id_compensacion,
+            "fecha_compensacion": fecha,
+            "observacion": obs,
+            "estado": estado,
+        }
+        return render_template("editar_mi_compensacion.html",
+                               compensacion=compensacion)
 
     finally:
         cursor.close()
@@ -2189,16 +2244,23 @@ def mis_guardias():
             SELECT
                 g.id_guardia,
                 g.fecha_guardia,
-                g.estado AS estado_guardia,
+
+                CASE
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
+                        THEN 'realizada'
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
+                        THEN 'cancelada'
+                    ELSE 'programada'
+                END AS estado_guardia,
 
                 ELT(DAYOFWEEK(g.fecha_guardia),
                     'Domingo','Lunes','Martes','Miércoles',
                     'Jueves','Viernes','Sábado') AS dia_semana,
 
                 CASE
-                    WHEN LOWER(COALESCE(a.estado, '')) IN ('presente','asistio','asistió')
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
                         THEN 'Asistió'
-                    WHEN LOWER(COALESCE(a.estado, '')) IN ('falta','ausente')
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                         THEN 'Falta'
                     ELSE 'Pendiente'
                 END AS asistencia,
@@ -2237,9 +2299,9 @@ def mis_guardias():
                 sql += """
                     AND (
                         CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('presente','asistio','asistió')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
                                 THEN 'Asistió'
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta','ausente')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                                 THEN 'Falta'
                             ELSE 'Pendiente'
                         END
@@ -2249,9 +2311,9 @@ def mis_guardias():
                 sql += """
                     AND (
                         CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('presente','asistio','asistió')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
                                 THEN 'Asistió'
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta','ausente')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                                 THEN 'Falta'
                             ELSE 'Pendiente'
                         END
@@ -2261,9 +2323,9 @@ def mis_guardias():
                 sql += """
                     AND (
                         CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('presente','asistio','asistió')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
                                 THEN 'Asistió'
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta','ausente')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                                 THEN 'Falta'
                             ELSE 'Pendiente'
                         END
@@ -2271,12 +2333,15 @@ def mis_guardias():
                 """
 
         # ================= FILTRO ESTADO GUARDIA =================
-        if estado_guardia:
-            if estado_guardia == "cancelada":
-                sql += " AND LOWER(COALESCE(g.estado, 'programada')) IN ('cancelada', 'rechazada') "
-            else:
-                sql += " AND LOWER(COALESCE(g.estado, 'programada')) = %s "
-                params.append(estado_guardia)
+        if estado_guardia == "realizada":
+            sql += " AND LOWER(COALESCE(a.estado, '')) IN ('asistió') "
+        elif estado_guardia == "cancelada":
+            sql += " AND LOWER(COALESCE(a.estado, '')) IN ('falta') "
+        elif estado_guardia == "programada":
+            sql += """ AND (
+                a.estado IS NULL
+                OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistió','falta')
+            ) """
 
         sql += " ORDER BY g.fecha_guardia DESC"
 
@@ -2449,6 +2514,8 @@ def mis_vacaciones():
 
         user = cursor.fetchone()
         dias_pendientes = 0
+        dias_pendientes_este_anio = 0
+        dias_pendientes_anteriores = 0
 
         if user and user["fecha_ingreso"]:
             fecha_ingreso = user["fecha_ingreso"]
@@ -2464,15 +2531,21 @@ def mis_vacaciones():
 
             cursor.execute("""
                 SELECT 
-                    COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+                    COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
+                    COALESCE(SUM(CASE WHEN YEAR(v.fecha_inicio) = YEAR(CURDATE())
+                                      THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
+                                      ELSE 0 END), 0) AS total_anio
                 FROM vacaciones v
                 WHERE v.id_usuario = %s
             """, (session["id_usuario"],))
 
             result = cursor.fetchone()
             dias_tomados = result["total"] if result else 0
+            dias_tomados_anio = result["total_anio"] if result else 0
 
-            dias_pendientes = max(0, total_dias - dias_tomados)
+            dias_pendientes_este_anio = max(0, 30 - dias_tomados_anio)
+            dias_pendientes_anteriores = max(0, (total_dias - dias_tomados) - dias_pendientes_este_anio)
+            dias_pendientes = dias_pendientes_este_anio + dias_pendientes_anteriores
 
         # =========================
         # RENDER
@@ -2480,7 +2553,9 @@ def mis_vacaciones():
         return render_template(
             "mis_vacaciones.html",
             vacaciones=vacaciones,
-            dias_pendientes=dias_pendientes
+            dias_pendientes=dias_pendientes,
+            dias_pendientes_este_anio=dias_pendientes_este_anio,
+            dias_pendientes_anteriores=dias_pendientes_anteriores
         )
 
     finally:

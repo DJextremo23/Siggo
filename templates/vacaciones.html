@@ -216,6 +216,9 @@
                             <tr>
                                 <td>
                                     <strong>{{ a.nombre }}</strong>
+                                    {% if a.dias_pendientes_anteriores > 0 %}
+                                        <span class="pendientes-anteriores">{{ a.dias_pendientes_anteriores }} días pend. de años anteriores</span>
+                                    {% endif %}
                                 </td>
                                 <td>{{ a.fecha_vacaciones }}</td>
                                 <td>

@@ -120,7 +120,7 @@
                         </div>
                         <div class="notif-item-text">
                             <strong>{{ a.nombre }}</strong>
-                            <span>Debe tomar vacaciones (disponible hace {{ a.dias_faltantes|abs }} días) &mdash; {{ 30 - a.dias_tomados }} días pendientes este año</span>
+                            <span>Debe tomar vacaciones (disponible hace {{ a.dias_faltantes|abs }} días) &mdash; {{ a.dias_pendientes_este_anio }} días pendientes este año{% if a.dias_pendientes_anteriores > 0 %} + {{ a.dias_pendientes_anteriores }} días de años anteriores{% endif %}</span>
                         </div>
                     </div>
                     {% endfor %}
@@ -136,9 +136,9 @@
                             <strong>{{ a.nombre }}</strong>
                             <span>
                                 {% if a.dias_faltantes == 0 %}
-                                    Vacaciones disponibles HOY &mdash; {{ 30 - a.dias_tomados }} días pendientes
+                                    Vacaciones disponibles HOY &mdash; {{ a.dias_pendientes_este_anio }} días pendientes este año{% if a.dias_pendientes_anteriores > 0 %} + {{ a.dias_pendientes_anteriores }} días de años anteriores{% endif %}
                                 {% else %}
-                                    Faltan {{ a.dias_faltantes }} días para sus vacaciones &mdash; {{ 30 - a.dias_tomados }} días pendientes este año
+                                    Faltan {{ a.dias_faltantes }} días para sus vacaciones &mdash; {{ a.dias_pendientes_este_anio }} días pendientes este año{% if a.dias_pendientes_anteriores > 0 %} + {{ a.dias_pendientes_anteriores }} días de años anteriores{% endif %}
                                 {% endif %}
                             </span>
                         </div>
@@ -156,7 +156,7 @@
                         </div>
                         <div class="notif-item-text">
                             <strong>{{ a.nombre }}</strong>
-                            <span>Aún no ha tomado vacaciones este año &mdash; 30 días disponibles</span>
+                            <span>Aún no ha tomado vacaciones este año &mdash; 30 días disponibles{% if a.dias_pendientes_anteriores > 0 %} + {{ a.dias_pendientes_anteriores }} días de años anteriores{% endif %}</span>
                         </div>
                     </div>
                     {% endif %}

@@ -393,7 +393,8 @@ def descargar_informe(id_informe):
         informe = cursor.fetchone()
 
         if not informe:
-            return no_encontrado("Archivo no encontrado")
+            flash("Archivo no encontrado", "error")
+            return redirect(url_for("informe.mis_informes"))
 
         ruta = informe["ruta_archivo"]
         # ── Protección contra Path Traversal ──
@@ -403,7 +404,8 @@ def descargar_informe(id_informe):
             return acceso_no_autorizado()
 
         if not os.path.exists(ruta_real):
-            return no_encontrado("El archivo no existe en el servidor")
+            flash("El archivo no existe en el servidor", "error")
+            return redirect(url_for("informe.mis_informes"))
 
         return send_file(
             ruta_real,

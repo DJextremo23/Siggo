@@ -109,29 +109,6 @@
                        class="input">
             </div>
 
-            <div class="filtro-group">
-                <label class="filtro-label">Tipo</label>
-                <select name="tipo" class="input input-select">
-                    <option value="">Todos los tipos</option>
-                    <option value="pdf"
-                        {{ 'selected' if request.args.get('tipo') == 'pdf' }}>
-                        PDF
-                    </option>
-                    <option value="xlsx"
-                        {{ 'selected' if request.args.get('tipo') == 'xlsx' }}>
-                        Excel
-                    </option>
-                    <option value="xlsm"
-                        {{ 'selected' if request.args.get('tipo') == 'xlsm' }}>
-                        Excel (Macro)
-                    </option>
-                    <option value="docx"
-                        {{ 'selected' if request.args.get('tipo') == 'docx' }}>
-                        Word
-                    </option>
-                </select>
-            </div>
-
             <div class="filtro-group filtro-buscar">
                 <label class="filtro-label">Buscar</label>
                 <div class="search-box">

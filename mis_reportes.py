@@ -38,6 +38,37 @@ def _aplicar_estilo_datos_excel(ws, columnas, data_start):
 mis_reportes_bp = Blueprint("mis_reportes_bp", __name__)
 
 
+def _dias_pendientes_acumulados(cursor, id_usuario):
+    """Días pendientes acumulados: (años cumplidos × 30) − total tomado en toda la historia."""
+    cursor.execute(
+        "SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s",
+        (id_usuario,)
+    )
+    user = cursor.fetchone()
+    if not user or not user.get("fecha_ingreso"):
+        return 0
+
+    fecha_ingreso = user["fecha_ingreso"]
+    today = date.today()
+    anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+    years = 0
+    while anniv <= today:
+        years += 1
+        anniv = anniv.replace(year=anniv.year + 1)
+
+    total_dias = years * 30
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+        FROM vacaciones v
+        WHERE v.id_usuario = %s
+    """, (id_usuario,))
+    result = cursor.fetchone()
+    total_tomados = result["total"] if result else 0
+
+    return max(0, total_dias - total_tomados)
+
+
 # Ruta principal: tabla resumen + detalle de guardias + vacaciones del fiscalizador
 @mis_reportes_bp.route("/reportes")
 def mis_reportes():
@@ -201,30 +232,7 @@ def mis_reportes():
             if v["fecha_inicio"] and v["fecha_fin"]:
                 dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
 
-        cursor.execute(
-            "SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s",
-            (id_usuario,)
-        )
-        user = cursor.fetchone()
-        dias_faltantes = 0
-        if user and user.get("fecha_ingreso"):
-            fecha_ingreso = user["fecha_ingreso"]
-            today = date.today()
-            anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
-            years = 0
-            while anniv <= today:
-                years += 1
-                anniv = anniv.replace(year=anniv.year + 1)
-            total_dias = years * 30
-
-            cursor.execute("""
-                SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
-                FROM vacaciones v
-                WHERE v.id_usuario = %s
-            """, (id_usuario,))
-            result = cursor.fetchone()
-            total_tomados = result["total"] if result else 0
-            dias_faltantes = max(0, total_dias - total_tomados)
+        dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
 
     finally:
         if cursor is not None:
@@ -717,17 +725,18 @@ def exportar_vacaciones_pdf():
         """, params_vac)
 
         data = cursor.fetchall()
+
+        dias_tomados = 0
+        for v in data:
+            if v["fecha_inicio"] and v["fecha_fin"]:
+                dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
+
+        dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
     finally:
         if cursor is not None:
             cursor.close()
         if conn is not None:
             conn.close()
-
-    dias_tomados = 0
-    for v in data:
-        if v["fecha_inicio"] and v["fecha_fin"]:
-            dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
-    dias_faltantes = max(0, 30 - dias_tomados)
 
     estilos = _estilos_pdf()
     buffer = BytesIO()
@@ -744,8 +753,8 @@ def exportar_vacaciones_pdf():
     if anio: partes.append(f"Año: {anio}")
     if fecha_desde: partes.append(f"Desde: {fecha_desde}")
     if fecha_hasta: partes.append(f"Hasta: {fecha_hasta}")
-    partes.append(f"Tomados: {dias_tomados} días")
-    partes.append(f"Faltantes: {dias_faltantes} de 30 días")
+    partes.append(f"Tomados (período): {dias_tomados} días")
+    partes.append(f"Pendientes: {dias_faltantes} días")
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
 
@@ -822,17 +831,18 @@ def exportar_vacaciones_excel():
         """, params_vac)
 
         data = cursor.fetchall()
+
+        dias_tomados = 0
+        for v in data:
+            if v["fecha_inicio"] and v["fecha_fin"]:
+                dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
+
+        dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
     finally:
         if cursor is not None:
             cursor.close()
         if conn is not None:
             conn.close()
-
-    dias_tomados = 0
-    for v in data:
-        if v["fecha_inicio"] and v["fecha_fin"]:
-            dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
-    dias_faltantes = max(0, 30 - dias_tomados)
 
     wb = Workbook()
     ws = wb.active
@@ -842,7 +852,7 @@ def exportar_vacaciones_excel():
 
     ws.merge_cells(start_row=data_start, start_column=1, end_row=data_start, end_column=len(columnas))
     c = ws.cell(row=data_start, column=1)
-    c.value = f"Tomados: {dias_tomados} días  |  Faltantes: {dias_faltantes} de 30 días"
+    c.value = f"Tomados (período): {dias_tomados} días  |  Pendientes: {dias_faltantes} días"
     c.font = Font(name='Segoe UI', italic=True, size=9, color=COLOR_TEXTO_MUTED.lstrip('#'))
     c.alignment = Alignment(horizontal='left', vertical='center')
     data_start += 1

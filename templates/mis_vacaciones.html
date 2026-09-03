@@ -46,7 +46,10 @@
         </div>
         <div class="summary-info">
             <span class="summary-label">Días pendientes disponibles</span>
-            <span class="summary-value">{{ dias_pendientes }} <small>de 30 por año</small></span>
+            <span class="summary-value">{{ dias_pendientes }} <small>días acumulados</small></span>
+            {% if dias_pendientes_anteriores > 0 %}
+            <span class="summary-note">{{ dias_pendientes_anteriores }} días pendientes de años anteriores</span>
+            {% endif %}
         </div>
     </div>
 

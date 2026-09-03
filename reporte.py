@@ -192,13 +192,6 @@ def reporte():
                 v.fecha_inicio,
                 v.fecha_fin,
                 DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias_tomados,
-                GREATEST(0, 30 - COALESCE(
-                    (SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
-                     FROM vacaciones v2
-                     WHERE v2.id_usuario = v.id_usuario
-                       AND YEAR(v2.fecha_inicio) = YEAR(v.fecha_inicio)
-                    ), 0
-                )) AS dias_pendientes,
                 CASE
                     WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
                     WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
@@ -219,7 +212,16 @@ def reporte():
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
                 SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
-                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes
+                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
+                GREATEST(0,
+                    (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
+                     - COALESCE((
+                         SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                         FROM vacaciones v2
+                         WHERE v2.id_usuario = u.id_usuario
+                     ), 0))
+                    - GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1))
+                ) AS dias_pendientes_anteriores
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
             {filtro_vac}
@@ -689,13 +691,6 @@ def exportar_vacaciones_pdf():
                 v.fecha_inicio,
                 v.fecha_fin,
                 DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias_tomados,
-                GREATEST(0, 30 - COALESCE(
-                    (SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
-                     FROM vacaciones v2
-                     WHERE v2.id_usuario = v.id_usuario
-                       AND YEAR(v2.fecha_inicio) = YEAR(v.fecha_inicio)
-                    ), 0
-                )) AS dias_pendientes,
                 CASE
                     WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
                     WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
@@ -732,18 +727,17 @@ def exportar_vacaciones_pdf():
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
 
-    columnas = ["Fiscalizador", "Inicio", "Fin", "Días Tomados", "Días Pendientes", "Estado"]
+    columnas = ["Fiscalizador", "Inicio", "Fin", "Días Tomados", "Estado"]
     filas = [[
         v["fiscalizador"],
         str(v["fecha_inicio"]) if v["fecha_inicio"] else "",
         str(v["fecha_fin"]) if v["fecha_fin"] else "",
         str(v["dias_tomados"]),
-        str(v["dias_pendientes"]),
         v["estado"].replace('_', ' ').title()
     ] for v in data]
     ancho = landscape(A4)[0] - 60
 
-    table = _build_pdf_tabla(columnas, filas, estilos, ancho, columnas_centradas=[3, 4])
+    table = _build_pdf_tabla(columnas, filas, estilos, ancho, columnas_centradas=[3])
     elementos.append(table)
     doc.build(elementos)
     buffer.seek(0)
@@ -805,13 +799,6 @@ def exportar_vacaciones_excel():
                 v.fecha_inicio,
                 v.fecha_fin,
                 DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias_tomados,
-                GREATEST(0, 30 - COALESCE(
-                    (SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
-                     FROM vacaciones v2
-                     WHERE v2.id_usuario = v.id_usuario
-                       AND YEAR(v2.fecha_inicio) = YEAR(v.fecha_inicio)
-                    ), 0
-                )) AS dias_pendientes,
                 CASE
                     WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
                     WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
@@ -833,7 +820,7 @@ def exportar_vacaciones_excel():
     wb = Workbook()
     ws = wb.active
     ws.title = "Vacaciones"
-    columnas = ["Fiscalizador", "Inicio", "Fin", "Días Tomados", "Días Pendientes", "Estado"]
+    columnas = ["Fiscalizador", "Inicio", "Fin", "Días Tomados", "Estado"]
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Detalle de Vacaciones")
     for v in data:
         ws.append([
@@ -841,7 +828,6 @@ def exportar_vacaciones_excel():
             str(v["fecha_inicio"]) if v["fecha_inicio"] else "",
             str(v["fecha_fin"]) if v["fecha_fin"] else "",
             v["dias_tomados"],
-            v["dias_pendientes"],
             v["estado"].replace('_', ' ').title()
         ])
     _aplicar_estilo_datos_excel(ws, columnas, data_start)
@@ -905,7 +891,16 @@ def exportar_resumen_vacaciones_pdf():
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
                 SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
-                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes
+                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
+                GREATEST(0,
+                    (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
+                     - COALESCE((
+                         SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                         FROM vacaciones v2
+                         WHERE v2.id_usuario = u.id_usuario
+                     ), 0))
+                    - GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1))
+                ) AS dias_pendientes_anteriores
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
             {filtro_vac}
@@ -938,15 +933,16 @@ def exportar_resumen_vacaciones_pdf():
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
 
-    columnas = ["Fiscalizador", "Días Tomados", "Días Pendientes"]
+    columnas = ["Fiscalizador", "Días Tomados", "Días Pendientes", "Días Pend. Años Anteriores"]
     filas = [[
         r["fiscalizador"],
         str(r["dias_tomados"]),
-        str(r["dias_pendientes"])
+        str(r["dias_pendientes"]),
+        str(r["dias_pendientes_anteriores"])
     ] for r in data]
     ancho = landscape(A4)[0] - 60
 
-    table = _build_pdf_tabla(columnas, filas, estilos, ancho, columnas_centradas=[1, 2])
+    table = _build_pdf_tabla(columnas, filas, estilos, ancho, columnas_centradas=[1, 2, 3])
     elementos.append(table)
     doc.build(elementos)
     buffer.seek(0)
@@ -1006,7 +1002,16 @@ def exportar_resumen_vacaciones_excel():
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
                 SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
-                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes
+                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
+                GREATEST(0,
+                    (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
+                     - COALESCE((
+                         SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                         FROM vacaciones v2
+                         WHERE v2.id_usuario = u.id_usuario
+                     ), 0))
+                    - GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1))
+                ) AS dias_pendientes_anteriores
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
             {filtro_vac}
@@ -1024,17 +1029,18 @@ def exportar_resumen_vacaciones_excel():
     wb = Workbook()
     ws = wb.active
     ws.title = "Resumen Vacaciones"
-    columnas = ["Fiscalizador", "Días Tomados", "Días Pendientes"]
+    columnas = ["Fiscalizador", "Días Tomados", "Días Pendientes", "Días Pend. Años Anteriores"]
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Resumen de Vacaciones")
     for r in data:
         ws.append([
             r["fiscalizador"],
             r["dias_tomados"],
-            r["dias_pendientes"]
+            r["dias_pendientes"],
+            r["dias_pendientes_anteriores"]
         ])
     _aplicar_estilo_datos_excel(ws, columnas, data_start)
     # Center numeric columns
-    for row in ws.iter_rows(min_row=data_start, max_row=ws.max_row, min_col=2, max_col=3):
+    for row in ws.iter_rows(min_row=data_start, max_row=ws.max_row, min_col=2, max_col=4):
         for cel in row:
             cel.alignment = Alignment(horizontal='center', vertical='center')
 
