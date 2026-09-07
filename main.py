@@ -2611,8 +2611,8 @@ def handle_500(error):
 # -----------------------------------------------
 if __name__ == "__main__":
     from waitress import serve
-    port = int(os.getenv("PORT", 5000))
-    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", 8080))
+    host = "0.0.0.0"
     threads = int(os.getenv("WAITRESS_THREADS", 8))
     print(f"\n{'='*60}")
     print(f"  SIGGO - Guardia OIG")
