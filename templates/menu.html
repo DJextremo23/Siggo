@@ -234,4 +234,20 @@ function toggleSidebar() {
 
 document.getElementById('btn-hamburger').addEventListener('click', toggleSidebar);
 document.getElementById('sidebar-overlay').addEventListener('click', toggleSidebar);
+
+/* Auto-desaparición de mensajes flash (success/error) */
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.alert[role="alert"]').forEach(function(alert) {
+        var esError = alert.classList.contains('error');
+        var espera = esError ? 8000 : 4000;
+        setTimeout(function() {
+            alert.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-8px)';
+            setTimeout(function() {
+                if (alert.parentNode) alert.remove();
+            }, 400);
+        }, espera);
+    });
+});
 </script>

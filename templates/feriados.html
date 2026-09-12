@@ -356,22 +356,56 @@
 
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+    <div class="modal-overlay" id="confirm-overlay">
+        <div class="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+            <div class="modal-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <h3 id="confirm-title">Eliminar registro</h3>
+            <p id="confirm-message">¿Seguro que deseas eliminar este registro?</p>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn modal-btn-cancel" id="confirm-cancel">Cancelar</button>
+                <button type="button" class="modal-btn modal-btn-danger" id="confirm-ok">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== JAVASCRIPT: Confirmación de eliminación con envío de formulario POST vía CSRF ===== -->
     <script nonce="{{ csp_nonce() }}">
+    var pendingUrl = null;
+
     function confirmarEliminar(id){
-        if(confirm("¿Eliminar este feriado?")){
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("eliminar_feriado", id=0) }}'.replace('/0', '/' + id);
-            form.style.display = 'none';
-            var csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = 'csrf_token';
-            csrf.value = '{{ csrf_token }}';
-            form.appendChild(csrf);
-            document.body.appendChild(form);
-            form.submit();
-        }
+        document.getElementById('confirm-message').textContent = "¿Eliminar este feriado?";
+        pendingUrl = '{{ url_for("eliminar_feriado", id=0) }}'.replace('/0', '/' + id);
+        document.getElementById('confirm-overlay').classList.add('show');
+    }
+
+    function ejecutarPost() {
+        var url = pendingUrl;
+        pendingUrl = null;
+        document.getElementById('confirm-overlay').classList.remove('show');
+        if (!url) return;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        form.style.display = 'none';
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function cancelarConfirmacion() {
+        pendingUrl = null;
+        document.getElementById('confirm-overlay').classList.remove('show');
     }
 
     document.querySelectorAll('.btn-eliminar').forEach(function(a) {
@@ -379,6 +413,15 @@
             e.preventDefault();
             confirmarEliminar(a.dataset.id);
         });
+    });
+
+    document.getElementById('confirm-ok').addEventListener('click', ejecutarPost);
+    document.getElementById('confirm-cancel').addEventListener('click', cancelarConfirmacion);
+    document.getElementById('confirm-overlay').addEventListener('click', function(e) {
+        if (e.target === this) cancelarConfirmacion();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') cancelarConfirmacion();
     });
 
     document.querySelectorAll('.alert-close').forEach(function(btn) {

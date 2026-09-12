@@ -197,30 +197,66 @@
 
 </div>
 
+<!-- MODAL DE CONFIRMACIÓN -->
+<div class="modal-overlay" id="confirm-overlay">
+    <div class="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <div class="modal-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <h3 id="confirm-title">Desactivar 2FA</h3>
+        <p id="confirm-message">¿Estás seguro de que deseas desactivar la autenticación en dos pasos?</p>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn modal-btn-cancel" id="confirm-cancel">Cancelar</button>
+            <button type="button" class="modal-btn modal-btn-danger" id="confirm-ok">Desactivar</button>
+        </div>
+    </div>
+</div>
+
 <script nonce="{{ csp_nonce() }}">
 
 (function() {
     var btnDesactivar = document.getElementById('btnDesactivar2FA');
     var csrfToken = {{ csrf_token | tojson }};
+    var overlay = document.getElementById('confirm-overlay');
+
+    function closeConfirm() {
+        overlay.classList.remove('show');
+    }
 
     if (btnDesactivar) {
         btnDesactivar.addEventListener('click', function() {
-            if (!confirm('¿Estás seguro de que deseas desactivar la autenticación en dos pasos?')) {
-                return;
-            }
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("login.desactivar_2fa") }}';
-            form.style.display = 'none';
-            var csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = 'csrf_token';
-            csrf.value = csrfToken;
-            form.appendChild(csrf);
-            document.body.appendChild(form);
-            form.submit();
+            overlay.classList.add('show');
         });
     }
+
+    document.getElementById('confirm-ok').addEventListener('click', function() {
+        closeConfirm();
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("login.desactivar_2fa") }}';
+        form.style.display = 'none';
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        csrf.value = csrfToken;
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    });
+
+    document.getElementById('confirm-cancel').addEventListener('click', closeConfirm);
+
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeConfirm();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeConfirm();
+    });
 })();
 
 function previewEditFoto(input) {

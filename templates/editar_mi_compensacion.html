@@ -174,7 +174,12 @@ function mostrarAlerta(msg) {
     });
 
     setTimeout(function() {
-        if (alerta.parentNode) alerta.remove();
+        alerta.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        alerta.style.opacity = '0';
+        alerta.style.transform = 'translateY(-8px)';
+        setTimeout(function() {
+            if (alerta.parentNode) alerta.remove();
+        }, 400);
     }, 6000);
 }
 

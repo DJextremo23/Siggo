@@ -108,7 +108,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <h4>Próximas (≤15 días)</h4>
+                    <h4>Próxima vacaciones</h4>
                     <p class="kpi-number">{{ alertas|selectattr('dias_faltantes', 'le', 15)|selectattr('dias_faltantes', 'ge', 0)|list|length }}</p>
                 </div>
             </div>
@@ -122,7 +122,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <h4>Disponibles YA</h4>
+                    <h4>Vacaciones disponibles</h4>
                     <p class="kpi-number">{{ alertas|selectattr('dias_faltantes', 'lt', 0)|list|length }}</p>
                 </div>
             </div>
@@ -324,7 +324,7 @@
                     </svg>
                 </div>
                 <div class="card-header-text">
-                    <h2>Registrar Vacación</h2>
+                    <h2>Registrar Vacaciones</h2>
                     <p>Complete los datos para asignar un nuevo período</p>
                 </div>
             </div>
@@ -369,7 +369,7 @@
                                 <polyline points="17 21 17 13 7 13 7 21"/>
                                 <polyline points="7 3 7 8 15 8"/>
                             </svg>
-                            Registrar vacación
+                            Registrar vacaciones
                         </button>
                     </div>
 
@@ -593,11 +593,29 @@
     </div>
 </div>
 
-
+<!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+<div class="modal-overlay" id="confirm-overlay">
+    <div class="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <div class="modal-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <h3 id="confirm-title">Eliminar registro</h3>
+        <p id="confirm-message">¿Seguro que deseas eliminar este registro?</p>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn modal-btn-cancel" id="confirm-cancel">Cancelar</button>
+            <button type="button" class="modal-btn modal-btn-danger" id="confirm-ok">Eliminar</button>
+        </div>
+    </div>
+</div>
 
 <script nonce="{{ csp_nonce() }}">
 /* ===== CONFIG ===== */
 var PAGE_SIZE = 6;
+var pendingUrl = null;
 
 /* ===== PAGINACION ALERTAS ===== */
 var alertasPage = 0;
@@ -820,7 +838,18 @@ function limpiarFiltrosVacaciones() {
 }
 
 function confirmarPost(url, msg) {
-    if (msg && !confirm(msg)) return false;
+    if (msg) {
+        document.getElementById('confirm-message').textContent = msg;
+    }
+    pendingUrl = url;
+    document.getElementById('confirm-overlay').classList.add('show');
+}
+
+function ejecutarPost() {
+    var url = pendingUrl;
+    pendingUrl = null;
+    document.getElementById('confirm-overlay').classList.remove('show');
+    if (!url) return;
     var form = document.createElement('form');
     form.method = 'POST';
     form.action = url;
@@ -833,6 +862,11 @@ function confirmarPost(url, msg) {
     document.body.appendChild(form);
     form.submit();
     return false;
+}
+
+function cancelarConfirmacion() {
+    pendingUrl = null;
+    document.getElementById('confirm-overlay').classList.remove('show');
 }
 </script>
 
@@ -865,6 +899,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             confirmarPost(a.dataset.url, a.dataset.confirm);
         });
+    });
+
+    document.getElementById('confirm-ok').addEventListener('click', ejecutarPost);
+    document.getElementById('confirm-cancel').addEventListener('click', cancelarConfirmacion);
+    document.getElementById('confirm-overlay').addEventListener('click', function(e) {
+        if (e.target === this) cancelarConfirmacion();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') cancelarConfirmacion();
     });
 
     document.querySelectorAll('.btn-limpiar[data-url]').forEach(function(b) {
