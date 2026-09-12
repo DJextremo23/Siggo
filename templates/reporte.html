@@ -370,6 +370,25 @@
   </div>
 </div>
 
+<p class="grafico-descripcion">
+  Comparativa por fiscalizador: días de vacaciones tomados, días pendientes y días pendientes de años anteriores.
+</p>
+
+<div class="grafico-container">
+  <canvas id="chart-resumen-vacaciones"></canvas>
+</div>
+
+<div class="leyenda-avatares">
+  {% for r in resumen_vacaciones %}
+    {% if r.foto %}
+    <div class="leyenda-item" title="{{ r.fiscalizador }}">
+      <img class="avatar-circulo" src="{{ url_for('static', filename='fotos/' + r.foto) }}" alt="{{ r.fiscalizador }}">
+      <span class="leyenda-nombre">{{ r.fiscalizador }}</span>
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+
 <table>
 <thead>
 <tr>
@@ -640,6 +659,48 @@ function renderResumenChart() {
   });
 }
 
+/* ===== GRÁFICO RESUMEN VACACIONES (BARRAS) ===== */
+var resumenVacacionesData = {{ resumen_vacaciones | tojson }};
+var chartResumenVacaciones = null;
+
+function renderResumenVacacionesChart() {
+  var input = document.getElementById('buscar-resumen-vacaciones');
+  var texto = input ? input.value.toLowerCase() : '';
+  var data = resumenVacacionesData;
+  if (texto) {
+    data = resumenVacacionesData.filter(function(r) {
+      return (r.fiscalizador || '').toLowerCase().indexOf(texto) !== -1;
+    });
+  }
+
+  var canvas = document.getElementById('chart-resumen-vacaciones');
+  if (!canvas) return;
+  if (chartResumenVacaciones) chartResumenVacaciones.destroy();
+
+  chartResumenVacaciones = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: data.map(function(r) { return r.fiscalizador; }),
+      datasets: [
+        { label: 'Días Tomados', data: data.map(function(r){ return Number(r.dias_tomados) || 0; }), backgroundColor: '#22c55e' },
+        { label: 'Días Pendientes', data: data.map(function(r){ return Number(r.dias_pendientes) || 0; }), backgroundColor: '#f59e0b' },
+        { label: 'Días Pend. Años Anteriores', data: data.map(function(r){ return Number(r.dias_pendientes_anteriores) || 0; }), backgroundColor: '#ef4444' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+        x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }
+      }
+    }
+  });
+}
+
 /* ===== FILTRO LUPA ===== */
 function filtrarTabla(tipo){
   var inputId;
@@ -717,6 +778,7 @@ function cambiarPagina(tipo, cambio){
 
 document.addEventListener('DOMContentLoaded', function(){
   renderResumenChart();
+  renderResumenVacacionesChart();
   mostrarTabla('detalle');
   mostrarTabla('resumen-vac');
   mostrarTabla('vacaciones');
@@ -849,7 +911,7 @@ document.getElementById('fecha_hasta').addEventListener('change', actualizarLink
 
 document.getElementById('buscar-resumen').addEventListener('input', renderResumenChart);
 document.getElementById('buscar-detalle').addEventListener('input', function() { filtrarTabla('detalle'); });
-document.getElementById('buscar-resumen-vacaciones').addEventListener('input', function() { filtrarTabla('resumen-vac'); });
+document.getElementById('buscar-resumen-vacaciones').addEventListener('input', function() { filtrarTabla('resumen-vac'); renderResumenVacacionesChart(); });
 document.getElementById('buscar-vacaciones').addEventListener('input', function() { filtrarTabla('vacaciones'); });
 
 document.getElementById('detalle-prev').addEventListener('click', function() { cambiarPagina('detalle', -1); });

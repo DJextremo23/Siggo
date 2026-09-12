@@ -232,6 +232,7 @@ def reporte():
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
+                u.foto,
                 SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
                 GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
                 GREATEST(0,
@@ -246,7 +247,7 @@ def reporte():
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
             {filtro_vac}
-            GROUP BY u.id_usuario, u.nombre, u.apellidos
+            GROUP BY u.id_usuario, u.nombre, u.apellidos, u.foto
             ORDER BY u.nombre, u.apellidos
         """, params_vac)
 
