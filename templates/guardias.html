@@ -246,7 +246,7 @@
                                         <line x1="8" y1="2" x2="8" y2="6"/>
                                         <line x1="3" y1="10" x2="21" y2="10"/>
                                     </svg>
-                                    {{ g.fecha_guardia }}
+                                    {{ g.fecha_guardia|fecha }}
                                 </span>
                             </td>
 
@@ -280,7 +280,7 @@
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                             <polyline points="20 6 9 17 4 12"/>
                                         </svg>
-                                        {{ g.fecha_compensacion }}
+                                        {{ g.fecha_compensacion|fecha }}
                                     </span>
                                 {% else %}
                                     <span class="badge-no">&mdash;</span>

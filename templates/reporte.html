@@ -292,7 +292,7 @@
 <tr class="fila-detalle">
 
 <td><strong>{{ d.fiscalizador }}</strong></td>
-<td><strong>{{ d.fecha_guardia }}</strong></td>
+<td><strong>{{ d.fecha_guardia|fecha }}</strong></td>
 
 <td>
 {% if d.feriado_descripcion != '—' %}
@@ -303,7 +303,7 @@
 </td>
 
 <td>{{ d.asistencia }}</td>
-<td>{{ d.fecha_compensacion or '—' }}</td>
+<td>{{ d.fecha_compensacion|fecha if d.fecha_compensacion else '—' }}</td>
 <td>{{ d.estado_compensacion }}</td>
 <td>{{ d.observacion or '—' }}</td>
 
@@ -503,8 +503,8 @@
 {% for v in vacaciones %}
 <tr class="fila-vacaciones">
 <td><strong>{{ v.fiscalizador }}</strong></td>
-<td><strong>{{ v.fecha_inicio }}</strong></td>
-<td><strong>{{ v.fecha_fin }}</strong></td>
+<td><strong>{{ v.fecha_inicio|fecha }}</strong></td>
+<td><strong>{{ v.fecha_fin|fecha }}</strong></td>
 <td><strong>{{ v.dias_tomados }}</strong></td>
 <td>
   {% if v.estado == 'pendiente' %}

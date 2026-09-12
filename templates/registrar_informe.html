@@ -68,7 +68,7 @@
                         <option value="">Seleccione guardia</option>
                         {% for g in guardias %}
                             <option value="{{ g.id_guardia }}">
-                                {{ g.fecha_guardia }}
+                                {{ g.fecha_guardia|fecha }}
                             </option>
                         {% endfor %}
                     </select>

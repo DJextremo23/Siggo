@@ -157,7 +157,7 @@
                     <td class="td-id">
                         <span class="id-badge">{{ g.id_guardia }}</span>
                     </td>
-                    <td>{{ g.fecha_guardia }}</td>
+                    <td>{{ g.fecha_guardia|fecha }}</td>
 
                     <td>{{ g.dia_semana }}</td>
 
@@ -183,7 +183,7 @@
                         {% endif %}
                     </td>
 
-                    <td>{{ g.fecha_compensacion or '—' }}</td>
+                    <td>{{ g.fecha_compensacion|fecha if g.fecha_compensacion else '—' }}</td>
 
                 </tr>
                 {% endfor %}

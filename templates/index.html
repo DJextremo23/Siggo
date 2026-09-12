@@ -322,7 +322,7 @@
                     {% if datos %}
                     {% for d in datos %}
                     <tr class="fila">
-                        <td>{{ d.fecha_guardia }}</td>
+                        <td>{{ d.fecha_guardia|fecha }}</td>
                         <td class="dia-guardia">{{ d.dia_semana }}</td>
                         <td>
                             {% if d.asistencia == 'asistio' %}

@@ -169,9 +169,9 @@
                         </div>
                     </td>
 
-                    <td>{{ c.fecha_guardia }}</td>
+                    <td>{{ c.fecha_guardia|fecha }}</td>
 
-                    <td>{{ c.fecha_compensacion or '-' }}</td>
+                    <td>{{ c.fecha_compensacion|fecha if c.fecha_compensacion else '-' }}</td>
 
                     <td>
                         {% if c.estado == 'pendiente' %}

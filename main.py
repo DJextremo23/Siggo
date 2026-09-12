@@ -45,6 +45,29 @@ app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=4)
 
+
+def formatear_fecha(valor, con_hora=False):
+    """Formatea una fecha como día.mes.año (DD.MM.YYYY)."""
+    if valor is None or valor == "":
+        return "—"
+    if isinstance(valor, datetime):
+        return valor.strftime("%d.%m.%Y %H:%M") if con_hora else valor.strftime("%d.%m.%Y")
+    if isinstance(valor, date):
+        return valor.strftime("%d.%m.%Y")
+    s = str(valor).strip()
+    if not s:
+        return "—"
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            dt = datetime.strptime(s, fmt)
+            return dt.strftime("%d.%m.%Y %H:%M") if con_hora else dt.strftime("%d.%m.%Y")
+        except ValueError:
+            continue
+    return s
+
+
+app.jinja_env.filters["fecha"] = formatear_fecha
+
 # Rate limiting global (límites por IP)
 limiter._default_limits = ["200 per hour", "20 per minute"]
 limiter.init_app(app)
@@ -437,6 +460,29 @@ def guardar_edicion_compensacion(id_guardia):
 
         if estado[0] != "asistio":
             return error_response("Solo se puede generar compensación para asistencias válidas")
+
+        cursor.execute("""
+            SELECT fecha_guardia
+            FROM guardias
+            WHERE id_guardia = %s
+        """, (id_guardia,))
+
+        fila_guardia = cursor.fetchone()
+
+        if not fila_guardia:
+            return no_encontrado("Guardia no encontrada")
+
+        fecha_guardia = fila_guardia[0]
+
+        try:
+            fecha_compensacion = datetime.strptime(fecha, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
+            return redirect(url_for("compensaciones_admin"))
+
+        if fecha_compensacion < fecha_guardia:
+            flash("La fecha de compensación no puede ser anterior a la fecha de la guardia", "error")
+            return redirect(url_for("compensaciones_admin"))
 
         # Insertar o actualizar compensación
         cursor.execute("""
@@ -2141,7 +2187,8 @@ def editar_mi_compensacion(id_compensacion):
                 c.fecha_compensacion,
                 c.observacion,
                 c.estado,
-                g.id_usuario
+                g.id_usuario,
+                g.fecha_guardia
             FROM compensaciones c
             INNER JOIN guardias g ON c.id_guardia = g.id_guardia
             WHERE c.id_compensacion = %s
@@ -2182,7 +2229,7 @@ def actualizar_mi_compensacion(id_compensacion):
             return datos_invalidos("La fecha de compensación es obligatoria")
 
         cursor.execute("""
-            SELECT g.id_usuario FROM compensaciones c
+            SELECT g.id_usuario, g.fecha_guardia FROM compensaciones c
             INNER JOIN guardias g ON c.id_guardia = g.id_guardia
             WHERE c.id_compensacion = %s
         """, (id_compensacion,))
@@ -2191,9 +2238,36 @@ def actualizar_mi_compensacion(id_compensacion):
             return no_encontrado()
         if row[0] != session.get("id_usuario"):
             return acceso_no_autorizado()
+        fecha_guardia = row[1]
 
         from datetime import date
-        estado = 'usado' if date.today() >= date.fromisoformat(fecha) else 'pendiente'
+        try:
+            fecha_compensacion = date.fromisoformat(fecha)
+        except ValueError:
+            flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
+            compensacion = {
+                "id_compensacion": id_compensacion,
+                "fecha_compensacion": fecha,
+                "observacion": obs,
+                "estado": 'pendiente',
+                "fecha_guardia": fecha_guardia,
+            }
+            return render_template("editar_mi_compensacion.html",
+                                   compensacion=compensacion)
+
+        if fecha_compensacion < fecha_guardia:
+            flash("La fecha de compensación no puede ser anterior a la fecha de la guardia", "error")
+            compensacion = {
+                "id_compensacion": id_compensacion,
+                "fecha_compensacion": fecha,
+                "observacion": obs,
+                "estado": 'pendiente',
+                "fecha_guardia": fecha_guardia,
+            }
+            return render_template("editar_mi_compensacion.html",
+                                   compensacion=compensacion)
+
+        estado = 'usado' if date.today() >= fecha_compensacion else 'pendiente'
 
         cursor.execute("""
             UPDATE compensaciones
@@ -2211,6 +2285,7 @@ def actualizar_mi_compensacion(id_compensacion):
             "fecha_compensacion": fecha,
             "observacion": obs,
             "estado": estado,
+            "fecha_guardia": fecha_guardia,
         }
         return render_template("editar_mi_compensacion.html",
                                compensacion=compensacion)

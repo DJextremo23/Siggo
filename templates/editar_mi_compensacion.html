@@ -86,6 +86,7 @@
                                    id="fecha_compensacion"
                                    name="fecha_compensacion"
                                    value="{{ compensacion.fecha_compensacion or '' }}"
+                                   min="{{ compensacion.fecha_guardia }}"
                                    required>
                         </div>
                     </div>
@@ -144,6 +145,53 @@
     </div>
 
 <script nonce="{{ csp_nonce() }}">
+function mostrarAlerta(msg) {
+    var prev = document.querySelector('.alert-inline');
+    if (prev) prev.remove();
+
+    var alerta = document.createElement('div');
+    alerta.className = 'alert warning alert-inline';
+    alerta.setAttribute('role', 'alert');
+    alerta.innerHTML =
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+            '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' +
+            '<line x1="12" y1="9" x2="12" y2="13"/>' +
+            '<line x1="12" y1="17" x2="12.01" y2="17"/>' +
+        '</svg>' +
+        '<span></span>' +
+        '<button type="button" class="alert-close" aria-label="Cerrar" title="Cerrar">&times;</button>';
+
+    alerta.querySelector('span').textContent = msg;
+
+    var content = document.querySelector('.content');
+    content.insertBefore(alerta, content.firstChild);
+
+    alerta.querySelector('.alert-close').addEventListener('click', function() {
+        alerta.remove();
+    });
+
+    setTimeout(function() {
+        if (alerta.parentNode) alerta.remove();
+    }, 6000);
+}
+
+var form = document.querySelector('.compensacion-form');
+if (form) {
+    form.addEventListener('submit', function(e) {
+        var input = document.getElementById('fecha_compensacion');
+        var min = input.getAttribute('min');
+        if (!input.value) {
+            e.preventDefault();
+            mostrarAlerta('La fecha de compensación es obligatoria');
+            return;
+        }
+        if (min && input.value < min) {
+            e.preventDefault();
+            mostrarAlerta('La fecha de compensación no puede ser anterior a la fecha de la guardia');
+        }
+    });
+}
+
 document.querySelectorAll('.alert-close').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var alert = btn.closest('.alert');

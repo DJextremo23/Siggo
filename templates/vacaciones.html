@@ -220,7 +220,7 @@
                                         <span class="pendientes-anteriores">{{ a.dias_pendientes_anteriores }} días pend. de años anteriores</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ a.fecha_vacaciones }}</td>
+                                <td>{{ a.fecha_vacaciones|fecha }}</td>
                                 <td>
                                     {% if a.dias_faltantes < 0 %}
                                         <span class="status-disponible">Disponible hace {{ a.dias_faltantes|abs }} días</span>
@@ -439,8 +439,8 @@
                                 <td>
                                     <strong>{{ v.nombre }}</strong>
                                 </td>
-                                <td>{{ v.fecha_inicio }}</td>
-                                <td>{{ v.fecha_fin }}</td>
+                                <td>{{ v.fecha_inicio|fecha }}</td>
+                                <td>{{ v.fecha_fin|fecha }}</td>
                                 <td>
                                     <strong>{{ v.dias }}</strong> días
                                 </td>

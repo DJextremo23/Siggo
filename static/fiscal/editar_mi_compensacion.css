@@ -132,6 +132,13 @@ body {
     color: #991b1b;
 }
 
+.alert.warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 3px solid #f59e0b;
+    color: #92400e;
+}
+
 .alert-close {
     margin-left: auto;
     border: none;

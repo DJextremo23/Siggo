@@ -227,7 +227,7 @@
 {% for d in detalle %}
 <tr class="fila-detalle">
 
-<td><strong>{{ d.fecha_guardia }}</strong></td>
+<td><strong>{{ d.fecha_guardia|fecha }}</strong></td>
 
 <td>
 {% if d.feriado != '—' %}
@@ -238,7 +238,7 @@
 </td>
 
 <td>{{ d.asistencia }}</td>
-<td>{{ d.fecha_compensacion or '—' }}</td>
+<td>{{ d.fecha_compensacion|fecha if d.fecha_compensacion else '—' }}</td>
 <td>{{ d.estado_compensacion }}</td>
 <td>{{ d.observacion or '—' }}</td>
 
@@ -341,8 +341,8 @@
 <tbody id="tabla-vacaciones">
 {% for v in vacaciones %}
 <tr class="fila-vacaciones">
-<td><strong>{{ v.fecha_inicio }}</strong></td>
-<td><strong>{{ v.fecha_fin }}</strong></td>
+<td><strong>{{ v.fecha_inicio|fecha }}</strong></td>
+<td><strong>{{ v.fecha_fin|fecha }}</strong></td>
 <td><strong>{{ ((v.fecha_fin - v.fecha_inicio).days + 1) }}</strong></td>
 <td>{{ v.estado }}</td>
 </tr>

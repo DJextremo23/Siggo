@@ -192,7 +192,7 @@
                             <span class="id-badge">{{ i.id_informe }}</span>
                         </td>
                         <td data-label="Fecha">
-                            <span class="badge-fecha">{{ i.fecha_guardia }}</span>
+                            <span class="badge-fecha">{{ i.fecha_guardia|fecha }}</span>
                         </td>
                         <td data-label="Título">
                             <strong>{{ i.titulo }}</strong>
@@ -231,7 +231,7 @@
                             <span class="badge-tipo">{{ i.tipo_archivo|upper }}</span>
                         </td>
                         <td data-label="Registro" class="td-fecha">
-                            {{ i.fecha_subida }}
+                            {{ i.fecha_subida|fecha(true) }}
                         </td>
                         <td data-label="Acciones" class="acciones">
                             <a class="btn-accion btn-edit"

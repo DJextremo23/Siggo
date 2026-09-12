@@ -149,7 +149,7 @@
                         <span class="id-badge">{{ d.id_guardia }}</span>
                     </td>
 
-                    <td class="fecha" data-label="Fecha">{{ d.fecha_guardia }}</td>
+                    <td class="fecha" data-label="Fecha">{{ d.fecha_guardia|fecha }}</td>
 
                     <td data-label="Día">
                         {% if d.tipo_dia and d.tipo_dia|upper == 'FERIADO' %}
@@ -201,7 +201,7 @@
                     <td data-label="Compensación">
                         {% if d.fecha_compensacion %}
                             <span class="badge badge-compensado">
-                                {{ d.fecha_compensacion }}
+                                {{ d.fecha_compensacion|fecha }}
                             </span>
                         {% else %}
                             <span class="badge badge-empty">-</span>

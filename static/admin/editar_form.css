@@ -117,7 +117,8 @@ body {
 }
 
 .field-input input,
-.field-input select {
+.field-input select,
+.field-input textarea {
     flex: 1;
     border: none;
     outline: none;
@@ -127,6 +128,16 @@ body {
     color: var(--color-primario);
     font-family: inherit;
     width: 100%;
+}
+
+.field-input textarea {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.field-input textarea::placeholder {
+    color: #94a3b8;
+    font-size: 13px;
 }
 
 .field-input select {
