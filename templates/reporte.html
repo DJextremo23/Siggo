@@ -133,7 +133,7 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
       <input type="text" id="buscar-resumen" name="buscar" form="form-filtros" class="input-lupa"
-        placeholder="Filtrar tabla..."
+        placeholder="Filtrar..."
         value="{{ request.args.get('buscar','') }}">
     </div>
 
@@ -331,7 +331,7 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
       <input type="text" id="buscar-resumen-vacaciones" name="buscar_resumen_vac" form="form-filtros" class="input-lupa"
-        placeholder="Filtrar tabla..."
+        placeholder="Filtrar..."
         value="{{ request.args.get('buscar_resumen_vac','') }}">
     </div>
 
@@ -387,43 +387,6 @@
     </div>
     {% endif %}
   {% endfor %}
-</div>
-
-<table>
-<thead>
-<tr>
-   <th>Fiscalizador</th>
-   <th>Días Tomados</th>
-   <th>Días Pendientes</th>
-   <th>Días Pend. Años Anteriores</th>
-</tr>
-</thead>
-
-<tbody id="tabla-resumen-vac">
-{% for r in resumen_vacaciones %}
-<tr class="fila-resumen-vac">
-  <td><strong>{{ r.fiscalizador }}</strong></td>
-  <td>{{ r.dias_tomados }}</td>
-  <td>{{ r.dias_pendientes }}</td>
-  <td>{{ r.dias_pendientes_anteriores }}</td>
-</tr>
-{% endfor %}
-</tbody>
-
-</table>
-
-<div class="pagination-bar" id="resumen-vac-pagination">
-<button class="pagination-btn" id="resumen-vac-prev" disabled aria-label="Anterior">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="15 18 9 12 15 6"/>
-  </svg>
-</button>
-<span class="pagination-info" id="pagina-resumen-vac">...</span>
-<button class="pagination-btn" id="resumen-vac-next" aria-label="Siguiente">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="9 18 15 12 9 6"/>
-  </svg>
-</button>
 </div>
 
 </div>
@@ -780,16 +743,12 @@ document.addEventListener('DOMContentLoaded', function(){
   renderResumenChart();
   renderResumenVacacionesChart();
   mostrarTabla('detalle');
-  mostrarTabla('resumen-vac');
   mostrarTabla('vacaciones');
   actualizarLinksExport();
   actualizarTextoFiscalizadores();
 
   if (document.getElementById('buscar-detalle').value !== '') {
     filtrarTabla('detalle');
-  }
-  if (document.getElementById('buscar-resumen-vacaciones').value !== '') {
-    filtrarTabla('resumen-vac');
   }
   if (document.getElementById('buscar-vacaciones').value !== '') {
     filtrarTabla('vacaciones');
@@ -911,13 +870,11 @@ document.getElementById('fecha_hasta').addEventListener('change', actualizarLink
 
 document.getElementById('buscar-resumen').addEventListener('input', renderResumenChart);
 document.getElementById('buscar-detalle').addEventListener('input', function() { filtrarTabla('detalle'); });
-document.getElementById('buscar-resumen-vacaciones').addEventListener('input', function() { filtrarTabla('resumen-vac'); renderResumenVacacionesChart(); });
+document.getElementById('buscar-resumen-vacaciones').addEventListener('input', renderResumenVacacionesChart);
 document.getElementById('buscar-vacaciones').addEventListener('input', function() { filtrarTabla('vacaciones'); });
 
 document.getElementById('detalle-prev').addEventListener('click', function() { cambiarPagina('detalle', -1); });
 document.getElementById('detalle-next').addEventListener('click', function() { cambiarPagina('detalle', 1); });
-document.getElementById('resumen-vac-prev').addEventListener('click', function() { cambiarPagina('resumen-vac', -1); });
-document.getElementById('resumen-vac-next').addEventListener('click', function() { cambiarPagina('resumen-vac', 1); });
 document.getElementById('vacaciones-prev').addEventListener('click', function() { cambiarPagina('vacaciones', -1); });
 document.getElementById('vacaciones-next').addEventListener('click', function() { cambiarPagina('vacaciones', 1); });
 

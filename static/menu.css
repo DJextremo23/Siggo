@@ -382,3 +382,36 @@
     width: 50px;
     text-align: center;
 }
+
+/* ===== BOTÓN LIMPIAR (global, formato corporativo) ===== */
+.btn-limpiar {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .2s, color .2s, border-color .2s, transform .2s, box-shadow .2s;
+}
+
+.btn-limpiar:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.15);
+}
+
+.btn-limpiar:active {
+    transform: translateY(0);
+}

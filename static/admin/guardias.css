@@ -416,30 +416,29 @@ select.filtro-input {
 
 .filtro-actions .btn-limpiar {
     height: 42px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     padding: 0 20px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-muted);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
+    font-family: inherit;
     white-space: nowrap;
-    transition: background var(--transition),
-                color var(--transition),
-                border-color var(--transition),
-                transform var(--transition);
+    transition: background .2s, color .2s, border-color .2s, transform .2s, box-shadow .2s;
 }
 
 .filtro-actions .btn-limpiar:hover {
-    background: #fee2e2;
-    color: #991b1b;
+    background: #fef2f2;
+    color: #b91c1c;
     border-color: #fecaca;
     transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.15);
 }
 
 .filtro-actions .btn-limpiar:active {
