@@ -608,6 +608,14 @@ def guardar_feriado():
             descripcion
         ))
 
+        id_feriado = cursor.lastrowid
+
+        cursor.execute("""
+            UPDATE guardias
+            SET id_feriado = %s
+            WHERE fecha_guardia = %s
+        """, (id_feriado, fecha))
+
         conexion.commit()
 
         flash("Feriado registrado correctamente", "success")
@@ -696,6 +704,18 @@ def actualizar_feriado(id):
             SET fecha = %s, descripcion = %s
             WHERE id_feriado = %s
         """, (fecha, descripcion, id))
+
+        cursor.execute("""
+            UPDATE guardias
+            SET id_feriado = NULL
+            WHERE id_feriado = %s
+        """, (id,))
+
+        cursor.execute("""
+            UPDATE guardias
+            SET id_feriado = %s
+            WHERE fecha_guardia = %s
+        """, (id, fecha))
 
         conexion.commit()
 
@@ -1545,6 +1565,17 @@ def agregar_guardia():
             VALUES (%s, %s)
         """, (id_usuario, fecha_guardia))
 
+        cursor.execute("""
+            UPDATE guardias
+            SET id_feriado = (
+                SELECT f.id_feriado
+                FROM feriados f
+                WHERE f.fecha = %s
+                LIMIT 1
+            )
+            WHERE id_usuario = %s AND fecha_guardia = %s
+        """, (fecha_guardia, id_usuario, fecha_guardia))
+
         conexion.commit()
         flash("Guardia registrada correctamente", "success")
         return redirect(url_for("ver_guardias"))
@@ -1602,6 +1633,17 @@ def editar_guardia(id):
                 SET id_usuario=%s, fecha_guardia=%s
                 WHERE id_guardia=%s
             """, (id_usuario, fecha_guardia, id))
+
+            cursor.execute("""
+                UPDATE guardias
+                SET id_feriado = (
+                    SELECT f.id_feriado
+                    FROM feriados f
+                    WHERE f.fecha = %s
+                    LIMIT 1
+                )
+                WHERE id_guardia = %s
+            """, (fecha_guardia, id))
 
             conexion.commit()
             flash("Guardia actualizada correctamente", "success")

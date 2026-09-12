@@ -1,0 +1,300 @@
+Analiza exhaustivamente el archivo Excel de reporte de guardia que se te proporciona.
+
+Tu objetivo es convertir la información del documento en un **informe operativo claro, preciso y útil para la toma de decisiones**, sin inventar datos ni asumir información que no esté presente en el archivo.
+
+## REGLAS FUNDAMENTALES
+
+1. Utiliza exclusivamente la información contenida en el documento.
+2. No inventes cantidades, porcentajes, nombres de talleres, pozos, fallas, soluciones, BOPD, trabajos o pendientes.
+3. Si un dato no está disponible, indica claramente: "No especificado en el documento".
+4. No confundas datos similares.
+5. Conserva los nombres originales de talleres, pozos, equipos, trabajos y estados.
+6. Si existen abreviaturas o términos técnicos, mantenlos y utilízalos correctamente.
+7. No elimines registros importantes por considerarlos irrelevantes.
+8. Cuando realices cálculos, muestra resultados basados únicamente en los datos disponibles.
+9. Los porcentajes deben calcularse únicamente cuando exista un denominador válido.
+10. Si existen inconsistencias, registros incompletos o datos ambiguos, identifícalos expresamente en una sección de observaciones.
+11. No corrijas silenciosamente los datos del Excel.
+12. Diferencia claramente entre:
+
+* dato encontrado en el documento;
+* cálculo realizado;
+* interpretación del dato.
+
+# 1. RESUMEN EJECUTIVO
+
+Genera un resumen general de la guardia considerando:
+
+* Periodo del reporte.
+* Cantidad total de trabajos registrados.
+* Cantidad de trabajos ejecutados.
+* Cantidad de trabajos completados al 100 %, si el documento permite determinarlo.
+* Principales talleres involucrados.
+* Principales actividades realizadas.
+* Principales fallas o problemas detectados.
+* Trabajos pendientes.
+* Impacto operativo identificado.
+* Recuperación de producción/BOPD, únicamente si aparece en el documento.
+
+El resumen debe ser redactado en lenguaje profesional y operativo.
+
+# 2. EFICACIA POR TALLER
+
+Agrupa los trabajos por taller.
+
+Para cada taller identifica:
+
+* Nombre del taller.
+* Cantidad de trabajos ejecutados.
+* Cantidad de trabajos completados al 100 %.
+* Cantidad de trabajos no completados, si puede determinarse.
+* Porcentaje de eficacia.
+
+Calcula:
+
+Eficacia (%) = (Trabajos completados al 100 % / Trabajos ejecutados) × 100
+
+Solo realiza este cálculo cuando ambos valores estén disponibles y sean válidos.
+
+Presenta la información en una tabla:
+
+| Taller | Ejecutadas | Completadas 100 % | No completadas | Eficacia % |
+| ------ | ---------: | ----------------: | -------------: | ---------: |
+
+Después de la tabla, explica brevemente:
+
+* Taller con mayor eficacia.
+* Taller con menor eficacia.
+* Diferencias relevantes.
+* Posibles puntos críticos observados en los datos.
+
+No atribuyas causas si el documento no las proporciona.
+
+# 3. TRABAJOS IMPORTANTES O CRÍTICOS
+
+Identifica los trabajos que tengan características como:
+
+* Fallas relevantes.
+* Problemas operativos.
+* Intervenciones importantes.
+* Trabajos asociados a producción.
+* Trabajos que involucren riesgos operativos.
+* Trabajos pendientes o parcialmente ejecutados.
+* Trabajos cuya descripción indique una afectación significativa.
+
+Para cada trabajo mostrar:
+
+| Taller | Pozo | Falla detectada | Solución operativa | Estado |
+| ------ | ---- | --------------- | ------------------ | ------ |
+
+No clasifiques arbitrariamente un trabajo como crítico si el documento no proporciona suficientes elementos. En ese caso, indica por qué fue considerado importante según la información disponible.
+
+# 4. PRODUCCIÓN Y BOPD
+
+Busca en todo el documento información relacionada con:
+
+* BOPD.
+* Producción recuperada.
+* Producción afectada.
+* Pozos recuperados.
+* Pérdidas de producción.
+* Recuperación de producción por intervención.
+* Producción asociada a cada taller.
+
+Si existen datos de BOPD:
+
+Agrupa por taller y calcula el total.
+
+Presenta:
+
+| Taller | BOPD recuperados |
+| ------ | ---------------: |
+
+Al final:
+
+| TOTAL BOPD RECUPERADOS |
+| ---------------------: |
+
+No conviertas unidades ni hagas estimaciones que no estén justificadas por el documento.
+
+# 5. TIPOS DE TRABAJO
+
+Clasifica los trabajos según el tipo registrado en el documento.
+
+Presenta:
+
+| Tipo de trabajo | Cantidad |
+| --------------- | -------: |
+
+Determina cuáles son los tipos de trabajo más frecuentes.
+
+Indica el porcentaje de participación cuando sea posible calcularlo correctamente.
+
+# 6. TRABAJOS PENDIENTES
+
+Identifica todos los trabajos que no hayan sido concluidos o que aparezcan explícitamente como pendientes.
+
+Presenta:
+
+| Taller | Pozo | Requerimiento | Estado |
+| ------ | ---- | ------------- | ------ |
+
+Para cada pendiente indica:
+
+* Qué se necesita realizar.
+* Estado actual.
+* Taller responsable, si aparece.
+* Pozo/equipo involucrado.
+* Cualquier observación relevante.
+
+No inventes fechas de culminación ni responsables.
+
+# 7. ANÁLISIS DE FALLAS
+
+Identifica las principales fallas encontradas durante la guardia.
+
+Agrúpalas cuando corresponda por:
+
+* Taller.
+* Pozo.
+* Tipo de falla.
+* Equipo o componente.
+
+Determina:
+
+* Fallas más frecuentes.
+* Fallas que generaron trabajos importantes.
+* Fallas relacionadas con producción.
+* Fallas recurrentes, únicamente si existen evidencias suficientes dentro del documento.
+
+# 8. ANÁLISIS OPERATIVO
+
+Realiza una interpretación general de la guardia considerando:
+
+### Fortalezas
+
+Identifica aspectos positivos demostrados por los datos.
+
+### Problemas
+
+Identifica dificultades, trabajos incompletos, fallas o desviaciones.
+
+### Impacto operativo
+
+Explica el impacto que pueda demostrarse con los datos.
+
+### Prioridades
+
+Propón prioridades únicamente cuando estén sustentadas por la información del documento.
+
+No inventes causas ni recomendaciones técnicas específicas que requieran información que no aparece en el Excel.
+
+# 9. INDICADORES
+
+Cuando los datos lo permitan, calcula:
+
+* Total de trabajos.
+* Trabajos ejecutados.
+* Trabajos completados al 100 %.
+* Trabajos pendientes.
+* Eficacia global.
+* Eficacia por taller.
+* BOPD recuperados.
+* Cantidad de trabajos por tipo.
+* Cantidad de fallas.
+* Distribución de trabajos por taller.
+
+Para cada indicador indica claramente si corresponde a:
+
+"Dato registrado"
+
+o
+
+"Cálculo realizado a partir de los datos del documento".
+
+# 10. GRÁFICOS
+
+Propón los gráficos más útiles para representar la información.
+
+Como mínimo considera, si existen datos suficientes:
+
+1. Trabajos ejecutados por taller.
+2. Eficacia (%) por taller.
+3. Trabajos por tipo.
+4. BOPD recuperados por taller.
+5. Distribución de estados de los trabajos.
+6. Trabajos pendientes por taller.
+
+Para cada gráfico proporciona:
+
+* Título.
+* Tipo de gráfico recomendado.
+* Categorías/ejes.
+* Valores utilizados.
+* Interpretación breve.
+
+No generes gráficos cuando los datos sean insuficientes.
+
+# 11. OBSERVACIONES Y CALIDAD DE DATOS
+
+Revisa el documento buscando:
+
+* Celdas vacías.
+* Registros duplicados.
+* Datos inconsistentes.
+* Fechas inconsistentes.
+* Nombres escritos de diferentes maneras.
+* Trabajos sin estado.
+* Trabajos sin taller.
+* Trabajos sin pozo.
+* Valores numéricos sospechosos.
+* Información que no pueda ser interpretada con seguridad.
+
+Presenta:
+
+| Problema encontrado | Registro afectado | Observación |
+| ------------------- | ----------------- | ----------- |
+
+No modifiques estos datos; solamente repórtalos.
+
+# 12. CONCLUSIONES
+
+Genera entre 5 y 8 conclusiones concretas sobre la guardia.
+
+Las conclusiones deben estar respaldadas directamente por los datos encontrados.
+
+Evita frases genéricas como:
+"Se recomienda mejorar la gestión".
+
+En su lugar, menciona exactamente qué muestran los datos.
+
+# FORMATO FINAL
+
+Entrega el resultado en este orden:
+
+1. Resumen ejecutivo
+2. Indicadores generales
+3. Eficacia por taller
+4. Trabajos importantes/críticos
+5. Producción y BOPD
+6. Trabajos por tipo
+7. Trabajos pendientes
+8. Análisis de fallas
+9. Análisis operativo
+10. Gráficos recomendados
+11. Observaciones sobre calidad de datos
+12. Conclusiones
+
+Utiliza tablas cuando faciliten la comprensión.
+
+El informe debe tener lenguaje profesional, técnico y operativo.
+
+IMPORTANTE:
+
+Antes de generar cualquier conclusión, analiza primero TODO el contenido disponible del Excel. No bases el informe únicamente en las primeras filas o en una sola hoja.
+
+Si el archivo contiene varias hojas, analiza todas las hojas relevantes.
+
+No inventes información faltante.
+
+El resultado debe ser reproducible: cualquier cifra, porcentaje o conclusión cuantitativa debe poder verificarse a partir de los datos del documento.
