@@ -302,6 +302,38 @@
     </svg>
     Resumen de Vacaciones
   </h2>
+
+  <div class="header-actions">
+    <div class="dropdown-export">
+      <button class="btn-exportar" data-dropdown="drop-resumen-vacaciones">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Exportar
+        <svg class="chevron-down" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div id="drop-resumen-vacaciones" class="dropdown-menu">
+        <a href="{{ url_for('mis_reportes_bp.exportar_resumen_vacaciones_pdf',
+        anio=request.args.get('anio',''),
+        fecha_desde=request.args.get('fecha_desde',''),
+        fecha_hasta=request.args.get('fecha_hasta','')) }}" class="export-link-resumen-vacaciones">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-1.5v2H13V7h1.5c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+          PDF
+        </a>
+        <a href="{{ url_for('mis_reportes_bp.exportar_resumen_vacaciones_excel',
+        anio=request.args.get('anio',''),
+        fecha_desde=request.args.get('fecha_desde',''),
+        fecha_hasta=request.args.get('fecha_hasta','')) }}" class="export-link-resumen-vacaciones">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-3.06 16L8 14.94l2.94-3L8 8.94 10.94 6l2.92 2.92L16.78 6l1.86 1.86-2.92 2.92 2.92 2.92L16.78 15.5l-2.92-2.92L10.94 18z"/></svg>
+          Excel
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <p class="grafico-descripcion">
@@ -310,12 +342,6 @@
 
 <div class="grafico-container">
   <canvas id="chart-resumen-vacaciones"></canvas>
-</div>
-
-<div class="leyenda-colores">
-  <span class="leyenda-color"><span class="color-dot" style="background:#22c55e"></span> Días Tomados</span>
-  <span class="leyenda-color"><span class="color-dot" style="background:#f59e0b"></span> Días Pendientes</span>
-  <span class="leyenda-color"><span class="color-dot" style="background:#ef4444"></span> Días Pend. Años Anteriores</span>
 </div>
 
 </div>
@@ -476,6 +502,12 @@ function actualizarLinksExport() {
       url.search = baseParams.toString();
       link.href = url.toString();
     });
+
+    document.querySelectorAll('.export-link-resumen-vacaciones').forEach(function(link) {
+      var url = new URL(link.href, origin);
+      url.search = baseParams.toString();
+      link.href = url.toString();
+    });
   } catch(e) {}
 }
 
@@ -575,24 +607,36 @@ function renderResumenVacacionesChart() {
   if (!canvas) return;
   if (window.chartResumenVacaciones) window.chartResumenVacaciones.destroy();
   window.chartResumenVacaciones = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
+    type: 'doughnut',
     data: {
       labels: ['Días Tomados', 'Días Pendientes', 'Días Pend. Años Anteriores'],
       datasets: [{
-        label: 'Vacaciones',
         data: [
           {{ dias_tomados | int }},
           {{ dias_pendientes_este_anio | int }},
           {{ dias_pendientes_anteriores | int }}
         ],
-        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444']
+        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 10
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      cutout: '55%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 16,
+            font: { size: 12, family: "'Segoe UI', system-ui, sans-serif" }
+          }
+        }
+      }
     }
   });
 }

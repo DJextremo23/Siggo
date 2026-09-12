@@ -88,6 +88,68 @@ def _dias_pendientes_acumulados(cursor, id_usuario):
     return max(0, total_dias - total_tomados)
 
 
+def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
+    """Resumen de vacaciones del fiscalizador (respetando filtros): días tomados,
+    días pendientes este año y días pendientes de años anteriores."""
+    filtro = "WHERE v.id_usuario = %s"
+    params = [id_usuario]
+
+    if anio:
+        filtro += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+        params.extend([int(anio), int(anio)])
+
+    if fecha_desde:
+        filtro += " AND v.fecha_fin >= %s"
+        params.append(fecha_desde)
+
+    if fecha_hasta:
+        filtro += " AND v.fecha_inicio <= %s"
+        params.append(fecha_hasta)
+
+    cursor.execute(f"""
+        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS tomados
+        FROM vacaciones v
+        {filtro}
+    """, params)
+    dias_tomados = cursor.fetchone()["tomados"]
+
+    cursor.execute(
+        "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, fecha_ingreso FROM usuarios WHERE id_usuario = %s",
+        (id_usuario,)
+    )
+    user = cursor.fetchone()
+    nombre = user["nombre"] if user else ""
+    dias_pendientes_este_anio = 0
+    dias_pendientes_anteriores = 0
+
+    if user and user.get("fecha_ingreso"):
+        fecha_ingreso = user["fecha_ingreso"]
+        today = date.today()
+        anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+        years = 0
+        while anniv <= today:
+            years += 1
+            anniv = anniv.replace(year=anniv.year + 1)
+        total_dias = years * 30
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+            FROM vacaciones v
+            WHERE v.id_usuario = %s
+        """, (id_usuario,))
+        dias_tomados_total = cursor.fetchone()["total"]
+
+        dias_pendientes_este_anio = max(0, 30 - dias_tomados)
+        dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
+
+    return {
+        "nombre": nombre,
+        "dias_tomados": dias_tomados,
+        "dias_pendientes_este_anio": dias_pendientes_este_anio,
+        "dias_pendientes_anteriores": dias_pendientes_anteriores,
+    }
+
+
 # Ruta principal: tabla resumen + detalle de guardias + vacaciones del fiscalizador
 @mis_reportes_bp.route("/")
 def mis_reportes():
@@ -967,5 +1029,125 @@ def exportar_vacaciones_excel():
     return send_file(
         output,
         download_name="vacaciones.xlsx",
+        as_attachment=True
+    )
+
+
+# ==========================
+# EXPORTAR PDF (RESUMEN VACACIONES)
+# ==========================
+# Genera y descarga un PDF con el resumen de vacaciones del fiscalizador
+@mis_reportes_bp.route("/exportar/resumen_vacaciones/pdf")
+def exportar_resumen_vacaciones_pdf():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "fiscalizador":
+        return acceso_no_autorizado()
+
+    id_usuario = session["id_usuario"]
+    anio = request.args.get("anio")
+    fecha_desde = request.args.get("fecha_desde")
+    fecha_hasta = request.args.get("fecha_hasta")
+
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        resumen = _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+    estilos = _estilos_pdf()
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                            leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30)
+    elementos = []
+
+    elementos.append(Paragraph("Resumen de Vacaciones", estilos['titulo']))
+    elementos.append(Spacer(1, 2))
+    elementos.append(HRFlowable(width='40', thickness=3, color=colors.HexColor(COLOR_ACENTO),
+                                 spaceAfter=10, hAlign='LEFT'))
+
+    partes = []
+    if anio: partes.append(f"Año: {anio}")
+    if fecha_desde: partes.append(f"Desde: {fecha_desde}")
+    if fecha_hasta: partes.append(f"Hasta: {fecha_hasta}")
+    if partes:
+        elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
+
+    columnas = ["Fiscalizador", "Días Tomados", "Días Pendientes", "Días Pend. Años Anteriores"]
+    filas = [[
+        resumen["nombre"],
+        str(resumen["dias_tomados"]),
+        str(resumen["dias_pendientes_este_anio"]),
+        str(resumen["dias_pendientes_anteriores"])
+    ]]
+    ancho = landscape(A4)[0] - 60
+
+    table = _build_pdf_tabla(columnas, filas, estilos, ancho, columnas_centradas=[1, 2, 3])
+    elementos.append(table)
+    doc.build(elementos)
+    buffer.seek(0)
+
+    return send_file(buffer, download_name="resumen_vacaciones.pdf", as_attachment=True)
+
+
+# ==========================
+# EXPORTAR EXCEL (RESUMEN VACACIONES)
+# ==========================
+# Genera y descarga un Excel con el resumen de vacaciones del fiscalizador
+@mis_reportes_bp.route("/exportar/resumen_vacaciones/excel")
+def exportar_resumen_vacaciones_excel():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "fiscalizador":
+        return acceso_no_autorizado()
+
+    id_usuario = session["id_usuario"]
+    anio = request.args.get("anio")
+    fecha_desde = request.args.get("fecha_desde")
+    fecha_hasta = request.args.get("fecha_hasta")
+
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        resumen = _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Resumen Vacaciones"
+    columnas = ["Fiscalizador", "Días Tomados", "Días Pendientes", "Días Pend. Años Anteriores"]
+    data_start = _configurar_encabezado_excel(ws, columnas, titulo="Resumen de Vacaciones")
+
+    ws.append([
+        resumen["nombre"],
+        resumen["dias_tomados"],
+        resumen["dias_pendientes_este_anio"],
+        resumen["dias_pendientes_anteriores"]
+    ])
+    _aplicar_estilo_datos_excel(ws, columnas, data_start)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        download_name="resumen_vacaciones.xlsx",
         as_attachment=True
     )
