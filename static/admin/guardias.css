@@ -421,24 +421,23 @@ select.filtro-input {
     justify-content: center;
     gap: 8px;
     padding: 0 20px;
+    border: none;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    color: #64748b;
+    background: #64748b;
+    color: #ffffff;
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
     font-family: inherit;
     white-space: nowrap;
-    transition: background .2s, color .2s, border-color .2s, transform .2s, box-shadow .2s;
+    transition: background .2s, transform .2s, box-shadow .2s;
 }
 
 .filtro-actions .btn-limpiar:hover {
-    background: #fef2f2;
-    color: #b91c1c;
-    border-color: #fecaca;
+    background: #475569;
+    color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.15);
+    box-shadow: 0 6px 20px rgba(100, 116, 139, 0.35);
 }
 
 .filtro-actions .btn-limpiar:active {

@@ -699,3 +699,117 @@ textarea:focus {
 }
 
 .svg-icon-sm{margin-right:8px;vertical-align:middle;flex-shrink:0;}
+
+/* ================= FILTROS CORPORATIVOS (unificado) ================= */
+.filtro-form {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filtro-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 170px;
+    flex: 1;
+}
+
+.filtro-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.filtro-input-wrap {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0 12px;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+}
+
+.filtro-input-wrap:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    background: #ffffff;
+}
+
+.filtro-icon {
+    flex-shrink: 0;
+    color: #94a3b8;
+    margin-right: 8px;
+    transition: color .2s;
+}
+
+.filtro-input-wrap:focus-within .filtro-icon {
+    color: #3b82f6;
+}
+
+.filtro-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 11px 0;
+    font-size: 14px;
+    color: #0f172a;
+    font-family: inherit;
+    min-width: 0;
+}
+
+.filtro-input::placeholder {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+select.filtro-input {
+    cursor: pointer;
+}
+
+.filtro-input[type="number"]::-webkit-inner-spin-button,
+.filtro-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.filtro-input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.filtro-actions {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.btn-filtrar {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 8px;
+    padding: 0 20px;
+    background: #3b82f6;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background .2s, transform .2s, box-shadow .2s;
+}
+
+.btn-filtrar:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+
+.btn-filtrar:active {
+    transform: translateY(0);
+}

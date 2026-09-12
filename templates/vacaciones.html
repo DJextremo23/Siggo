@@ -132,56 +132,91 @@
         <!-- FILTROS SEMÁFORO DE ALERTAS - Búsqueda por año, fechas, fiscalizador y estado -->
         <div class="card">
             <div class="card-body">
-                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtros-alertas" id="filtrosAlertas">
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Año</label>
-                        <input type="number" id="filtroAnio" name="anio_alerta" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_alerta','') }}">
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Desde</label>
-                        <input type="date" id="filtroDesde" name="desde_alerta" class="filtro-input" value="{{ request.args.get('desde_alerta','') }}">
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Hasta</label>
-                        <input type="date" id="filtroHasta" name="hasta_alerta" class="filtro-input" value="{{ request.args.get('hasta_alerta','') }}">
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Fiscalizador</label>
-                        <select id="filtroFiscalizador" name="fiscalizador_alerta" class="filtro-input">
-                            <option value="">Todos</option>
-                            {% for u in usuarios %}
-                            <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_alerta') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Estado</label>
-                        <select id="filtroSemaforo" name="estado_alerta" class="filtro-input">
-                            <option value="">Todos</option>
-                            <option value="LISTO" {% if request.args.get('estado_alerta') == 'LISTO' %}selected{% endif %}>LISTO</option>
-                            <option value="PRÓXIMO" {% if request.args.get('estado_alerta') == 'PRÓXIMO' %}selected{% endif %}>PRÓXIMO</option>
-                            <option value="NORMAL" {% if request.args.get('estado_alerta') == 'NORMAL' %}selected{% endif %}>NORMAL</option>
-                        </select>
-                    </div>
-                    <div class="filtro-acciones">
-                        <label class="filtro-label">&nbsp;</label>
-                        <div class="filtro-botones">
-                            <button type="submit" class="btn btn-primary btn-filtro">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                    <circle cx="11" cy="11" r="8"/>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                </svg>
-                                Buscar
-                            </button>
-                            <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="15" y1="9" x2="9" y2="15"/>
-                                    <line x1="9" y1="9" x2="15" y2="15"/>
-                                </svg>
-                                Limpiar
-                            </button>
+                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtro-form" id="filtrosAlertas">
+                    <div class="filtro-field">
+                        <label for="filtroAnio" class="filtro-label">Año</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <input type="number" id="filtroAnio" name="anio_alerta" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_alerta','') }}">
                         </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroDesde" class="filtro-label">Desde</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <polyline points="8 14 12 18 16 14"/>
+                            </svg>
+                            <input type="date" id="filtroDesde" name="desde_alerta" class="filtro-input" value="{{ request.args.get('desde_alerta','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroHasta" class="filtro-label">Hasta</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <polyline points="8 10 12 6 16 10"/>
+                            </svg>
+                            <input type="date" id="filtroHasta" name="hasta_alerta" class="filtro-input" value="{{ request.args.get('hasta_alerta','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroFiscalizador" class="filtro-label">Fiscalizador</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <select id="filtroFiscalizador" name="fiscalizador_alerta" class="filtro-input">
+                                <option value="">Todos</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_alerta') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroSemaforo" class="filtro-label">Estado</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <select id="filtroSemaforo" name="estado_alerta" class="filtro-input">
+                                <option value="">Todos</option>
+                                <option value="LISTO" {% if request.args.get('estado_alerta') == 'LISTO' %}selected{% endif %}>LISTO</option>
+                                <option value="PRÓXIMO" {% if request.args.get('estado_alerta') == 'PRÓXIMO' %}selected{% endif %}>PRÓXIMO</option>
+                                <option value="NORMAL" {% if request.args.get('estado_alerta') == 'NORMAL' %}selected{% endif %}>NORMAL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-actions">
+                        <button type="submit" class="btn-filtrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            Buscar
+                        </button>
+                        <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            Limpiar
+                        </button>
                     </div>
                 </form>
             </div>
@@ -345,56 +380,91 @@
         <!-- FILTROS LISTADO DE VACACIONES - Búsqueda por año, fechas, fiscalizador y estado -->
         <div class="card">
             <div class="card-body">
-                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtros-alertas" id="filtrosVacaciones">
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Año</label>
-                        <input type="number" id="filtroVacAnio" name="anio_vac" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_vac','') }}">
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Desde</label>
-                        <input type="date" id="filtroVacDesde" name="desde_vac" class="filtro-input" value="{{ request.args.get('desde_vac','') }}">
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Hasta</label>
-                        <input type="date" id="filtroVacHasta" name="hasta_vac" class="filtro-input" value="{{ request.args.get('hasta_vac','') }}">
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Fiscalizador</label>
-                        <select id="filtroVacFiscalizador" name="fiscalizador_vac" class="filtro-input">
-                            <option value="">Todos</option>
-                            {% for u in usuarios %}
-                            <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_vac') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filtro-campo">
-                        <label class="filtro-label">Estado</label>
-                        <select id="filtroVacEstado" name="estado_vac" class="filtro-input">
-                            <option value="">Todos</option>
-                            <option value="Pendiente" {% if request.args.get('estado_vac') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
-                            <option value="En curso" {% if request.args.get('estado_vac') == 'En curso' %}selected{% endif %}>En curso</option>
-                            <option value="Finalizado" {% if request.args.get('estado_vac') == 'Finalizado' %}selected{% endif %}>Finalizado</option>
-                        </select>
-                    </div>
-                    <div class="filtro-acciones">
-                        <label class="filtro-label">&nbsp;</label>
-                        <div class="filtro-botones">
-                            <button type="submit" class="btn btn-primary btn-filtro">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                    <circle cx="11" cy="11" r="8"/>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                </svg>
-                                Buscar
-                            </button>
-                            <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="15" y1="9" x2="9" y2="15"/>
-                                    <line x1="9" y1="9" x2="15" y2="15"/>
-                                </svg>
-                                Limpiar
-                            </button>
+                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtro-form" id="filtrosVacaciones">
+                    <div class="filtro-field">
+                        <label for="filtroVacAnio" class="filtro-label">Año</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <input type="number" id="filtroVacAnio" name="anio_vac" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_vac','') }}">
                         </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroVacDesde" class="filtro-label">Desde</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <polyline points="8 14 12 18 16 14"/>
+                            </svg>
+                            <input type="date" id="filtroVacDesde" name="desde_vac" class="filtro-input" value="{{ request.args.get('desde_vac','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroVacHasta" class="filtro-label">Hasta</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <polyline points="8 10 12 6 16 10"/>
+                            </svg>
+                            <input type="date" id="filtroVacHasta" name="hasta_vac" class="filtro-input" value="{{ request.args.get('hasta_vac','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroVacFiscalizador" class="filtro-label">Fiscalizador</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <select id="filtroVacFiscalizador" name="fiscalizador_vac" class="filtro-input">
+                                <option value="">Todos</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_vac') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroVacEstado" class="filtro-label">Estado</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <select id="filtroVacEstado" name="estado_vac" class="filtro-input">
+                                <option value="">Todos</option>
+                                <option value="Pendiente" {% if request.args.get('estado_vac') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                                <option value="En curso" {% if request.args.get('estado_vac') == 'En curso' %}selected{% endif %}>En curso</option>
+                                <option value="Finalizado" {% if request.args.get('estado_vac') == 'Finalizado' %}selected{% endif %}>Finalizado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-actions">
+                        <button type="submit" class="btn-filtrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            Buscar
+                        </button>
+                        <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            Limpiar
+                        </button>
                     </div>
                 </form>
             </div>
