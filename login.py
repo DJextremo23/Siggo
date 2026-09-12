@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, current_app, make_response, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, session, url_for, make_response, flash, jsonify
 from werkzeug.security import check_password_hash
 from conexion import conexion
 from datetime import datetime, timedelta
@@ -6,7 +6,6 @@ from limiter_instance import limiter
 import pyotp
 import qrcode
 import qrcode.image.svg
-import base64
 import secrets
 import hashlib
 from io import BytesIO

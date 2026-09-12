@@ -81,11 +81,3 @@ class ConexionDB:
             except Exception:
                 pass
             self._local.conn = None
-
-    def ping(self):
-        """Comprueba si la conexión a la base de datos está activa."""
-        try:
-            self._ensure_connected()
-            return True
-        except Exception:
-            return False

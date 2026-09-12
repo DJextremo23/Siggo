@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session, send_file, url_for, flash
 from conexion import conexion
-from utils import acceso_no_autorizado, no_encontrado, guardar_filtros, redirigir_con_filtros
+from utils import acceso_no_autorizado, guardar_filtros, redirigir_con_filtros
 import os
 
 """

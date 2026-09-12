@@ -327,6 +327,11 @@ td {
     vertical-align: middle;
 }
 
+td strong {
+    font-weight: 600;
+    color: var(--color-primario);
+}
+
 tbody tr {
     transition: background var(--transition);
 }

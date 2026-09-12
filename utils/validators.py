@@ -3,9 +3,7 @@
 import re
 import os
 
-MAX_FILENAME_LENGTH = 255
 ALLOWED_EXTENSIONS = {"xlsx", "xlsm"}
-ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MIME_MAP = {
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "xlsm": "application/vnd.ms-excel.sheet.macroEnabled.12",
@@ -22,14 +20,6 @@ def archivo_permitido(filename):
     return (
         "." in filename
         and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-    )
-
-
-# Verifica que la extensión de la imagen esté en ALLOWED_PHOTO_EXTENSIONS
-def foto_permitida(filename):
-    return (
-        "." in filename
-        and filename.rsplit(".", 1)[1].lower() in ALLOWED_PHOTO_EXTENSIONS
     )
 
 

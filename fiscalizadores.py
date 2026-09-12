@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash
-from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils.validators import validar_mime_real, sanitizar_nombre, validar_longitudes
+from utils.validators import validar_mime_real, validar_longitudes
 import os
 from datetime import datetime
 
@@ -280,6 +279,8 @@ def actualizar_usuario(id):
 
         elif id_rol and id == session.get("id_usuario") and rol not in session.get("roles", []):
             flash("No puedes cambiar tu propio rol", "error")
+            conn.rollback()
+            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
         conn.commit()
 

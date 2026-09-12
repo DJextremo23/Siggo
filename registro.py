@@ -3,9 +3,8 @@ import re
 import os
 from datetime import datetime
 from werkzeug.security import generate_password_hash
-from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils.validators import validar_mime_real, sanitizar_nombre, validar_longitudes, INPUT_LIMITS
+from utils.validators import validar_mime_real, validar_longitudes
 from limiter_instance import limiter
 
 """

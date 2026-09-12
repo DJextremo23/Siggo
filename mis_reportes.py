@@ -12,7 +12,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from datetime import datetime, date
 from estilos_reporte import (
-    COLOR_PRIMARIO, COLOR_ACENTO, COLOR_TEXTO_MUTED,
+    COLOR_ACENTO, COLOR_TEXTO_MUTED,
     estilos_pdf, build_pdf_tabla,
     configurar_encabezado_excel, aplicar_estilo_datos_excel
 )
@@ -89,7 +89,7 @@ def _dias_pendientes_acumulados(cursor, id_usuario):
 
 
 # Ruta principal: tabla resumen + detalle de guardias + vacaciones del fiscalizador
-@mis_reportes_bp.route("/reportes")
+@mis_reportes_bp.route("/")
 def mis_reportes():
 
     if "usuario" not in session:
@@ -267,7 +267,33 @@ def mis_reportes():
             if v["fecha_inicio"] and v["fecha_fin"]:
                 dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
 
-        dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
+        # ================= RESUMEN VACACIONES (gráfico, respetando los filtros) =================
+        dias_pendientes_este_anio = 0
+        dias_pendientes_anteriores = 0
+
+        cursor.execute("SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+        user = cursor.fetchone()
+        if user and user.get("fecha_ingreso"):
+            fecha_ingreso = user["fecha_ingreso"]
+            today = date.today()
+            anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+            years = 0
+            while anniv <= today:
+                years += 1
+                anniv = anniv.replace(year=anniv.year + 1)
+            total_dias = years * 30
+
+            cursor.execute("""
+                SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+                FROM vacaciones v
+                WHERE v.id_usuario = %s
+            """, (id_usuario,))
+            result = cursor.fetchone()
+            dias_tomados_total = result["total"] if result else 0
+
+            # "Días Tomados" del gráfico = días tomados en el período filtrado (dias_tomados)
+            dias_pendientes_este_anio = max(0, 30 - dias_tomados)
+            dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
     finally:
         if cursor is not None:
@@ -281,7 +307,8 @@ def mis_reportes():
         detalle=detalle,
         vacaciones=vacaciones,
         dias_tomados=dias_tomados,
-        dias_faltantes=dias_faltantes
+        dias_pendientes_este_anio=dias_pendientes_este_anio,
+        dias_pendientes_anteriores=dias_pendientes_anteriores
     )
 
 

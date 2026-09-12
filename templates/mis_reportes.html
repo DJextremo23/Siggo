@@ -291,6 +291,35 @@
 
 </div>
 
+<!-- Resumen de vacaciones: gráfico de barras con días tomados, pendientes y pendientes de años anteriores -->
+<div class="card">
+
+<div class="card-header">
+  <h2>
+    <svg class="svg-icon-sm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+    Resumen de Vacaciones
+  </h2>
+</div>
+
+<p class="grafico-descripcion">
+  Tus vacaciones: días tomados este año, días pendientes y días pendientes de años anteriores.
+</p>
+
+<div class="grafico-container">
+  <canvas id="chart-resumen-vacaciones"></canvas>
+</div>
+
+<div class="leyenda-colores">
+  <span class="leyenda-color"><span class="color-dot" style="background:#22c55e"></span> Días Tomados</span>
+  <span class="leyenda-color"><span class="color-dot" style="background:#f59e0b"></span> Días Pendientes</span>
+  <span class="leyenda-color"><span class="color-dot" style="background:#ef4444"></span> Días Pend. Años Anteriores</span>
+</div>
+
+</div>
+
 <!-- Vacaciones: tabla paginada con períodos de vacaciones, días tomados/faltantes y exportación -->
 <div class="card">
 
@@ -302,11 +331,6 @@
     </svg>
     Detalle de Vacaciones
   </h2>
-
-  <div class="dias-vacaciones">
-    <span class="badge-tomados">Tomados (período): {{ dias_tomados }} días</span>
-    <span class="badge-faltantes">Pendientes (total): {{ dias_faltantes }} días</span>
-  </div>
 
   <div class="header-actions">
 
@@ -546,8 +570,36 @@ function renderResumenChart() {
   });
 }
 
+function renderResumenVacacionesChart() {
+  var canvas = document.getElementById('chart-resumen-vacaciones');
+  if (!canvas) return;
+  if (window.chartResumenVacaciones) window.chartResumenVacaciones.destroy();
+  window.chartResumenVacaciones = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Días Tomados', 'Días Pendientes', 'Días Pend. Años Anteriores'],
+      datasets: [{
+        label: 'Vacaciones',
+        data: [
+          {{ dias_tomados | int }},
+          {{ dias_pendientes_este_anio | int }},
+          {{ dias_pendientes_anteriores | int }}
+        ],
+        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded",()=>{
   renderResumenChart();
+  renderResumenVacacionesChart();
   mostrarTabla("detalle");
   mostrarTabla("vacaciones");
   actualizarLinksExport();

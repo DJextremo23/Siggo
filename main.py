@@ -238,14 +238,14 @@ def administrador():
         total_informes = cursor.fetchone()["total"]
 
         cursor.execute("SELECT COUNT(*) AS total FROM compensaciones WHERE YEAR(fecha_compensacion) = YEAR(CURDATE())")
-        total_reportes = cursor.fetchone()["total"]
+        total_compensaciones = cursor.fetchone()["total"]
 
         return render_template("administrador.html",
                                alertas=alertas,
                                total_usuarios=total_usuarios,
                                total_guardias=total_guardias,
                                total_informes=total_informes,
-                               total_reportes=total_reportes)
+                               total_compensaciones=total_compensaciones)
     except Exception as e:
         print("ERROR administrador:", e)
         return error_interno()
@@ -1512,6 +1512,9 @@ def ver_guardias():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
+    if session.get("perfil_activo") != "admin":
+        return acceso_no_autorizado()
+
     guardar_filtros("filtro_guardias")
 
     cursor = conexion.cursor(dictionary=True)
@@ -2384,7 +2387,7 @@ def mis_guardias():
                 g.fecha_guardia,
 
                 CASE
-                    WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
                         THEN 'realizada'
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                         THEN 'cancelada'
@@ -2396,7 +2399,7 @@ def mis_guardias():
                     'Jueves','Viernes','Sábado') AS dia_semana,
 
                 CASE
-                    WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
                         THEN 'Asistió'
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                         THEN 'Falta'
@@ -2437,7 +2440,7 @@ def mis_guardias():
                 sql += """
                     AND (
                         CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
                                 THEN 'Asistió'
                             WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                                 THEN 'Falta'
@@ -2449,7 +2452,7 @@ def mis_guardias():
                 sql += """
                     AND (
                         CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
                                 THEN 'Asistió'
                             WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                                 THEN 'Falta'
@@ -2461,7 +2464,7 @@ def mis_guardias():
                 sql += """
                     AND (
                         CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistió')
+                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
                                 THEN 'Asistió'
                             WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                                 THEN 'Falta'
@@ -2472,13 +2475,13 @@ def mis_guardias():
 
         # ================= FILTRO ESTADO GUARDIA =================
         if estado_guardia == "realizada":
-            sql += " AND LOWER(COALESCE(a.estado, '')) IN ('asistió') "
+            sql += " AND LOWER(COALESCE(a.estado, '')) IN ('asistio') "
         elif estado_guardia == "cancelada":
             sql += " AND LOWER(COALESCE(a.estado, '')) IN ('falta') "
         elif estado_guardia == "programada":
             sql += """ AND (
                 a.estado IS NULL
-                OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistió','falta')
+                OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistio','falta')
             ) """
 
         sql += " ORDER BY g.fecha_guardia DESC"
@@ -2707,7 +2710,7 @@ app.register_blueprint(login_bp)
 app.register_blueprint(informe_bp)
 app.register_blueprint(registro_bp)
 app.register_blueprint(reporte_bp)
-app.register_blueprint(mis_reportes_bp, url_prefix="/mis")
+app.register_blueprint(mis_reportes_bp, url_prefix="/mis_reportes")
 app.register_blueprint(informes_bp)
 app.register_blueprint(fiscalizadores_bp)
 app.register_blueprint(perfil_bp)

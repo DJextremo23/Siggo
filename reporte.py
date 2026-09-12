@@ -9,7 +9,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from estilos_reporte import (
-    COLOR_PRIMARIO, COLOR_ACENTO,
+    COLOR_ACENTO,
     estilos_pdf, build_pdf_tabla,
     configurar_encabezado_excel, aplicar_estilo_datos_excel
 )

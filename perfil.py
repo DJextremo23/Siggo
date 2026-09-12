@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash
-from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils.validators import validar_mime_real, sanitizar_nombre, validar_longitudes
+from utils.validators import validar_mime_real, validar_longitudes
 import os
 from datetime import datetime
 
