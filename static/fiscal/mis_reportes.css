@@ -160,6 +160,72 @@ body {
     color: #92400e;
 }
 
+.status-pendiente { color: #f59e0b; font-weight: 600; }
+.status-en-curso  { color: #3b82f6; font-weight: 600; }
+.status-finalizado { color: #22c55e; font-weight: 600; }
+
+/* Gráfico de barras (resumen) */
+.grafico-descripcion {
+    margin: 4px 0 12px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.grafico-container {
+    position: relative;
+    height: 340px;
+    margin: 8px 0;
+}
+
+.leyenda-avatares {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-top: 14px;
+}
+
+.leyenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.avatar-circulo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+.leyenda-nombre {
+    font-size: 13px;
+    color: #334155;
+    font-weight: 500;
+}
+
+.leyenda-colores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-top: 14px;
+}
+
+.leyenda-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: #334155;
+}
+
+.color-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
 /* Header actions group */
 .header-actions {
     display: flex;

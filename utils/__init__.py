@@ -1,6 +1,23 @@
 """Utilidades compartidas para respuestas de error HTTP estandarizadas (403, 404, 400, 500)."""
 
-from flask import render_template
+from flask import render_template, redirect, request, session, url_for
+
+
+def guardar_filtros(key):
+    """Guarda en sesión la query string actual (filtros) o la limpia si no hay filtros."""
+    if request.query_string:
+        session[key] = request.query_string.decode("utf-8")
+    else:
+        session.pop(key, None)
+
+
+def redirigir_con_filtros(endpoint, key, **values):
+    """Redirige a un endpoint preservando los filtros guardados en sesión bajo `key`."""
+    url = url_for(endpoint, **values)
+    qs = session.get(key, "")
+    if qs:
+        url += ("&" if "?" in url else "?") + qs
+    return redirect(url)
 
 
 def error_response(mensaje, codigo=400, titulo="Error", volver_url="/", volver_texto="Volver"):

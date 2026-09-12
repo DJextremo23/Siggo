@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, send_file, session, redirect
 from io import BytesIO
+from datetime import date, datetime
 from conexion import conexion
 from utils import acceso_no_autorizado
 from openpyxl import Workbook
@@ -15,6 +16,25 @@ from estilos_reporte import (
 
 # Blueprint para reportes del admin - resumen, detalle y vacaciones con exportación a PDF y Excel
 reporte_bp = Blueprint("reporte_bp", __name__)
+
+
+def _fecha(valor):
+    """Formatea una fecha como día.mes.año (DD.MM.YYYY)."""
+    if valor is None or valor == "":
+        return ""
+    if isinstance(valor, datetime):
+        return valor.strftime("%d.%m.%Y")
+    if isinstance(valor, date):
+        return valor.strftime("%d.%m.%Y")
+    s = str(valor).strip()
+    if not s:
+        return ""
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%d.%m.%Y")
+        except ValueError:
+            continue
+    return s
 
 
 # ==========================
@@ -110,9 +130,10 @@ def reporte():
         cursor.execute(f"""
             SELECT 
                 u.id_usuario,
+                u.foto,
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
-                SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
+                CAST(SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS UNSIGNED) AS guardias_feriado,
                 COUNT(c.id_compensacion) AS compensaciones,
                 (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
             FROM guardias g
@@ -530,10 +551,10 @@ def exportar_detalle_fecha_pdf():
     columnas = ["Fiscalizador", "Fecha", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
     filas = [[
         d["fiscalizador"],
-        str(d["fecha_guardia"]) if d["fecha_guardia"] else "",
+        _fecha(d["fecha_guardia"]),
         d["feriado_descripcion"],
         d["asistencia"],
-        str(d["fecha_compensacion"]) if d["fecha_compensacion"] else "\u2014",
+        _fecha(d["fecha_compensacion"]) or "\u2014",
         d["estado_compensacion"],
         d["observacion"] or "\u2014"
     ] for d in detalle]
@@ -621,10 +642,10 @@ def exportar_detalle_fecha_excel():
     for d in detalle:
         ws.append([
             d["fiscalizador"],
-            str(d["fecha_guardia"]) if d["fecha_guardia"] else "",
+            _fecha(d["fecha_guardia"]),
             d["feriado_descripcion"],
             d["asistencia"],
-            str(d["fecha_compensacion"]) if d["fecha_compensacion"] else "",
+            _fecha(d["fecha_compensacion"]),
             d["estado_compensacion"],
             d["observacion"] or ""
         ])
@@ -730,8 +751,8 @@ def exportar_vacaciones_pdf():
     columnas = ["Fiscalizador", "Inicio", "Fin", "Días Tomados", "Estado"]
     filas = [[
         v["fiscalizador"],
-        str(v["fecha_inicio"]) if v["fecha_inicio"] else "",
-        str(v["fecha_fin"]) if v["fecha_fin"] else "",
+        _fecha(v["fecha_inicio"]),
+        _fecha(v["fecha_fin"]),
         str(v["dias_tomados"]),
         v["estado"].replace('_', ' ').title()
     ] for v in data]
@@ -825,8 +846,8 @@ def exportar_vacaciones_excel():
     for v in data:
         ws.append([
             v["fiscalizador"],
-            str(v["fecha_inicio"]) if v["fecha_inicio"] else "",
-            str(v["fecha_fin"]) if v["fecha_fin"] else "",
+            _fecha(v["fecha_inicio"]),
+            _fecha(v["fecha_fin"]),
             v["dias_tomados"],
             v["estado"].replace('_', ' ').title()
         ])

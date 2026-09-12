@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mis Reportes — SIGGO</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/mis_reportes.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -124,28 +125,29 @@
   </div>
 </div>
 
-<table>
-<thead>
-<tr>
-  <th>Fiscalizador</th>
-  <th>Total Guardia</th>
-  <th>Total Feriado</th>
-  <th>Total Compensaciones</th>
-  <th>Compensaciones Pendientes</th>
-</tr>
-</thead>
+<p class="grafico-descripcion">
+  Resumen de tus guardias: total de guardias, guardias en feriado, compensaciones registradas y compensaciones pendientes.
+</p>
 
-<tbody>
-<tr>
-  <td><strong>{{ session.get('nombre', '—') }}</strong></td>
-  <td><strong>{{ r.get('total_guardias', 0) }}</strong></td>
-  <td><strong>{{ r.get('guardias_feriado', 0) }}</strong></td>
-  <td><strong>{{ r.get('compensaciones', 0) }}</strong></td>
-  <td><strong>{{ r.get('pendientes', 0) }}</strong></td>
-</tr>
-</tbody>
+<div class="grafico-container">
+  <canvas id="chart-resumen"></canvas>
+</div>
 
-</table>
+<div class="leyenda-colores">
+  <span class="leyenda-color"><span class="color-dot" style="background:#3b82f6"></span> Total de Guardias</span>
+  <span class="leyenda-color"><span class="color-dot" style="background:#f59e0b"></span> Total de Feriados</span>
+  <span class="leyenda-color"><span class="color-dot" style="background:#22c55e"></span> Total Compensaciones</span>
+  <span class="leyenda-color"><span class="color-dot" style="background:#ef4444"></span> Compensaciones Pendientes</span>
+</div>
+
+{% if session.get('foto') %}
+<div class="leyenda-avatares">
+  <div class="leyenda-item" title="{{ session.get('nombre', '') }}">
+    <img class="avatar-circulo" src="{{ url_for('static', filename='fotos/' + session.get('foto')) }}" alt="{{ session.get('nombre', '') }}">
+    <span class="leyenda-nombre">{{ session.get('nombre', '—') }}</span>
+  </div>
+</div>
+{% endif %}
 
 </div>
 
@@ -273,12 +275,12 @@
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
       <circle cx="12" cy="12" r="3"/>
     </svg>
-    Vacaciones
+    Detalle de Vacaciones
   </h2>
 
   <div class="dias-vacaciones">
     <span class="badge-tomados">Tomados (período): {{ dias_tomados }} días</span>
-    <span class="badge-faltantes">Pendientes: {{ dias_faltantes }} días</span>
+    <span class="badge-faltantes">Pendientes (total): {{ dias_faltantes }} días</span>
   </div>
 
   <div class="header-actions">
@@ -333,7 +335,7 @@
 <tr>
   <th>Inicio</th>
   <th>Fin</th>
-  <th>Días</th>
+  <th>Días tomados</th>
   <th>Estado</th>
 </tr>
 </thead>
@@ -343,8 +345,16 @@
 <tr class="fila-vacaciones">
 <td><strong>{{ v.fecha_inicio|fecha }}</strong></td>
 <td><strong>{{ v.fecha_fin|fecha }}</strong></td>
-<td><strong>{{ ((v.fecha_fin - v.fecha_inicio).days + 1) }}</strong></td>
-<td>{{ v.estado }}</td>
+<td><strong>{{ v.dias_tomados }}</strong></td>
+<td>
+  {% if v.estado == 'pendiente' %}
+    <span class="status-pendiente">Pendiente</span>
+  {% elif v.estado == 'en_curso' %}
+    <span class="status-en-curso">En curso</span>
+  {% else %}
+    <span class="status-finalizado">Finalizado</span>
+  {% endif %}
+</td>
 </tr>
 {% endfor %}
 </tbody>
@@ -483,7 +493,36 @@ function cambiarPagina(tipo,cambio){
   mostrarTabla(tipo);
 }
 
+function renderResumenChart() {
+  var canvas = document.getElementById('chart-resumen');
+  if (!canvas) return;
+  if (window.chartResumen) window.chartResumen.destroy();
+  window.chartResumen = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Total de Guardias', 'Total de Feriados', 'Total Compensaciones', 'Compensaciones Pendientes'],
+      datasets: [{
+        label: 'Guardias',
+        data: [
+          {{ r.get('total_guardias', 0) | int }},
+          {{ r.get('guardias_feriado', 0) | int }},
+          {{ r.get('compensaciones', 0) | int }},
+          {{ r.get('pendientes', 0) | int }}
+        ],
+        backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded",()=>{
+  renderResumenChart();
   mostrarTabla("detalle");
   mostrarTabla("vacaciones");
   actualizarLinksExport();

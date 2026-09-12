@@ -7,7 +7,7 @@ from reporte import reporte_bp
 from conexion import ConexionDB
 from mis_reportes import mis_reportes_bp
 from csrf import generate_token, validate_csrf
-from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado
+from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
 
 from datetime import datetime, timedelta, date
 from login import login_bp
@@ -274,6 +274,8 @@ def compensaciones_admin():
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
+    guardar_filtros("filtro_compensaciones")
+
     buscar = request.args.get("buscar", "").strip()
     anio = request.args.get("anio", "").strip()
     desde = request.args.get("desde", "").strip()
@@ -478,11 +480,11 @@ def guardar_edicion_compensacion(id_guardia):
             fecha_compensacion = datetime.strptime(fecha, "%Y-%m-%d").date()
         except ValueError:
             flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
-            return redirect(url_for("compensaciones_admin"))
+            return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
         if fecha_compensacion < fecha_guardia:
             flash("La fecha de compensación no puede ser anterior a la fecha de la guardia", "error")
-            return redirect(url_for("compensaciones_admin"))
+            return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
         # Insertar o actualizar compensación
         cursor.execute("""
@@ -504,7 +506,7 @@ def guardar_edicion_compensacion(id_guardia):
         conexion.commit()
 
         flash("Compensación registrada correctamente", "success")
-        return redirect(url_for("compensaciones_admin"))
+        return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
     except Exception as e:
 
@@ -539,7 +541,7 @@ def eliminar_compensacion(id_guardia):
         conexion.commit()
 
         flash("Compensación eliminada correctamente", "success")
-        return redirect(url_for("compensaciones_admin"))
+        return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
     except Exception as e:
 
@@ -566,6 +568,8 @@ def feriados():
 
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
+
+    guardar_filtros("filtro_feriados")
 
     anio = request.args.get("anio", "").strip()
     fecha_desde = request.args.get("fecha_desde", "").strip()
@@ -631,13 +635,13 @@ def guardar_feriado():
 
     if not fecha or not descripcion:
         flash("Fecha y descripción son obligatorios", "error")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     try:
         datetime.strptime(fecha, "%Y-%m-%d")
     except ValueError:
         flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     cursor = conexion.cursor()
 
@@ -665,7 +669,7 @@ def guardar_feriado():
         conexion.commit()
 
         flash("Feriado registrado correctamente", "success")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     except mysql.connector.errors.IntegrityError as e:
         conexion.rollback()
@@ -673,7 +677,7 @@ def guardar_feriado():
             flash("Ya existe un feriado registrado en esa fecha", "error")
         else:
             flash("No se pudo registrar el feriado: datos duplicados o inválidos", "error")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     except mysql.connector.errors.OperationalError as e:
         conexion.rollback()
@@ -681,7 +685,7 @@ def guardar_feriado():
             flash("La base de datos está ocupada, intente nuevamente en unos segundos", "error")
         else:
             flash("Error de conexión con la base de datos, intente nuevamente", "error")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     except Exception as e:
 
@@ -690,7 +694,7 @@ def guardar_feriado():
         print("ERROR GUARDAR FERIADO:", e)
 
         flash("Ocurrió un error al registrar el feriado. Intente nuevamente.", "error")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     finally:
 
@@ -766,7 +770,7 @@ def actualizar_feriado(id):
         conexion.commit()
 
         flash("Feriado actualizado correctamente", "success")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     except Exception as e:
         conexion.rollback()
@@ -797,7 +801,7 @@ def eliminar_feriado(id):
         conexion.commit()
 
         flash("Feriado eliminado correctamente", "success")
-        return redirect(url_for("feriados"))
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     except Exception as e:
 
@@ -826,6 +830,8 @@ def vacaciones():
 
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
+
+    guardar_filtros("filtro_vacaciones")
 
     cursor = None
     try:
@@ -1059,7 +1065,7 @@ def actualizar_vacacion(id):
         conexion.commit()
 
         flash("Vacaciones actualizadas correctamente", "success")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     except Exception as e:
         conexion.rollback()
@@ -1084,18 +1090,18 @@ def guardar_vacacion():
 
     if not id_usuario or not inicio or not fin:
         flash("Todos los campos son obligatorios", "error")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     try:
         inicio_dt = datetime.strptime(inicio, "%Y-%m-%d").date()
         fin_dt = datetime.strptime(fin, "%Y-%m-%d").date()
     except ValueError:
         flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     if inicio_dt > fin_dt:
         flash("Fecha inválida: inicio mayor que fin", "error")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     cursor = conexion.cursor(dictionary=True)
 
@@ -1114,7 +1120,7 @@ def guardar_vacacion():
 
         if not user:
             flash("Usuario no encontrado", "error")
-            return redirect(url_for("vacaciones"))
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         fecha_ingreso = user["fecha_ingreso"]
 
@@ -1125,7 +1131,7 @@ def guardar_vacacion():
 
         if datetime.now().date() < fecha_habil:
             flash("El usuario aún no cumple 1 año de antigüedad para solicitar vacaciones", "error")
-            return redirect(url_for("vacaciones"))
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         # =========================
         # VALIDAR GUARDIAS EN RANGO
@@ -1140,7 +1146,7 @@ def guardar_vacacion():
 
         if cursor.fetchone():
             flash("No se puede registrar: el usuario tiene guardias en ese rango de fechas", "error")
-            return redirect(url_for("vacaciones"))
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         # =========================
         # VALIDAR CRUCE DE VACACIONES
@@ -1159,7 +1165,7 @@ def guardar_vacacion():
 
         if cursor.fetchone():
             flash("Ya tiene vacaciones registradas en ese rango de fechas", "error")
-            return redirect(url_for("vacaciones"))
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         # =========================
         # INSERTAR
@@ -1195,7 +1201,7 @@ def guardar_vacacion():
         conexion.commit()
 
         flash("Vacaciones registradas correctamente", "success")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     except mysql.connector.errors.OperationalError as e:
         conexion.rollback()
@@ -1203,13 +1209,13 @@ def guardar_vacacion():
             flash("La base de datos está ocupada, intente nuevamente en unos segundos", "error")
         else:
             flash("Error de conexión con la base de datos, intente nuevamente", "error")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     except Exception as e:
         conexion.rollback()
         print("ERROR guardar_vacacion:", e)
         flash("Ocurrió un error al registrar las vacaciones. Intente nuevamente.", "error")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     finally:
         cursor.close()
@@ -1256,7 +1262,7 @@ def eliminar_vacacion(id):
         conexion.commit()
 
         flash("Vacaciones eliminadas correctamente", "success")
-        return redirect(url_for("vacaciones"))
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     except Exception as e:
         conexion.rollback()
@@ -1497,6 +1503,8 @@ def ver_guardias():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
+    guardar_filtros("filtro_guardias")
+
     cursor = conexion.cursor(dictionary=True)
 
     id_usuario = request.args.get("id_usuario", "").strip()
@@ -1585,13 +1593,13 @@ def agregar_guardia():
 
     if not id_usuario or not fecha_guardia:
         flash("Todos los campos son obligatorios", "error")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     try:
         datetime.strptime(fecha_guardia, "%Y-%m-%d")
     except ValueError:
         flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     cursor = conexion.cursor()
 
@@ -1604,7 +1612,7 @@ def agregar_guardia():
 
         if cursor.fetchone():
             flash("Este fiscalizador ya tiene una guardia asignada en esa fecha", "error")
-            return redirect(url_for("ver_guardias"))
+            return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
         cursor.execute("""
             INSERT INTO guardias (id_usuario, fecha_guardia)
@@ -1624,7 +1632,7 @@ def agregar_guardia():
 
         conexion.commit()
         flash("Guardia registrada correctamente", "success")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     except mysql.connector.errors.IntegrityError as e:
         conexion.rollback()
@@ -1632,7 +1640,7 @@ def agregar_guardia():
             flash("Este fiscalizador ya tiene una guardia asignada en esa fecha", "error")
         else:
             flash("No se pudo registrar la guardia: datos duplicados o inválidos", "error")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     except mysql.connector.errors.OperationalError as e:
         conexion.rollback()
@@ -1640,13 +1648,13 @@ def agregar_guardia():
             flash("La base de datos está ocupada, intente nuevamente en unos segundos", "error")
         else:
             flash("Error de conexión con la base de datos, intente nuevamente", "error")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     except Exception as e:
         conexion.rollback()
         print("ERROR agregar_guardia:", e)
         flash("Ocurrió un error al registrar la guardia. Intente nuevamente.", "error")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     finally:
         cursor.close()
@@ -1693,7 +1701,7 @@ def editar_guardia(id):
 
             conexion.commit()
             flash("Guardia actualizada correctamente", "success")
-            return redirect(url_for("ver_guardias"))
+            return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
         # ======================
         # CARGAR DATOS
@@ -1749,7 +1757,7 @@ def eliminar_guardia(id):
         conexion.commit()
 
         flash("Guardia eliminada correctamente", "success")
-        return redirect(url_for("ver_guardias"))
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
     except Exception as e:
 
@@ -1803,7 +1811,7 @@ def registrar_asistencia(id_guardia, estado):
 
             if cursor.fetchone():
                 flash("No se puede cambiar la asistencia: elimina primero la compensación registrada", "error")
-                return redirect(url_for("asistencia_admin"))
+                return redirigir_con_filtros("asistencia_admin", "filtro_asistencias")
 
             cursor.execute("""
                 UPDATE asistencia
@@ -1824,7 +1832,7 @@ def registrar_asistencia(id_guardia, estado):
             "justificado": "Asistencia marcada como 'Justificado'"
         }
         flash(mensajes.get(estado, "Asistencia actualizada"), "success")
-        return redirect(url_for("asistencia_admin"))
+        return redirigir_con_filtros("asistencia_admin", "filtro_asistencias")
 
     finally:
         cursor.close()
@@ -1841,6 +1849,8 @@ def asistencia_admin():
     # 🔥 CORRECCIÓN AQUÍ TAMBIÉN
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
+
+    guardar_filtros("filtro_asistencias")
 
     cursor = conexion.cursor(dictionary=True)
 
@@ -2100,6 +2110,8 @@ def mis_compensaciones():
     if (session.get("perfil_activo") or "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
+    guardar_filtros("filtro_mis_compensaciones")
+
     fecha_guardia = request.args.get("fecha_guardia", "")
     anio = request.args.get("anio", "").strip()
     desde = request.args.get("desde", "").strip()
@@ -2326,7 +2338,7 @@ def eliminar_mi_compensacion(id_compensacion):
         conexion.commit()
 
         flash("Compensación eliminada correctamente", "success")
-        return redirect(url_for("mis_compensaciones"))
+        return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
 
     finally:
         cursor.close()

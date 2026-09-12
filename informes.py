@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session, send_file, url_for, flash
 from conexion import conexion
-from utils import acceso_no_autorizado, no_encontrado
+from utils import acceso_no_autorizado, no_encontrado, guardar_filtros, redirigir_con_filtros
 import os
 
 """
@@ -23,6 +23,8 @@ def admin_informes():
     # Solo perfil administrador
     if session.get("perfil_activo", "").lower() != "admin":
         return acceso_no_autorizado()
+
+    guardar_filtros("filtro_informes")
 
     # Parámetros de filtro opcionales
     fecha_desde = request.args.get("fecha_desde")
@@ -126,7 +128,7 @@ def admin_descargar_informe(id_informe):
 
         if not informe:
             flash("Archivo no encontrado", "error")
-            return redirect(url_for("informes.admin_informes"))
+            return redirigir_con_filtros("informes.admin_informes", "filtro_informes")
 
         ruta = informe["ruta_archivo"]
         # ── Protección contra Path Traversal ──
@@ -137,7 +139,7 @@ def admin_descargar_informe(id_informe):
 
         if not os.path.exists(ruta_real):
             flash("El archivo no existe en el servidor", "error")
-            return redirect(url_for("informes.admin_informes"))
+            return redirigir_con_filtros("informes.admin_informes", "filtro_informes")
 
         return send_file(
             ruta_real,
@@ -178,7 +180,7 @@ def admin_eliminar_informe(id_informe):
         conn.commit()
 
         flash("Informe eliminado correctamente", "success")
-        return redirect(url_for("informes.admin_informes"))
+        return redirigir_con_filtros("informes.admin_informes", "filtro_informes")
 
     finally:
         if cursor is not None:

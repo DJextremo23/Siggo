@@ -6,7 +6,7 @@ editar, eliminar, descargar y analizar informes con IA
 from flask import Blueprint, render_template, request, redirect, session, send_file, url_for, jsonify, flash
 from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado
+from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
 from utils.validators import archivo_permitido, sanitizar_nombre, validar_mime_real, validar_longitudes
 from datetime import datetime
 from io import BytesIO
@@ -51,6 +51,8 @@ def mis_informes():
 
     if session.get("perfil_activo") != "fiscalizador":
         return acceso_no_autorizado()
+
+    guardar_filtros("filtro_mis_informes")
 
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
@@ -219,7 +221,7 @@ def registrar_informe():
             conn.commit()
 
             flash("Informe registrado correctamente", "success")
-            return redirect(url_for("informe.mis_informes"))
+            return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")
 
         cursor.execute("""
             SELECT
@@ -355,7 +357,7 @@ def editar_informe(id_informe):
             conn.commit()
 
             flash("Informe actualizado correctamente", "success")
-            return redirect(url_for("informe.mis_informes"))
+            return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")
 
         return render_template(
             "editar_informe.html",
@@ -394,7 +396,7 @@ def descargar_informe(id_informe):
 
         if not informe:
             flash("Archivo no encontrado", "error")
-            return redirect(url_for("informe.mis_informes"))
+            return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")
 
         ruta = informe["ruta_archivo"]
         # ── Protección contra Path Traversal ──
@@ -405,7 +407,7 @@ def descargar_informe(id_informe):
 
         if not os.path.exists(ruta_real):
             flash("El archivo no existe en el servidor", "error")
-            return redirect(url_for("informe.mis_informes"))
+            return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")
 
         return send_file(
             ruta_real,
@@ -447,7 +449,7 @@ def eliminar_informe(id_informe):
         conn.commit()
 
         flash("Informe eliminado correctamente", "success")
-        return redirect(url_for("informe.mis_informes"))
+        return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")
 
     finally:
         if cursor is not None: cursor.close()

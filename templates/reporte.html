@@ -7,6 +7,7 @@
 <title>Reporte de Guardias — SIGGO</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/mis_reportes.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='reporte.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -171,43 +172,23 @@
   </div>
 </div>
 
-<table>
-<thead>
-<tr>
-   <th>Fiscalizadores</th>
-   <th>Total de Guardias</th>
-   <th>Total de Feriados</th>
-   <th>Total Compensaciones</th>
-   <th>Compensaciones Pendientes</th>
-</tr>
-</thead>
+<p class="grafico-descripcion">
+  Comparativa por fiscalizador: total de guardias, guardias en feriado, compensaciones registradas y compensaciones pendientes.
+</p>
 
-<tbody id="tabla-resumen">
-{% for r in reporte %}
-<tr class="fila-resumen">
-  <td><strong>{{ r.fiscalizador }}</strong></td>
-  <td>{{ r.total_guardias }}</td>
-  <td>{{ r.guardias_feriado }}</td>
-  <td>{{ r.compensaciones }}</td>
-  <td>{{ r.pendientes }}</td>
-</tr>
-{% endfor %}
-</tbody>
+<div class="grafico-container">
+  <canvas id="chart-resumen"></canvas>
+</div>
 
-</table>
-
-<div class="pagination-bar" id="resumen-pagination">
-<button class="pagination-btn" id="resumen-prev" disabled aria-label="Anterior">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="15 18 9 12 15 6"/>
-  </svg>
-</button>
-<span class="pagination-info" id="pagina-resumen">...</span>
-<button class="pagination-btn" id="resumen-next" aria-label="Siguiente">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="9 18 15 12 9 6"/>
-  </svg>
-</button>
+<div class="leyenda-avatares">
+  {% for r in reporte %}
+    {% if r.foto %}
+    <div class="leyenda-item" title="{{ r.fiscalizador }}">
+      <img class="avatar-circulo" src="{{ url_for('static', filename='fotos/' + r.foto) }}" alt="{{ r.fiscalizador }}">
+      <span class="leyenda-nombre">{{ r.fiscalizador }}</span>
+    </div>
+    {% endif %}
+  {% endfor %}
 </div>
 
 </div>
@@ -616,6 +597,49 @@ function actualizarLinksExport() {
     } catch(e) {}
 }
 
+/* ===== GRÁFICO RESUMEN (BARRAS) ===== */
+var resumenData = {{ reporte | tojson }};
+var chartResumen = null;
+
+function renderResumenChart() {
+  var input = document.getElementById('buscar-resumen');
+  var texto = input ? input.value.toLowerCase() : '';
+  var data = resumenData;
+  if (texto) {
+    data = resumenData.filter(function(r) {
+      return (r.fiscalizador || '').toLowerCase().indexOf(texto) !== -1;
+    });
+  }
+
+  var canvas = document.getElementById('chart-resumen');
+  if (!canvas) return;
+  if (chartResumen) chartResumen.destroy();
+
+  chartResumen = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: data.map(function(r) { return r.fiscalizador; }),
+      datasets: [
+        { label: 'Total de Guardias', data: data.map(function(r){ return Number(r.total_guardias) || 0; }), backgroundColor: '#3b82f6' },
+        { label: 'Total de Feriados', data: data.map(function(r){ return Number(r.guardias_feriado) || 0; }), backgroundColor: '#f59e0b' },
+        { label: 'Total Compensaciones', data: data.map(function(r){ return Number(r.compensaciones) || 0; }), backgroundColor: '#22c55e' },
+        { label: 'Compensaciones Pendientes', data: data.map(function(r){ return Number(r.pendientes) || 0; }), backgroundColor: '#ef4444' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+        x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }
+      }
+    }
+  });
+}
+
 /* ===== FILTRO LUPA ===== */
 function filtrarTabla(tipo){
   var inputId;
@@ -692,16 +716,13 @@ function cambiarPagina(tipo, cambio){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  mostrarTabla('resumen');
+  renderResumenChart();
   mostrarTabla('detalle');
   mostrarTabla('resumen-vac');
   mostrarTabla('vacaciones');
   actualizarLinksExport();
   actualizarTextoFiscalizadores();
 
-  if (document.getElementById('buscar-resumen').value !== '') {
-    filtrarTabla('resumen');
-  }
   if (document.getElementById('buscar-detalle').value !== '') {
     filtrarTabla('detalle');
   }
@@ -826,13 +847,11 @@ document.getElementById('anio').addEventListener('input', actualizarLinksExport)
 document.getElementById('fecha_desde').addEventListener('change', actualizarLinksExport);
 document.getElementById('fecha_hasta').addEventListener('change', actualizarLinksExport);
 
-document.getElementById('buscar-resumen').addEventListener('input', function() { filtrarTabla('resumen'); });
+document.getElementById('buscar-resumen').addEventListener('input', renderResumenChart);
 document.getElementById('buscar-detalle').addEventListener('input', function() { filtrarTabla('detalle'); });
 document.getElementById('buscar-resumen-vacaciones').addEventListener('input', function() { filtrarTabla('resumen-vac'); });
 document.getElementById('buscar-vacaciones').addEventListener('input', function() { filtrarTabla('vacaciones'); });
 
-document.getElementById('resumen-prev').addEventListener('click', function() { cambiarPagina('resumen', -1); });
-document.getElementById('resumen-next').addEventListener('click', function() { cambiarPagina('resumen', 1); });
 document.getElementById('detalle-prev').addEventListener('click', function() { cambiarPagina('detalle', -1); });
 document.getElementById('detalle-next').addEventListener('click', function() { cambiarPagina('detalle', 1); });
 document.getElementById('resumen-vac-prev').addEventListener('click', function() { cambiarPagina('resumen-vac', -1); });

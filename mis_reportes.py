@@ -38,6 +38,25 @@ def _aplicar_estilo_datos_excel(ws, columnas, data_start):
 mis_reportes_bp = Blueprint("mis_reportes_bp", __name__)
 
 
+def _fecha(valor):
+    """Formatea una fecha como día.mes.año (DD.MM.YYYY)."""
+    if valor is None or valor == "":
+        return ""
+    if isinstance(valor, datetime):
+        return valor.strftime("%d.%m.%Y")
+    if isinstance(valor, date):
+        return valor.strftime("%d.%m.%Y")
+    s = str(valor).strip()
+    if not s:
+        return ""
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%d.%m.%Y")
+        except ValueError:
+            continue
+    return s
+
+
 def _dias_pendientes_acumulados(cursor, id_usuario):
     """Días pendientes acumulados: (años cumplidos × 30) − total tomado en toda la historia."""
     cursor.execute(
@@ -214,12 +233,28 @@ def mis_reportes():
             params_vac.append(fecha_hasta)
 
         if buscar_vac:
-            filtro_vac += " AND (v.fecha_inicio LIKE %s OR v.fecha_fin LIKE %s OR v.estado LIKE %s) "
+            filtro_vac += """ AND (
+                v.fecha_inicio LIKE %s OR
+                v.fecha_fin LIKE %s OR
+                CASE
+                    WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
+                    WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
+                    ELSE 'finalizado'
+                END LIKE %s
+            ) """
             like_vac = f"%{buscar_vac}%"
             params_vac.extend([like_vac, like_vac, like_vac])
 
         cursor.execute(f"""
-            SELECT fecha_inicio, fecha_fin, estado
+            SELECT
+                fecha_inicio,
+                fecha_fin,
+                DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias_tomados,
+                CASE
+                    WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
+                    WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
+                    ELSE 'finalizado'
+                END AS estado
             FROM vacaciones v
             {filtro_vac}
             ORDER BY v.fecha_inicio DESC
@@ -366,10 +401,10 @@ def exportar_pdf():
 
     columnas = ["Fecha", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
     filas = [[
-        str(d["fecha_guardia"]) if d["fecha_guardia"] else "",
+        _fecha(d["fecha_guardia"]),
         d["feriado"] or "\u2014",
         d["asistencia"] or "\u2014",
-        str(d["fecha_compensacion"]) if d["fecha_compensacion"] else "\u2014",
+        _fecha(d["fecha_compensacion"]) or "\u2014",
         d["estado_compensacion"] or "\u2014",
         d["observacion"] or "\u2014"
     ] for d in detalle]
@@ -488,10 +523,10 @@ def exportar_excel():
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Detalle de Guardias")
     for d in detalle:
         ws.append([
-            str(d["fecha_guardia"]) if d["fecha_guardia"] else "",
+            _fecha(d["fecha_guardia"]),
             d["feriado"] or "",
             d["asistencia"] or "",
-            str(d["fecha_compensacion"]) if d["fecha_compensacion"] else "",
+            _fecha(d["fecha_compensacion"]),
             d["estado_compensacion"] or "",
             d["observacion"] or ""
         ])
@@ -713,12 +748,28 @@ def exportar_vacaciones_pdf():
             params_vac.append(fecha_hasta)
 
         if buscar_vac:
-            filtro_vac += " AND (v.fecha_inicio LIKE %s OR v.fecha_fin LIKE %s OR v.estado LIKE %s) "
+            filtro_vac += """ AND (
+                v.fecha_inicio LIKE %s OR
+                v.fecha_fin LIKE %s OR
+                CASE
+                    WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
+                    WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
+                    ELSE 'finalizado'
+                END LIKE %s
+            ) """
             like_vac = f"%{buscar_vac}%"
             params_vac.extend([like_vac, like_vac, like_vac])
 
         cursor.execute(f"""
-            SELECT fecha_inicio, fecha_fin, estado
+            SELECT
+                fecha_inicio,
+                fecha_fin,
+                DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias_tomados,
+                CASE
+                    WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
+                    WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
+                    ELSE 'finalizado'
+                END AS estado
             FROM vacaciones v
             {filtro_vac}
             ORDER BY v.fecha_inicio DESC
@@ -760,8 +811,8 @@ def exportar_vacaciones_pdf():
 
     columnas = ["Inicio", "Fin", "Días", "Estado"]
     filas = [[
-        str(v["fecha_inicio"]) if v["fecha_inicio"] else "\u2014",
-        str(v["fecha_fin"]) if v["fecha_fin"] else "\u2014",
+        _fecha(v["fecha_inicio"]) or "\u2014",
+        _fecha(v["fecha_fin"]) or "\u2014",
         str((v["fecha_fin"] - v["fecha_inicio"]).days + 1) if v["fecha_inicio"] and v["fecha_fin"] else "\u2014",
         v["estado"].replace('_', ' ').title() if v["estado"] else "\u2014"
     ] for v in data]
@@ -819,12 +870,28 @@ def exportar_vacaciones_excel():
             params_vac.append(fecha_hasta)
 
         if buscar_vac:
-            filtro_vac += " AND (v.fecha_inicio LIKE %s OR v.fecha_fin LIKE %s OR v.estado LIKE %s) "
+            filtro_vac += """ AND (
+                v.fecha_inicio LIKE %s OR
+                v.fecha_fin LIKE %s OR
+                CASE
+                    WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
+                    WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
+                    ELSE 'finalizado'
+                END LIKE %s
+            ) """
             like_vac = f"%{buscar_vac}%"
             params_vac.extend([like_vac, like_vac, like_vac])
 
         cursor.execute(f"""
-            SELECT fecha_inicio, fecha_fin, estado
+            SELECT
+                fecha_inicio,
+                fecha_fin,
+                DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias_tomados,
+                CASE
+                    WHEN CURDATE() < v.fecha_inicio THEN 'pendiente'
+                    WHEN CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin THEN 'en_curso'
+                    ELSE 'finalizado'
+                END AS estado
             FROM vacaciones v
             {filtro_vac}
             ORDER BY v.fecha_inicio DESC
@@ -859,8 +926,8 @@ def exportar_vacaciones_excel():
 
     for v in data:
         ws.append([
-            str(v["fecha_inicio"]) if v["fecha_inicio"] else "",
-            str(v["fecha_fin"]) if v["fecha_fin"] else "",
+            _fecha(v["fecha_inicio"]),
+            _fecha(v["fecha_fin"]),
             (v["fecha_fin"] - v["fecha_inicio"]).days + 1 if v["fecha_inicio"] and v["fecha_fin"] else "",
             v["estado"].replace('_', ' ').title() if v["estado"] else ""
         ])
