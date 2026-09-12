@@ -6,40 +6,34 @@
 /* ===== FISCALIZADORES MULTI-SELECT DROPDOWN ===== */
 .dropdown-fisc {
     position: relative;
+    flex: 1;
+    min-width: 0;
 }
 
 .dropdown-fisc > button {
-    padding: 9px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    padding: 11px 0;
+    border: none;
     font-size: 14px;
     font-family: inherit;
-    color: #334155;
-    background: #f8fafc;
-    width: 240px;
+    color: #0f172a;
+    background: transparent;
+    width: 100%;
     text-align: left;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
-}
-
-.dropdown-fisc > button:hover {
-    border-color: var(--color-acento);
-    background: var(--color-blanco);
 }
 
 .dropdown-fisc > button:focus {
     outline: none;
-    border-color: var(--color-acento);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-    background: var(--color-blanco);
 }
 
 .dropdown-fisc > button .arrow {
     transition: transform var(--transition);
+    color: #94a3b8;
+    flex-shrink: 0;
 }
 
 .dropdown-fisc > button.abierto .arrow {

@@ -32,7 +32,7 @@ def admin_informes():
     tipo = request.args.get("tipo")
     anio = request.args.get("anio")
     titulo = request.args.get("titulo")
-    fiscalizador = request.args.get("fiscalizador")
+    id_usuario = request.args.get("id_usuario")
 
     conn = None
     cursor = None
@@ -82,16 +82,30 @@ def admin_informes():
             sql += " AND i.titulo LIKE %s"
             params.append(f"%{titulo}%")
 
-        if fiscalizador:
-            sql += " AND CONCAT(u.nombre, ' ', u.apellidos) LIKE %s"
-            params.append(f"%{fiscalizador}%")
+        if id_usuario:
+            sql += " AND i.id_usuario = %s"
+            params.append(id_usuario)
 
         sql += " ORDER BY i.fecha_subida DESC"
 
         cursor.execute(sql, tuple(params))
         informes = cursor.fetchall()
 
-        return render_template("informes.html", informes=informes)
+        cursor.execute("""
+            SELECT DISTINCT
+                u.id_usuario,
+                u.nombre,
+                u.apellidos
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            ORDER BY u.nombre
+        """)
+        fiscalizadores = cursor.fetchall()
+
+        return render_template("informes.html", informes=informes, fiscalizadores=fiscalizadores)
 
     finally:
         if cursor is not None:

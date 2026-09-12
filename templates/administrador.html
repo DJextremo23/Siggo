@@ -24,7 +24,13 @@
     <!-- SECCIÓN: Tarjeta de bienvenida con panel de notificaciones de vacaciones -->
     <div class="welcome-card">
         <div class="welcome-left">
-            <div class="welcome-avatar">{{ session.get('nombre', session.usuario)[:1].upper() }}</div>
+            <div class="welcome-avatar">
+                {% if session.get('foto') %}
+                <img src="{{ url_for('static', filename='fotos/' + session['foto']) }}" alt="{{ session.get('nombre', session.usuario) }}">
+                {% else %}
+                {{ session.get('nombre', session.usuario)[:1].upper() }}
+                {% endif %}
+            </div>
             <div class="welcome-text">
                 <h1>Panel de Administración</h1>
                 <p>Bienvenido, <strong>{{ session.nombre }}</strong></p>

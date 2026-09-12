@@ -42,56 +42,88 @@
 <!-- ================= FILTROS: Selección de año, rango de fechas y fiscalizadores a incluir en el reporte ================= -->
 <div class="card filtros-card">
 
-<form method="GET" action="{{ url_for('reporte_bp.reporte') }}" class="filtros" id="form-filtros">
+<form method="GET" action="{{ url_for('reporte_bp.reporte') }}" class="filtro-form" id="form-filtros">
 
-<div class="filtro-grupo">
-  <label for="anio">Año</label>
-  <input type="number" id="anio" name="anio" placeholder="Ej: 2025" min="2000" max="2099"
-  value="{{ request.args.get('anio','') }}">
+<div class="filtro-field">
+  <label for="anio" class="filtro-label">Año</label>
+  <div class="filtro-input-wrap">
+    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <input type="number" id="anio" name="anio" placeholder="Ej: 2025" min="2000" max="2099" value="{{ request.args.get('anio','') }}" class="filtro-input">
+  </div>
 </div>
 
-<div class="filtro-grupo">
-  <label for="fecha_desde">Desde</label>
-  <input type="date" id="fecha_desde" name="fecha_desde"
-  value="{{ request.args.get('fecha_desde','') }}">
+<div class="filtro-field">
+  <label for="fecha_desde" class="filtro-label">Desde</label>
+  <div class="filtro-input-wrap">
+    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <polyline points="8 14 12 18 16 14"/>
+    </svg>
+    <input type="date" id="fecha_desde" name="fecha_desde" value="{{ request.args.get('fecha_desde','') }}" class="filtro-input">
+  </div>
 </div>
 
-<div class="filtro-grupo">
-  <label for="fecha_hasta">Hasta</label>
-  <input type="date" id="fecha_hasta" name="fecha_hasta"
-  value="{{ request.args.get('fecha_hasta','') }}">
+<div class="filtro-field">
+  <label for="fecha_hasta" class="filtro-label">Hasta</label>
+  <div class="filtro-input-wrap">
+    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <polyline points="8 10 12 6 16 10"/>
+    </svg>
+    <input type="date" id="fecha_hasta" name="fecha_hasta" value="{{ request.args.get('fecha_hasta','') }}" class="filtro-input">
+  </div>
 </div>
 
-<div class="filtro-grupo">
-  <label>Fiscalizadores</label>
-  <div class="dropdown-fisc">
-    <button type="button" id="btn-fiscalizadores">
-      <span id="texto-fiscalizadores">Todos los fiscalizadores</span>
-      <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </button>
-    <div id="drop-fiscalizadores" class="dropdown-fisc-content">
-      <label class="select-all">
-        <input type="checkbox" id="check-todos" checked>
-        Seleccionar todos
-      </label>
-      <hr class="divider">
-      {% for u in usuarios %}
-      <label>
-        <input type="checkbox" name="id_usuario" value="{{ u.id_usuario }}" class="check-fisc"
-        {% if not request.args.getlist('id_usuario') or u.id_usuario|string in request.args.getlist('id_usuario') %}checked{% endif %}>
-        {{ u.nombre }} {{ u.apellidos }}
-      </label>
-      {% else %}
-      <label class="text-muted" style="font-style:italic;padding:8px 12px;">No hay fiscalizadores activos</label>
-      {% endfor %}
+<div class="filtro-field">
+  <label class="filtro-label">Fiscalizadores</label>
+  <div class="filtro-input-wrap">
+    <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    <div class="dropdown-fisc">
+      <button type="button" id="btn-fiscalizadores">
+        <span id="texto-fiscalizadores">Todos los fiscalizadores</span>
+        <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div id="drop-fiscalizadores" class="dropdown-fisc-content">
+        <label class="select-all">
+          <input type="checkbox" id="check-todos" checked>
+          Seleccionar todos
+        </label>
+        <hr class="divider">
+        {% for u in usuarios %}
+        <label>
+          <input type="checkbox" name="id_usuario" value="{{ u.id_usuario }}" class="check-fisc"
+          {% if not request.args.getlist('id_usuario') or u.id_usuario|string in request.args.getlist('id_usuario') %}checked{% endif %}>
+          {{ u.nombre }} {{ u.apellidos }}
+        </label>
+        {% else %}
+        <label class="text-muted" style="font-style:italic;padding:8px 12px;">No hay fiscalizadores activos</label>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </div>
 
-<button type="submit" class="btn-buscar">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+<div class="filtro-actions">
+<button type="submit" class="btn-filtrar">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="11" cy="11" r="8"/>
     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
@@ -106,6 +138,7 @@
   </svg>
   Limpiar
 </a>
+</div>
 
 </form>
 

@@ -104,13 +104,20 @@
             </div>
 
             <div class="filtro-field">
-                <label for="fiscalizador" class="filtro-label">Fiscalizador</label>
+                <label for="id_usuario" class="filtro-label">Fiscalizador</label>
                 <div class="filtro-input-wrap">
                     <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                         <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    <input type="text" id="fiscalizador" name="fiscalizador" placeholder="Buscar fiscalizador..." value="{{ request.args.get('fiscalizador','') }}" class="filtro-input">
+                    <select id="id_usuario" name="id_usuario" class="filtro-input">
+                        <option value="">Todos</option>
+                        {% for f in fiscalizadores %}
+                        <option value="{{ f.id_usuario }}" {% if request.args.get('id_usuario') == f.id_usuario|string %}selected{% endif %}>
+                            {{ f.nombre }} {{ f.apellidos }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 

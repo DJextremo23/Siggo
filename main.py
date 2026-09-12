@@ -276,7 +276,7 @@ def compensaciones_admin():
 
     guardar_filtros("filtro_compensaciones")
 
-    buscar = request.args.get("buscar", "").strip()
+    id_usuario = request.args.get("id_usuario", "").strip()
     anio = request.args.get("anio", "").strip()
     desde = request.args.get("desde", "").strip()
     hasta = request.args.get("hasta", "").strip()
@@ -334,15 +334,9 @@ def compensaciones_admin():
             sql += " AND a.estado = %s "
             params.append(estado_filtro)
 
-        if buscar:
-            filtro = f"%{buscar}%"
-            sql += """ AND (
-                    CONCAT(u.nombre,' ',u.apellidos) LIKE %s
-                    OR a.estado LIKE %s
-                    OR CAST(g.fecha_guardia AS CHAR) LIKE %s
-                    OR CAST(c.fecha_compensacion AS CHAR) LIKE %s
-            ) """
-            params.extend([filtro, filtro, filtro, filtro])
+        if id_usuario:
+            sql += " AND g.id_usuario = %s "
+            params.append(id_usuario)
 
         sql += """
             ORDER BY g.fecha_guardia DESC
@@ -359,9 +353,24 @@ def compensaciones_admin():
             else:
                 g['dia_semana'] = str(fecha) if fecha else '—'
 
+        cursor.execute("""
+            SELECT DISTINCT
+                u.id_usuario,
+                u.nombre,
+                u.apellidos
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            ORDER BY u.nombre
+        """)
+        fiscalizadores = cursor.fetchall()
+
         return render_template(
             "compensaciones.html",
-            guardias=data
+            guardias=data,
+            fiscalizadores=fiscalizadores
         )
     except Exception as e:
         print("ERROR compensaciones:", e)
