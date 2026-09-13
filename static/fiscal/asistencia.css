@@ -328,6 +328,12 @@ body {
     color: var(--color-primario);
 }
 
+.inline-flex-center {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* =============================================
    BADGES
    ============================================= */

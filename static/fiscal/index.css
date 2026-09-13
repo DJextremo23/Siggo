@@ -393,11 +393,19 @@ tbody tr:hover {
     gap: 10px;
 }
 
+.pagination span {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    min-width: 70px;
+    text-align: center;
+}
+
 .pagination button {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 8px;
     background: #ffffff;
     color: #475569;
     cursor: pointer;

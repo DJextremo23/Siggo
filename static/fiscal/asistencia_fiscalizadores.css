@@ -116,6 +116,11 @@ body {
    TABLA HEADER
    ============================================= */
 .tabla-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
     margin-bottom: 20px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--color-border);
@@ -126,6 +131,45 @@ body {
     font-size: 18px;
     font-weight: 600;
     color: var(--color-primario);
+}
+
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.table-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 11px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-blanco);
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.table-controls button:hover:not(:disabled) {
+    background: var(--color-acento);
+    color: var(--color-blanco);
+    border-color: var(--color-acento);
+}
+
+.table-controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#contador {
+    margin: 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-muted);
+    min-width: 70px;
+    text-align: center;
 }
 
 /* =============================================

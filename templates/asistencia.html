@@ -74,7 +74,7 @@
             </svg>
         </div>
         <div class="kpi-info">
-            <h4>Justificados</h4>
+            <h4>Justificadas</h4>
             <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','justificado') | list | length }}</p>
         </div>
     </div>
@@ -219,7 +219,17 @@
                         <span class="id-badge">{{ d.id_guardia }}</span>
                     </td>
 
-                    <td class="fecha" data-label="Fecha">{{ d.fecha_guardia|fecha }}</td>
+                    <td data-label="Fecha">
+                        <span class="inline-flex-center">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            {{ d.fecha_guardia|fecha }}
+                        </span>
+                    </td>
 
                     <td data-label="Día">
                         {% if d.tipo_dia and d.tipo_dia|upper == 'FERIADO' %}

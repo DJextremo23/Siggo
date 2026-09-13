@@ -2011,6 +2011,7 @@ def mi_asistencia():
     datos = cursor.fetchall()
 
     hoy = date.today()
+    limite = hoy - timedelta(days=1)  # ventana de 48 horas: permite hoy o ayer
 
     for d in datos:
 
@@ -2025,15 +2026,15 @@ def mi_asistencia():
         if d["asistencia"] != "sin registro":
             d["estado_accion"] = "registrado"
 
-        # 🔥 2. SOLO HOY (ACTIVO)
-        elif fecha == hoy:
-            d["estado_accion"] = "hoy"
-
-        # 🔥 3. FUTURO
+        # 🔥 2. FUTURO
         elif fecha > hoy:
             d["estado_accion"] = "futuro"
 
-        # 🔥 4. PASADO SIN REGISTRO
+        # 🔥 3. DENTRO DE 48 HORAS (HOY O AYER) — ACTIVO
+        elif fecha >= limite:
+            d["estado_accion"] = "hoy"
+
+        # 🔥 4. PASADO SIN REGISTRO (fuera de las 48 horas)
         else:
             d["estado_accion"] = "cerrado"
 
@@ -2075,8 +2076,9 @@ def marcar_asistencia():
         if not guardia:
             return acceso_no_autorizado()
 
-        if guardia["fecha_guardia"] != date.today():
-            flash("Solo puedes registrar tu asistencia del día de hoy", "warning")
+        hoy = date.today()
+        limite = hoy - timedelta(days=1)  # ventana de 48 horas
+        if not (limite <= guardia["fecha_guardia"] <= hoy):
             return redirect(url_for("mi_asistencia"))
 
         # 🔥 VERIFICAR SI YA REGISTRÓ
