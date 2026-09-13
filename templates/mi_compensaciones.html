@@ -208,6 +208,7 @@
                     <td data-label="Observaciones">{{ c.observacion or '-' }}</td>
 
                     <td data-label="Acciones" class="acciones">
+                        <div class="acciones-btns">
                             <a class="btn-accion btn-edit"
                                href="{{ url_for('editar_mi_compensacion', id_compensacion=c.id_compensacion) }}"
                                title="Editar">
@@ -230,6 +231,7 @@
                                     </svg>
                                 </button>
                             </form>
+                        </div>
                     </td>
 
                 </tr>

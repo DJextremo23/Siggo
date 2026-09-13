@@ -378,6 +378,12 @@ tr:hover{
     align-items:center;
 }
 
+.acciones-btns{
+    display:flex;
+    gap:6px;
+    align-items:center;
+}
+
 .btn-accion{
     display:inline-flex;
     align-items:center;

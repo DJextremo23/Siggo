@@ -588,3 +588,12 @@
         flex-direction: row;
     }
 }
+
+/* Agrupa los botones de acción dentro de las celdas de tabla */
+.acciones-btns {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}

@@ -221,6 +221,7 @@
                             {{ i.fecha_subida|fecha(true) }}
                         </td>
                         <td data-label="Acciones" class="acciones">
+                        <div class="acciones-btns">
                             <a class="btn-accion btn-edit"
                                href="{{ url_for('informe.editar_informe', id_informe=i.id_informe) }}"
                                 title="Editar">
@@ -264,6 +265,7 @@
                                     </svg>
                                 </button>
                             </form>
+                        </div>
                         </td>
                     </tr>
                     {% endfor %}
