@@ -1391,8 +1391,13 @@ tbody tr:hover {
     }
 
     .notif-panel {
-        width: calc(100vw - 32px);
-        right: -60px;
+        position: fixed;
+        top: 64px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+        margin-top: 0;
     }
     .notif-header {
         flex-wrap: wrap;
