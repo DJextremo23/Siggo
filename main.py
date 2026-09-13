@@ -241,6 +241,10 @@ def administrador():
         cursor.execute("SELECT COUNT(*) AS total FROM compensaciones WHERE YEAR(fecha_compensacion) = YEAR(CURDATE())")
         total_compensaciones = cursor.fetchone()["total"]
 
+        # Resumen operativo: guardias del mes actual
+        cursor.execute("SELECT COUNT(*) AS total FROM guardias WHERE YEAR(fecha_guardia) = YEAR(CURDATE()) AND MONTH(fecha_guardia) = MONTH(CURDATE())")
+        guardias_este_mes = cursor.fetchone()["total"]
+
         # Resumen operativo: guardias agrupadas por año y mes
         cursor.execute("""
             SELECT YEAR(fecha_guardia) AS anio, MONTH(fecha_guardia) AS mes, COUNT(*) AS total
@@ -291,6 +295,7 @@ def administrador():
                                total_guardias=total_guardias,
                                total_informes=total_informes,
                                total_compensaciones=total_compensaciones,
+                               guardias_este_mes=guardias_este_mes,
                                guardias_por_mes=guardias_por_mes,
                                estado_fiscalizadores=estado_fiscalizadores,
                                proximas_guardias=proximas_guardias)

@@ -311,132 +311,159 @@
         </div>
     </div>
 
-    <!-- SECCIÓN: Resumen operativo con gráficos de guardias por mes y estado de fiscalizadores -->
-    <div class="section-card">
-        <div class="section-header">
-            <h3>
-                <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M3 3v18h18"/>
-                    <rect x="7" y="12" width="3" height="6"/>
-                    <rect x="12" y="8" width="3" height="10"/>
-                    <rect x="17" y="5" width="3" height="13"/>
-                </svg>
-                Resumen operativo
-            </h3>
+    <!-- SECCIÓN: Resumen operativo (4 tarjetas) -->
+    <div class="resumen-grid">
+        <!-- 1. Resumen operativo -->
+        <div class="resumen-card">
+            <div class="resumen-card-header">
+                <div class="resumen-card-title">
+                    <div class="resumen-card-icon blue">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M3 3v18h18"/>
+                            <rect x="7" y="12" width="3" height="6"/>
+                            <rect x="12" y="8" width="3" height="10"/>
+                            <rect x="17" y="5" width="3" height="13"/>
+                        </svg>
+                    </div>
+                    <h4>Resumen operativo</h4>
+                </div>
+            </div>
+            <ul class="resumen-lista">
+                <li>
+                    <span class="resumen-dot blue"></span>
+                    <span class="resumen-label">Guardias este mes</span>
+                    <span class="resumen-valor">{{ guardias_este_mes }}</span>
+                </li>
+                <li>
+                    <span class="resumen-dot green"></span>
+                    <span class="resumen-label">Fiscalizadores activos</span>
+                    <span class="resumen-valor">{{ estado_fiscalizadores.activos }}</span>
+                </li>
+                <li>
+                    <span class="resumen-dot orange"></span>
+                    <span class="resumen-label">En vacaciones</span>
+                    <span class="resumen-valor">{{ estado_fiscalizadores.en_vacaciones }}</span>
+                </li>
+                <li>
+                    <span class="resumen-dot gray"></span>
+                    <span class="resumen-label">Inactivos</span>
+                    <span class="resumen-valor">{{ estado_fiscalizadores.inactivos }}</span>
+                </li>
+            </ul>
         </div>
 
-        <div class="resumen-grid">
-            <!-- Guardias por mes -->
-            <div class="resumen-card">
-                <div class="resumen-card-header">
-                    <div class="resumen-card-title">
-                        <div class="resumen-card-icon blue">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
-                        </div>
-                        <h4>Guardias por mes</h4>
+        <!-- 2. Guardias por mes -->
+        <div class="resumen-card">
+            <div class="resumen-card-header">
+                <div class="resumen-card-title">
+                    <div class="resumen-card-icon blue">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
                     </div>
-                    <select id="selector-anio-guardias" class="resumen-select" aria-label="Seleccionar año"></select>
+                    <h4>Guardias por mes</h4>
                 </div>
-                <div class="resumen-chart-container">
-                    <canvas id="chart-guardias-mes"></canvas>
+                <select id="selector-anio-guardias" class="resumen-select" aria-label="Seleccionar año"></select>
+            </div>
+            <div class="resumen-chart-container">
+                <canvas id="chart-guardias-mes"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. Estado de fiscalizadores -->
+        <div class="resumen-card">
+            <div class="resumen-card-header">
+                <div class="resumen-card-title">
+                    <div class="resumen-card-icon green">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <h4>Estado de fiscalizadores</h4>
+                </div>
+            </div>
+            <div class="resumen-chart-container">
+                <canvas id="chart-estado-fiscalizadores"></canvas>
+            </div>
+        </div>
+
+        <!-- 4. Próximas guardias programadas -->
+        <div class="resumen-card">
+            <div class="resumen-card-header">
+                <div class="resumen-card-title">
+                    <div class="resumen-card-icon amber">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <h4>Próximas guardias programadas</h4>
                 </div>
             </div>
 
-            <!-- Estado de fiscalizadores -->
-            <div class="resumen-card">
-                <div class="resumen-card-header">
-                    <div class="resumen-card-title">
-                        <div class="resumen-card-icon green">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
-                        </div>
-                        <h4>Estado de fiscalizadores</h4>
-                    </div>
-                </div>
-                <div class="resumen-chart-container">
-                    <canvas id="chart-estado-fiscalizadores"></canvas>
-                </div>
+            {% if proximas_guardias %}
+            <div class="table-wrapper">
+                <table class="tabla-pro">
+                    <thead>
+                        <tr>
+                            <th>Fiscalizador</th>
+                            <th>Fecha</th>
+                            <th>Día</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for g in proximas_guardias %}
+                        <tr>
+                            <td>
+                                <strong>{{ g.fiscalizador }}</strong>
+                            </td>
+                            <td>
+                                <span class="inline-flex-center">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    {{ g.fecha_guardia|fecha }}
+                                </span>
+                            </td>
+                            <td><span class="badge-dia">{{ g.dia_semana }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </div>
-
-    <!-- SECCIÓN: Próximas guardias programadas -->
-    <div class="section-card">
-        <div class="section-header">
-            <h3>
-                <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            {% else %}
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                     <line x1="16" y1="2" x2="16" y2="6"/>
                     <line x1="8" y1="2" x2="8" y2="6"/>
                     <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                Próximas guardias programadas
-            </h3>
-        </div>
+                <h3>Sin guardias próximas</h3>
+                <p>No hay guardias programadas a futuro</p>
+            </div>
+            {% endif %}
 
-        {% if proximas_guardias %}
-        <div class="table-wrapper">
-            <table class="tabla-pro">
-                <thead>
-                    <tr>
-                        <th>Fiscalizador</th>
-                        <th>Fecha</th>
-                        <th>Día</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for g in proximas_guardias %}
-                    <tr>
-                        <td>
-                            <strong>{{ g.fiscalizador }}</strong>
-                        </td>
-                        <td>
-                            <span class="inline-flex-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                                {{ g.fecha_guardia|fecha }}
-                            </span>
-                        </td>
-                        <td><span class="badge-dia">{{ g.dia_semana }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <h3>Sin guardias próximas</h3>
-            <p>No hay guardias programadas a futuro</p>
-        </div>
-        {% endif %}
-
-        <div class="resumen-acciones">
-            <a href="{{ url_for('ver_guardias') }}" class="ver-todas-btn">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                    <polyline points="12 5 19 12 12 19"/>
-                </svg>
-                Ver todas las guardias
-            </a>
+            <div class="resumen-acciones">
+                <a href="{{ url_for('ver_guardias') }}" class="ver-todas-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                    Ver todas las guardias
+                </a>
+            </div>
         </div>
     </div>
 
@@ -557,6 +584,30 @@
     select.value = anios.indexOf(anioActual) !== -1 ? anioActual : (anios.length ? anios[anios.length - 1] : anioActual);
 
     var chartGuardias = null;
+
+    /* Plugin para mostrar el valor encima de cada barra */
+    var barLabelsPlugin = {
+        id: 'barLabels',
+        afterDatasetsDraw: function(chart) {
+            if (chart.config.type !== 'bar') return;
+            var ctx = chart.ctx;
+            var meta = chart.getDatasetMeta(0);
+            if (!meta || !meta.data) return;
+            var dataset = chart.data.datasets[0].data;
+            meta.data.forEach(function(bar, i) {
+                var value = dataset[i];
+                if (value === null || value === undefined) return;
+                ctx.save();
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '600 11px "Segoe UI", system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(String(value), bar.x, bar.y - 4);
+                ctx.restore();
+            });
+        }
+    };
+
     function renderGuardiasMes() {
         var anio = parseInt(select.value, 10);
         var meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -569,19 +620,14 @@
         if (!canvas) return;
         if (chartGuardias) chartGuardias.destroy();
 
-        var ctx = canvas.getContext('2d');
-        var gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, '#3b82f6');
-        gradient.addColorStop(1, '#7dd3fc');
-
-        chartGuardias = new Chart(ctx, {
+        chartGuardias = new Chart(canvas.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: meses,
                 datasets: [{
                     label: 'Guardias',
                     data: datos,
-                    backgroundColor: gradient,
+                    backgroundColor: '#3b82f6',
                     borderRadius: 6,
                     maxBarThickness: 34
                 }]
@@ -589,11 +635,13 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 16 } },
                 plugins: { legend: { display: false } },
                 scales: {
                     y: { beginAtZero: true, ticks: { precision: 0 } }
                 }
-            }
+            },
+            plugins: [barLabelsPlugin]
         });
     }
     if (select) {
@@ -620,7 +668,7 @@
             c.fillText(String(total), x, y - 10);
             c.fillStyle = '#64748b';
             c.font = '500 12px "Segoe UI", system-ui, sans-serif';
-            c.fillText('Fiscalizadores', x, y + 12);
+            c.fillText('Total', x, y + 12);
             c.restore();
         }
     };

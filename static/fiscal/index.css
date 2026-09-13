@@ -1070,16 +1070,18 @@ tbody tr:hover {
    ============================================= */
 .resumen-grid {
     display: grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
 }
 
 .resumen-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 20px;
+    padding: 18px;
     box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
 }
 
 .resumen-card-header {
@@ -1123,6 +1125,11 @@ tbody tr:hover {
     color: #22c55e;
 }
 
+.resumen-card-icon.amber {
+    background: #fffbeb;
+    color: #f59e0b;
+}
+
 .resumen-select {
     padding: 8px 12px;
     border: 1px solid #e2e8f0;
@@ -1144,7 +1151,47 @@ tbody tr:hover {
 
 .resumen-chart-container {
     position: relative;
-    height: 300px;
+    height: 220px;
+}
+
+/* Lista de resumen operativo */
+.resumen-lista {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+}
+
+.resumen-lista li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.resumen-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.resumen-dot.blue   { background: #3b82f6; }
+.resumen-dot.green  { background: #22c55e; }
+.resumen-dot.orange { background: #f59e0b; }
+.resumen-dot.gray   { background: #94a3b8; }
+
+.resumen-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.resumen-valor {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
 }
 
 .ver-todas-btn {
@@ -1182,10 +1229,6 @@ tbody tr:hover {
     .module-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-
-    .resumen-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 600px) {
@@ -1194,6 +1237,10 @@ tbody tr:hover {
     }
 }
 @media (max-width: 768px) {
+    .resumen-grid {
+        grid-template-columns: 1fr;
+    }
+
     .content {
         margin-left: 0;
         padding: 80px 16px 24px;
