@@ -25,6 +25,7 @@ import os
 import json
 import re
 from dotenv import load_dotenv
+from limiter_instance import limiter
 
 # Cargar variables de entorno desde archivo .env
 load_dotenv()
@@ -886,6 +887,13 @@ def _validar_coherencia_analisis(resultado):
     return resultado
 
 
+def _cargar_pront():
+    """Carga el prompt de análisis desde pront.json (única fuente del prompt de IA)."""
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pront.json")
+    with open(ruta, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def _analizar_con_gemini(texto, titulo, descripcion):
     """Envía el texto a Gemini y devuelve la respuesta estructurada.
     Prueba múltiples modelos gratuitos en cascada si hay error de cuota."""
@@ -898,8 +906,9 @@ def _analizar_con_gemini(texto, titulo, descripcion):
     model_principal = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
     if not api_key or api_key == "TU_GEMINI_API_KEY":
+        print("[IA] API Key de Gemini no configurada")
         return {
-            "error": "API Key de Gemini no configurada. Agrega GEMINI_API_KEY en el archivo .env",
+            "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
             "recomendaciones": []
         }
 
@@ -916,58 +925,13 @@ def _analizar_con_gemini(texto, titulo, descripcion):
 
     client = genai.Client(api_key=api_key)
 
-    prompt = f"""ROL Y CONTEXTO
-Actúas como un Motor de Procesamiento de Datos Operativos y Analista Senior de Producción en Petróleo y Gas. Tu tarea es analizar con absoluta precisión matemática el siguiente archivo de reporte de guardia y estructurar un análisis analítico detallado. El resultado final debe ser un informe operativo riguroso, consistente y libre de errores matemáticos que sirva como fuente única de verdad sobre los eventos de la guardia.
-Debes ceñirte estrictamente a las reglas de negocio, lógica de cálculo e instrucciones de mapeo que se detallan a continuación.
+    prompt = _cargar_pront() + f"""
 
 TÍTULO DEL DOCUMENTO: {titulo}
 DESCRIPCIÓN: {descripcion}
 
 CONTENIDO DEL DOCUMENTO:
 {texto[:30000]}
-
-1. ARQUITECTURA LÓGICA DEL DOCUMENTO (INDEPENDIENTE DEL FORMATO)
-El documento original puede ser Excel, PDF o Word, pero SIEMPRE sigue el mismo modelo de estructura (los nombres, fechas y cantidades son variables; adáptate SIEMPRE a lo que contenga ESTE documento):
-- El documento se segmenta por días de registro diario (pueden ser 1, 2, 3 o más días). Si proviene de Excel, cada día viene como una hoja marcada con "===== HOJA: <nombre> =====" (ej. "===== HOJA: 27 de Junio ====="); si proviene de PDF verás marcas "===== PÁGINA: n ====="; si proviene de Word el texto es continuo. En todos los casos, el inicio de cada día se identifica por un título tipo "TRABAJOS DE GUARDIA: <DÍA> <FECHA>". Usa las fechas y días REALES del documento.
-- Puede existir una sección u hoja final dedicada a tareas en espera llamada "Pendientes" o "TRABAJOS PENDIENTES". Si no existe, los pendientes se determinan solo por los estados de las actividades diarias.
-- La información no es una sola tabla continua. Está segmentada verticalmente por bloques de Taller.
-- Identificador de Taller: El inicio de un bloque está marcado por una fila o línea cuyo único contenido es el nombre del taller en mayúsculas. Ejemplos típicos (NO exhaustivos, usa los que aparezcan en el documento): "MONTAJE", "MONTAJE - ADICIONAL", "MECÁNICOS", "ENERGÍA", "INSTRUMENTACIÓN", "COMPRESIÓN DE GAS", "GASFITERÍA Y SOLDADURA", "MOVIMIENTO DE SUELOS". El documento puede contener otros talleres distintos: inclúyelos todos tal como aparezcan.
-- Encabezados de Bloque típicos: Ítem | Pozo | Batería | Producción (bopd) | Requerimiento | Estado | Fecha de Ejecución | Tipo | Actividad Ejecutada. Pueden variar ligeramente u omitirse columnas (ej. la sección "Pendientes" puede no tener columna Tipo): usa SIEMPRE la fila de encabezados real de cada bloque.
-- Un bloque de taller finaliza cuando se inicia un taller diferente o una nueva hoja/sección.
-- Las filas de tablas vienen con columnas separadas por " | " (Excel y tablas de Word). En PDF las columnas pueden venir separadas solo por espacios: alinéalas igualmente con su encabezado. La primera posición puede venir vacía: NO cuentes posiciones fijas, alinea cada valor con su encabezado de columna correspondiente.
-- Las filas o líneas marcadas con el prefijo "[CRITICO-AMARILLO]" corresponden a celdas o texto resaltado en amarillo en el documento original: son los Trabajos Importantes/Críticos.
-
-2. MAPEO EXACTO DE CAMPOS
-Para cada registro, usa la fila de encabezados de su bloque para mapear cada valor con su columna (NO uses posiciones fijas):
-- Taller Evaluado: Título del taller activo que encabeza el bloque.
-- Pozo: Código identificador del pozo/equipo (columna "Pozo"). Puede ser un pozo, o un equipo/ubicación (ej. BAT, ESTACION, MANIFOLD, PLANTA).
-- Producción (bopd): Volumen numérico (columna "Producción (bopd)"). Puede venir con coma decimal (ej. "3,10" = 3.10) o "-"/vacío (= sin dato, trátalo como 0 para sumas).
-- Requerimiento (Falla): Descripción del problema técnico (columna "Requerimiento").
-- Estado: Nivel de completación (columna "Estado"). El valor 1 equivale a 100% completado. Un valor decimal entre 0 y 1 (ej. 0.2, 0.75) indica avance parcial = "en proceso". 0, texto o vacío significa "pendiente".
-- Tipo de Actividad: Categoría del trabajo (columna "Tipo"). Son códigos cortos (ej. "CNP", "PV", "SOP", "SUS", "MC", "OP"). Usa SOLO los códigos que aparezcan en ESTE documento, sean cuales sean.
-- Actividad Ejecutada (Solución): Descripción de la solución aplicada en campo (columna "Actividad Ejecutada"). Las líneas internas de la celda vienen separadas por " / ".
-
-3. ALGORITMO DE LIMPIEZA Y CONSOLIDACIÓN (REGLAS DE NEGOCIO OBLIGATORIAS)
-- Regla 1: Unificación de Talleres con la Misma Raíz: Consolida sub-áreas bajo una sola categoría principal. Aplica esto a CUALQUIER taller cuyo nombre tenga la misma raíz más un sufijo como "ADICIONAL", "- ADICIONAL" o similar. Ej: "MONTAJE" y "MONTAJE - ADICIONAL" se unifican como "MONTAJE"; "ENERGÍA" y "ENERGÍA ADICIONAL" como "ENERGÍA".
-- Regla 2: Deduplicación Temporal: Si una misma actividad (mismo pozo y misma descripción de solución o requerimiento) se registra en varios días (consecutivos o no), contabilízala como 1 sola actividad en el consolidado, tomando el Estado del último día reportado.
-- Regla 3: Deduplicación Inter-Taller: Si la misma actividad exacta en el mismo pozo es reportada bajo dos talleres diferentes (o en el bloque normal y su bloque ADICIONAL del mismo día), contabilízala como 1 sola actividad, asignándosela al taller que reportó la ejecución principal o cierre.
-- Regla 4: Filas "Sin novedad" o completamente vacías (sin Pozo ni Requerimiento) NO cuentan como actividades.
-
-4. INSTRUCCIONES DE CÁLCULO DE MÉTRICAS Y KPIs
-- Conteo de Actividades Totales vs. Completadas: Suma actividades únicas por taller unificado (aplicando Reglas 1, 2, 3 y 4). Cuenta cuántas tienen Estado = 1. Eficacia (%) = (Completadas / Totales) * 100.
-- Volumen de Producción Recuperada (CNP): Filtra registros ÚNICOS (ya deduplicados) donde Tipo = "CNP" Y Estado = 1. Suma valores de Producción (bopd) (convierte comas decimales a punto; "-" o vacío = 0). Reporta total general y desglose por taller unificado.
-- Identificación de Trabajos Importantes (Críticos): Son EXCLUSIVAMENTE las filas o líneas marcadas con el prefijo "[CRITICO-AMARILLO]" (resaltado amarillo en el documento original). PROHIBIDO incluir cualquier actividad que no tenga ese prefijo, aunque parezca importante o urgente. Cuenta cantidad por taller y construye matriz: Taller | Pozo | Falla Detectada | Solución Operativa. Si no hay ninguna fila marcada, reporta 0 trabajos críticos y deja la matriz vacía.
-- Clasificación de Trabajos por Tipo: Agrupa y cuenta tareas únicas por código de tipo, usando SOLO los códigos que realmente aparecen en el documento (ej. CNP, PV, SOP, SUS).
-- Cierre de Guardia (Pendientes): Procedimiento OBLIGATORIO para determinar el estado FINAL de cada tarea:
-  a) Agrupa las apariciones de la misma tarea (mismo pozo + mismo requerimiento o equivalente) a través de TODOS los días.
-  b) El estado final es el del ÚLTIMO día donde aparece. Ejemplo: si una tarea aparece un día con Estado 0 y un día posterior con Estado 1, la tarea está COMPLETADA y NO va en modulo5_pendientes.
-  c) modulo5_pendientes incluye SOLO tareas con estado final distinto de 1: usa "en proceso" si el estado final es decimal entre 0 y 1 (ej. 0.2, 0.8), y "pendiente" si es 0, vacío o texto.
-  d) Si existe una hoja o sección "Pendientes", incluye también sus filas con datos reales (ignora filas sin Pozo ni Requerimiento). Clasifica todo por taller unificado.
-
-5. RESTRICCIÓN ESTRICTA DE FIDELIDAD DE DATOS (CERO ALUCINACIONES)
-- No inventes, asumas ni extrapoles ningún pozo, código, volumen, falla, solución o tarea que no esté explícitamente en el documento.
-- Si una celda o campo está vacío, repórtalo como "No especificado" o "Vacío".
-- Todos los totales, promedios y porcentajes deben ser el resultado exacto de la sumatoria de los datos del documento.
 
 6. ESTRUCTURA DE SALIDA REQUERIDA
 Devuelve ÚNICAMENTE un JSON válido (sin markdown, sin comillas triples) con esta estructura exacta:
@@ -1057,9 +1021,10 @@ IMPORTANTE:
                 return _validar_coherencia_analisis(resultado)
 
             except json.JSONDecodeError as e:
+                print(f"[IA] Error al interpretar la respuesta de Gemini: {e}")
                 return {
-                    "error": f"Error al interpretar la respuesta de Gemini: {str(e)}",
-                    "resumen": texto_respuesta[:500] if texto_respuesta else "No se pudo obtener respuesta",
+                    "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
+                    "resumen": "",
                     "hallazgos": [],
                     "recomendaciones": [],
                     "graficas": []
@@ -1098,8 +1063,9 @@ IMPORTANTE:
                     break
 
                 # Error desconocido: devolver inmediatamente
+                print(f"[IA] Error al conectar con Gemini: {error_str}")
                 return {
-                    "error": f"Error al conectar con Gemini: {error_str}",
+                    "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
                     "hallazgos": [],
                     "recomendaciones": [],
                     "graficas": []
@@ -1123,11 +1089,9 @@ IMPORTANTE:
         except Exception:
             pass
 
+    print("[IA] Cuota de Gemini agotada o servicio no disponible en este momento")
     return {
-        "error": (
-            "Todos los modelos gratuitos de Gemini han alcanzado su limite de cuota. "
-            "Se reintentara automaticamente en unos segundos."
-        ),
+        "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
         "hallazgos": [],
         "recomendaciones": [],
         "graficas": []
@@ -1181,6 +1145,7 @@ def analizar_informe(id_informe):
 
 
 @informe_bp.route("/analizar_informe/<int:id_informe>/api")
+@limiter.limit("5 per minute")
 def analizar_informe_api(id_informe):
     """API que extrae texto, llama a Gemini y devuelve JSON.
     Usa cache en BD: solo llama a Gemini si no hay resultado previo o si se fuerza (?force=1)."""
@@ -1338,6 +1303,8 @@ def generar_ppt_analisis(id_informe):
         C_TEAL      = RGBColor(0x0D, 0x94, 0x8B)
         C_BORDER    = RGBColor(0xE2, 0xE8, 0xF0)
 
+        FONT = "Segoe UI"
+
         paleta_modulos = [C_BLUE, C_GREEN, C_ACCENT2, C_ORANGE, C_TEAL, C_ACCENT, C_GOLD]
 
         from datetime import date as date_type
@@ -1367,6 +1334,7 @@ def generar_ppt_analisis(id_informe):
             p = tf.paragraphs[0]; p.alignment = align
             r = p.add_run(); r.text = str(text)
             r.font.size = Pt(size); r.font.color.rgb = color; r.font.bold = bold
+            r.font.name = FONT
             return tb, tf
 
         def _multi_text(slide, x, y, w, lines, size=13, color=C_TEXT, bold_first=False, line_spacing=Pt(18)):
@@ -1377,6 +1345,7 @@ def generar_ppt_analisis(id_informe):
                 r = p.add_run(); r.text = str(txt)
                 r.font.size = Pt(size); r.font.color.rgb = color
                 r.font.bold = (bold_first and i == 0)
+                r.font.name = FONT
                 p.line_spacing = line_spacing
             return tb
 
@@ -1424,15 +1393,18 @@ def generar_ppt_analisis(id_informe):
                 btf = badge.text_frame; btf.paragraphs[0].alignment = PP_ALIGN.CENTER
                 br = btf.paragraphs[0].add_run(); br.text = str(module_num)
                 br.font.size = Pt(18); br.font.color.rgb = C_WHITE; br.font.bold = True
+                br.font.name = FONT
 
             title_x = 1.7 if module_num else 0.8
             tb = slide.shapes.add_textbox(Inches(title_x), Inches(0.15), Inches(10.5), Inches(1.0))
             tf = tb.text_frame; tf.word_wrap = True
             tp = tf.paragraphs[0]; tr = tp.add_run()
             tr.text = title; tr.font.size = Pt(24); tr.font.color.rgb = C_WHITE; tr.font.bold = True
+            tr.font.name = FONT
             if subtitle:
                 sp = tf.add_paragraph(); sr = sp.add_run()
                 sr.text = subtitle; sr.font.size = Pt(12); sr.font.color.rgb = C_SUBTLE
+                sr.font.name = FONT
 
         def _add_kpi(slide, x, y, w, value, label, color, icon_text="■"):
             card = _rounded_rect(slide, x, y, w, 1.35, C_CARD_BG, C_BORDER)
@@ -1479,7 +1451,7 @@ def generar_ppt_analisis(id_informe):
         logo_shape.fill.solid(); logo_shape.fill.fore_color.rgb = C_ACCENT; logo_shape.line.fill.background()
         lt = logo_shape.text_frame; lt.paragraphs[0].alignment = PP_ALIGN.CENTER
         lr = lt.paragraphs[0].add_run(); lr.text = "AI"; lr.font.size = Pt(22)
-        lr.font.color.rgb = C_WHITE; lr.font.bold = True
+        lr.font.color.rgb = C_WHITE; lr.font.bold = True; lr.font.name = FONT
 
         _text_box(s1, 2.75, 2.45, 8.5, 0.4, "REPORTE DE ANÁLISIS DE GUARDIA", 15, C_ACCENT, True)
         _text_box(s1, 2.75, 2.85, 8.5, 0.6, informe["titulo"] or "Informe sin título", 30, C_WHITE, True)
@@ -1506,10 +1478,10 @@ def generar_ppt_analisis(id_informe):
         bp = bt.paragraphs[0]; bp.alignment = PP_ALIGN.CENTER
         br = bp.add_run()
         br.text = f"SIGGO — Integrated Management System for Guards and Operations  |  {date_type.today().strftime('%d/%m/%Y')}"
-        br.font.size = Pt(11); br.font.color.rgb = C_SUBTLE
+        br.font.size = Pt(11); br.font.color.rgb = C_SUBTLE; br.font.name = FONT
         bp2 = bt.add_paragraph(); bp2.alignment = PP_ALIGN.CENTER
         br2 = bp2.add_run(); br2.text = "Análisis potenciado por Inteligencia Artificial"
-        br2.font.size = Pt(10); br2.font.color.rgb = C_SUBTLE
+        br2.font.size = Pt(10); br2.font.color.rgb = C_SUBTLE; br2.font.name = FONT
 
         # ═══════════════════════════════
         # S2 — MÓDULO 1: RESUMEN EJECUTIVO (KPIs principales y resumen textual)
@@ -1589,7 +1561,7 @@ def generar_ppt_analisis(id_informe):
                     num_circle.line.fill.background()
                     ntf = num_circle.text_frame; ntf.paragraphs[0].alignment = PP_ALIGN.CENTER
                     nr = ntf.paragraphs[0].add_run(); nr.text = str(i + j + 1)
-                    nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True
+                    nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
 
                     card = _rounded_rect(s4, 1.3, cy, 11.4, 0.62, C_CARD_BG, C_BORDER)
                     left_dot = s4.shapes.add_shape(
@@ -1647,7 +1619,7 @@ def generar_ppt_analisis(id_informe):
         if graficas:
             s6 = prs.slides.add_slide(prs.slide_layouts[6])
             _set_bg(s6, C_LIGHT_BG)
-            _add_header(s6, "Visualización de Datos", C_ACCENT2, "KPIs del análisis operativo", 5)
+            _add_header(s6, "Visualización de Datos", C_ACCENT2, "KPIs del análisis operativo", None)
 
             for gidx, g in enumerate(graficas):
                 titulo = g.get("titulo", f"Gráfica {gidx+1}")
@@ -1716,6 +1688,60 @@ def generar_ppt_analisis(id_informe):
                 _text_box(s7, 10.4, cy, 2.3, 0.22, str(estado).upper(), 10, status_color, True)
 
         # ═══════════════════════════════
+        # S8 — HALLAZGOS CLAVE (aspectos relevantes del análisis)
+        # ═══════════════════════════════
+        hallazgos = data.get("hallazgos") or []
+        if hallazgos:
+            s8 = prs.slides.add_slide(prs.slide_layouts[6])
+            _set_bg(s8, C_LIGHT_BG)
+            _add_header(s8, "Hallazgos Clave", C_GOLD, "Aspectos relevantes identificados en el análisis", 6)
+
+            cy = 1.7
+            for i, h in enumerate(hallazgos):
+                _rounded_rect(s8, 0.6, cy, 12.1, 0.62, C_CARD_BG, C_BORDER)
+
+                stripe = s8.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(cy + 0.06), Inches(0.06), Inches(0.5)
+                )
+                stripe.fill.solid(); stripe.fill.fore_color.rgb = C_GOLD; stripe.line.fill.background()
+
+                num = s8.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.9), Inches(cy + 0.1), Inches(0.42), Inches(0.42))
+                num.fill.solid(); num.fill.fore_color.rgb = C_GOLD; num.line.fill.background()
+                ntf = num.text_frame; ntf.paragraphs[0].alignment = PP_ALIGN.CENTER
+                nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
+                nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
+
+                _text_box(s8, 1.55, cy + 0.1, 11.0, 0.45, str(h)[:220], 12, C_TEXT)
+                cy += 0.78
+
+        # ═══════════════════════════════
+        # S9 — RECOMENDACIONES (acciones sugeridas)
+        # ═══════════════════════════════
+        recomendaciones = data.get("recomendaciones") or []
+        if recomendaciones:
+            s9 = prs.slides.add_slide(prs.slide_layouts[6])
+            _set_bg(s9, C_LIGHT_BG)
+            _add_header(s9, "Recomendaciones", C_GREEN, "Acciones sugeridas con base en los resultados", 7)
+
+            cy = 1.7
+            for i, rec in enumerate(recomendaciones):
+                _rounded_rect(s9, 0.6, cy, 12.1, 0.62, C_CARD_BG, C_BORDER)
+
+                stripe = s9.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(cy + 0.06), Inches(0.06), Inches(0.5)
+                )
+                stripe.fill.solid(); stripe.fill.fore_color.rgb = C_GREEN; stripe.line.fill.background()
+
+                num = s9.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.9), Inches(cy + 0.1), Inches(0.42), Inches(0.42))
+                num.fill.solid(); num.fill.fore_color.rgb = C_GREEN; num.line.fill.background()
+                ntf = num.text_frame; ntf.paragraphs[0].alignment = PP_ALIGN.CENTER
+                nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
+                nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
+
+                _text_box(s9, 1.55, cy + 0.1, 11.0, 0.45, str(rec)[:220], 12, C_TEXT)
+                cy += 0.78
+
+        # ═══════════════════════════════
         # S9 — DIAPOSITIVA DE CIERRE
         # ═══════════════════════════════
         s_end = prs.slides.add_slide(prs.slide_layouts[6])
@@ -1736,7 +1762,7 @@ def generar_ppt_analisis(id_informe):
         ep5 = eft.paragraphs[0]; ep5.alignment = PP_ALIGN.CENTER
         er5 = ep5.add_run()
         er5.text = "SIGGO — Integrated Management System for Guards and Operations"
-        er5.font.size = Pt(13); er5.font.color.rgb = C_SUBTLE; er5.font.italic = True
+        er5.font.size = Pt(13); er5.font.color.rgb = C_SUBTLE; er5.font.italic = True; er5.font.name = FONT
 
         # ── Guardar presentación en memoria y enviar como descarga ──
         output = BytesIO()

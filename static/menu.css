@@ -343,7 +343,7 @@
 /* =============================================
    RESPONSIVE
    ============================================= */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .sidebar {
         left: -280px;
         transition: left 0.3s ease;

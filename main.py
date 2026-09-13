@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 from flask_talisman import Talisman
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from limiter_instance import limiter
 from reporte import reporte_bp
@@ -43,6 +44,10 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
+# Detectar HTTPS detrás de un proxy inverso (Railway / nginx)
+# Permite que session_cookie_secure y force_https funcionen correctamente
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=4)
 
 
@@ -76,7 +81,7 @@ limiter.init_app(app)
 FORCE_HTTPS = os.getenv("FORCE_HTTPS", "false").lower() == "true"
 Talisman(
     app,
-    force_https=FORCE_HTTPS,
+    force_https=False,
     force_https_permanent=True,
     session_cookie_secure=FORCE_HTTPS,
     session_cookie_http_only=True,
@@ -99,6 +104,18 @@ Talisman(
     },
     content_security_policy_nonce_in=["script-src"],
 )
+
+
+@app.before_request
+def forzar_https():
+    """Redirige HTTP a HTTPS, excepto en el health check (evita reinicios en Railway)."""
+    if not FORCE_HTTPS or request.is_secure:
+        return
+    if request.path == "/health":
+        return
+    url = request.url.replace("http://", "https://", 1)
+    return redirect(url, code=301)
+
 
 # Protección CSRF: inyección de token en plantillas y validación en cada petición
 @app.context_processor
@@ -573,7 +590,7 @@ def feriados():
 
     try:
 
-        sql = "SELECT * FROM feriados WHERE 1=1 "
+        sql = "SELECT id_feriado, fecha, descripcion FROM feriados WHERE 1=1 "
         params = []
 
         if anio:
@@ -708,7 +725,7 @@ def editar_feriado(id):
     try:
 
         cursor.execute("""
-            SELECT *
+            SELECT id_feriado, fecha, descripcion
             FROM feriados
             WHERE id_feriado = %s
         """, (id,))
@@ -736,8 +753,18 @@ def actualizar_feriado(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    fecha = request.form["fecha"]
-    descripcion = request.form["descripcion"].strip()
+    fecha = request.form.get("fecha", "").strip()
+    descripcion = request.form.get("descripcion", "").strip()
+
+    if not fecha or not descripcion:
+        flash("Fecha y descripción son obligatorios", "error")
+        return redirigir_con_filtros("feriados", "filtro_feriados")
+
+    try:
+        datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
+        return redirigir_con_filtros("feriados", "filtro_feriados")
 
     cursor = conexion.cursor()
 
@@ -763,6 +790,14 @@ def actualizar_feriado(id):
         conexion.commit()
 
         flash("Feriado actualizado correctamente", "success")
+        return redirigir_con_filtros("feriados", "filtro_feriados")
+
+    except mysql.connector.errors.IntegrityError as e:
+        conexion.rollback()
+        if e.errno == 1062:
+            flash("Ya existe un feriado registrado en esa fecha", "error")
+        else:
+            flash("No se pudo actualizar el feriado: datos duplicados o inválidos", "error")
         return redirigir_con_filtros("feriados", "filtro_feriados")
 
     except Exception as e:
@@ -873,8 +908,8 @@ def vacaciones():
             filtro_vac += " AND v.fecha_fin <= %s"
             params_vac.append(hasta_vac)
         if fiscalizador_vac:
-            filtro_vac += " AND CONCAT(u.nombre,' ',u.apellidos) = %s"
-            params_vac.append(fiscalizador_vac)
+            filtro_vac += " AND v.id_usuario = %s"
+            params_vac.append(int(fiscalizador_vac))
         if estado_vac == "Pendiente":
             filtro_vac += " AND CURDATE() < v.fecha_inicio"
         elif estado_vac == "En curso":
@@ -922,8 +957,8 @@ def vacaciones():
             filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) <= %s"
             params_alerta.append(hasta_alerta)
         if fiscalizador_alerta:
-            filtro_alerta += " AND CONCAT(u.nombre,' ',u.apellidos) = %s"
-            params_alerta.append(fiscalizador_alerta)
+            filtro_alerta += " AND u.id_usuario = %s"
+            params_alerta.append(int(fiscalizador_alerta))
         if estado_alerta == "LISTO":
             filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 30"
         elif estado_alerta == "PRÓXIMO":
@@ -1022,8 +1057,23 @@ def actualizar_vacacion(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    inicio = request.form["fecha_inicio"]
-    fin = request.form["fecha_fin"]
+    inicio = request.form.get("fecha_inicio", "").strip()
+    fin = request.form.get("fecha_fin", "").strip()
+
+    if not inicio or not fin:
+        flash("Todos los campos son obligatorios", "error")
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+    try:
+        inicio_dt = datetime.strptime(inicio, "%Y-%m-%d").date()
+        fin_dt = datetime.strptime(fin, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+    if inicio_dt > fin_dt:
+        flash("Fecha inválida: inicio mayor que fin", "error")
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
     cursor = conexion.cursor(dictionary=True)
 
@@ -1038,6 +1088,38 @@ def actualizar_vacacion(id):
 
         if not old_data:
             return no_encontrado("Vacación no encontrada")
+
+        id_usuario = old_data["id_usuario"]
+
+        # Validar que no haya guardias en el nuevo rango de fechas
+        cursor.execute("""
+            SELECT 1
+            FROM guardias
+            WHERE id_usuario = %s
+            AND fecha_guardia BETWEEN %s AND %s
+            LIMIT 1
+        """, (id_usuario, inicio, fin))
+
+        if cursor.fetchone():
+            flash("No se puede actualizar: el usuario tiene guardias en ese rango de fechas", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+        # Validar cruce con otras vacaciones (excluyendo la vacación que se está editando)
+        cursor.execute("""
+            SELECT 1
+            FROM vacaciones
+            WHERE id_usuario = %s AND id_vacacion != %s
+            AND (
+                (%s BETWEEN fecha_inicio AND fecha_fin)
+                OR (%s BETWEEN fecha_inicio AND fecha_fin)
+                OR (fecha_inicio BETWEEN %s AND %s)
+            )
+            LIMIT 1
+        """, (id_usuario, id, inicio, fin, inicio, fin))
+
+        if cursor.fetchone():
+            flash("Ya tiene vacaciones registradas en ese rango de fechas", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         cursor.execute("""
             UPDATE vacaciones
@@ -1678,29 +1760,64 @@ def editar_guardia(id):
         # ======================
         if request.method == "POST":
 
-            id_usuario = request.form["id_usuario"]
-            fecha_guardia = request.form["fecha_guardia"]
+            id_usuario = request.form.get("id_usuario", "").strip()
+            fecha_guardia = request.form.get("fecha_guardia", "").strip()
 
+            if not id_usuario or not fecha_guardia:
+                flash("Todos los campos son obligatorios", "error")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
+            try:
+                datetime.strptime(fecha_guardia, "%Y-%m-%d")
+            except ValueError:
+                flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
+            # Verificar que no exista otra guardia del mismo fiscalizador en esa fecha
             cursor.execute("""
-                UPDATE guardias
-                SET id_usuario=%s, fecha_guardia=%s
-                WHERE id_guardia=%s
+                SELECT 1 FROM guardias
+                WHERE id_usuario = %s AND fecha_guardia = %s AND id_guardia != %s
+                LIMIT 1
             """, (id_usuario, fecha_guardia, id))
 
-            cursor.execute("""
-                UPDATE guardias
-                SET id_feriado = (
-                    SELECT f.id_feriado
-                    FROM feriados f
-                    WHERE f.fecha = %s
-                    LIMIT 1
-                )
-                WHERE id_guardia = %s
-            """, (fecha_guardia, id))
+            if cursor.fetchone():
+                flash("Este fiscalizador ya tiene una guardia asignada en esa fecha", "error")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
-            conexion.commit()
-            flash("Guardia actualizada correctamente", "success")
-            return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+            try:
+                cursor.execute("""
+                    UPDATE guardias
+                    SET id_usuario=%s, fecha_guardia=%s
+                    WHERE id_guardia=%s
+                """, (id_usuario, fecha_guardia, id))
+
+                cursor.execute("""
+                    UPDATE guardias
+                    SET id_feriado = (
+                        SELECT f.id_feriado
+                        FROM feriados f
+                        WHERE f.fecha = %s
+                        LIMIT 1
+                    )
+                    WHERE id_guardia = %s
+                """, (fecha_guardia, id))
+
+                conexion.commit()
+                flash("Guardia actualizada correctamente", "success")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
+            except mysql.connector.errors.IntegrityError as e:
+                conexion.rollback()
+                if e.errno == 1062:
+                    flash("Este fiscalizador ya tiene una guardia asignada en esa fecha", "error")
+                else:
+                    flash("No se pudo actualizar la guardia: datos duplicados o inválidos", "error")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
+            except Exception as e:
+                conexion.rollback()
+                print("ERROR editar_guardia:", e)
+                return error_interno()
 
         # ======================
         # CARGAR DATOS
@@ -2417,9 +2534,7 @@ def mis_guardias():
                     ELSE 'Pendiente'
                 END AS asistencia,
 
-                c.fecha_compensacion,
-                c.estado AS estado_compensacion,
-                c.observacion AS observacion_compensacion
+                c.fecha_compensacion
 
             FROM guardias g
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
@@ -2508,7 +2623,7 @@ def mis_feriados():
     try:
 
         sql = """
-            SELECT DISTINCT f.*
+            SELECT DISTINCT f.id_feriado, f.fecha, f.descripcion
             FROM feriados f
             INNER JOIN guardias g ON f.id_feriado = g.id_feriado
             WHERE g.id_usuario = %s
@@ -2635,7 +2750,8 @@ def mis_vacaciones():
         # DIAS PENDIENTES (30 días por año cumplido)
         # =========================
         cursor.execute("""
-            SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s
+            SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias
+            FROM usuarios WHERE id_usuario = %s
         """, (session["id_usuario"],))
 
         user = cursor.fetchone()
@@ -2643,17 +2759,8 @@ def mis_vacaciones():
         dias_pendientes_este_anio = 0
         dias_pendientes_anteriores = 0
 
-        if user and user["fecha_ingreso"]:
-            fecha_ingreso = user["fecha_ingreso"]
-            today = date.today()
-
-            anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
-            years = 0
-            while anniv <= today:
-                years += 1
-                anniv = anniv.replace(year=anniv.year + 1)
-
-            total_dias = years * 30
+        if user and user["total_dias"] is not None:
+            total_dias = user["total_dias"]
 
             cursor.execute("""
                 SELECT 

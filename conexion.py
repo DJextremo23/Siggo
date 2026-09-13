@@ -20,7 +20,7 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", "admin"),
     "database": os.getenv("DB_NAME", "guardiaoig"),
-    "port": int(os.getenv("DB_PORT", "8090")),
+    "port": int(os.getenv("DB_PORT", "3306")),
     "connection_timeout": 10,
 }
 

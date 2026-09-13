@@ -308,6 +308,22 @@ def actualizar_usuario(id):
 # ELIMINAR USUARIO
 # ==========================
 # Elimina un usuario si no tiene guardias; si las tiene, solo cambia su estado (toggle activo/inactivo)
+
+
+def _cambiar_estado_usuario(cursor, id):
+    """Alterna el estado (activo/inactivo) de un usuario. Devuelve el nuevo estado o None."""
+    cursor.execute("SELECT estado FROM usuarios WHERE id_usuario = %s", (id,))
+    usuario = cursor.fetchone()
+    if not usuario:
+        return None
+    nuevo_estado = "inactivo" if usuario["estado"] == "activo" else "activo"
+    cursor.execute(
+        "UPDATE usuarios SET estado = %s WHERE id_usuario = %s",
+        (nuevo_estado, id)
+    )
+    return nuevo_estado
+
+
 @fiscalizadores_bp.route("/eliminar_usuario/<int:id>", methods=["POST"])
 def eliminar_usuario(id):
 
@@ -327,9 +343,7 @@ def eliminar_usuario(id):
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT
-                u.estado,
-                (SELECT COUNT(*) FROM guardias WHERE id_usuario = %s) AS cnt
+            SELECT (SELECT COUNT(*) FROM guardias WHERE id_usuario = %s) AS cnt
             FROM usuarios u
             WHERE u.id_usuario = %s
         """, (id, id))
@@ -342,16 +356,7 @@ def eliminar_usuario(id):
 
         # Si el usuario tiene guardias registradas, alternar estado en lugar de eliminar
         if usuario["cnt"] > 0:
-            nuevo_estado = (
-                "inactivo"
-                if usuario["estado"] == "activo"
-                else "activo"
-            )
-            cursor.execute("""
-                UPDATE usuarios
-                SET estado = %s
-                WHERE id_usuario = %s
-            """, (nuevo_estado, id))
+            nuevo_estado = _cambiar_estado_usuario(cursor, id)
             conn.commit()
             flash(f"Usuario {'desactivado' if nuevo_estado == 'inactivo' else 'activado'} (tiene guardias registradas)", "success")
         else:
@@ -399,34 +404,15 @@ def toggle_usuario(id):
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("""
-            SELECT estado
-            FROM usuarios
-            WHERE id_usuario = %s
-        """, (id,))
-
-        usuario = cursor.fetchone()
-
-        if not usuario:
-
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
-
         # Evitar que un admin se desactive a sí mismo
         if id == session.get("id_usuario"):
             flash("No puedes desactivar tu propia cuenta", "error")
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
-        nuevo_estado = (
-            "inactivo"
-            if usuario["estado"] == "activo"
-            else "activo"
-        )
+        nuevo_estado = _cambiar_estado_usuario(cursor, id)
 
-        cursor.execute("""
-            UPDATE usuarios
-            SET estado = %s
-            WHERE id_usuario = %s
-        """, (nuevo_estado, id))
+        if nuevo_estado is None:
+            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
         conn.commit()
 

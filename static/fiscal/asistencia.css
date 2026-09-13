@@ -593,3 +593,25 @@ select.filtro-input {
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(100,116,139,0.35);
 }
+
+/* ================= FILTROS RESPONSIVE ================= */
+@media (max-width: 768px) {
+    .filtro-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filtro-field {
+        min-width: 0;
+    }
+
+    .filtro-actions {
+        flex-direction: row;
+    }
+
+    .filtro-actions .btn-filtrar,
+    .filtro-actions .btn-limpiar {
+        flex: 1;
+        justify-content: center;
+    }
+}

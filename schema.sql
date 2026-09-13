@@ -48,7 +48,6 @@ CREATE TABLE IF NOT EXISTS guardias (
     id_usuario INT NOT NULL,
     fecha_guardia DATE NOT NULL,
     id_feriado INT DEFAULT NULL,
-    estado VARCHAR(50) DEFAULT 'programada',
     UNIQUE KEY uq_guardia (id_usuario, fecha_guardia),
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_feriado) REFERENCES feriados(id_feriado) ON DELETE SET NULL

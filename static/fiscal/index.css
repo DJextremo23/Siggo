@@ -389,14 +389,10 @@ tbody tr:hover {
 }
 
 /* ---- PAGINATION ---- */
-.pagination-bar {
+.pagination {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 14px 18px;
-    border-top: 1px solid #e2e8f0;
-    background: #fafbfc;
+    gap: 10px;
 }
 
 .pagination-btn {

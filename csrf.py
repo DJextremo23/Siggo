@@ -12,7 +12,6 @@ from flask import session, request, abort
 CSRF_SKIP_PATHS = [
     "/notificaciones/",
     "/api",
-    "/analizar_informe/",
 ]
 
 

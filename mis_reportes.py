@@ -60,22 +60,15 @@ def _fecha(valor):
 def _dias_pendientes_acumulados(cursor, id_usuario):
     """Días pendientes acumulados: (años cumplidos × 30) − total tomado en toda la historia."""
     cursor.execute(
-        "SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s",
+        "SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias "
+        "FROM usuarios WHERE id_usuario = %s",
         (id_usuario,)
     )
     user = cursor.fetchone()
-    if not user or not user.get("fecha_ingreso"):
+    if not user or user.get("total_dias") is None:
         return 0
 
-    fecha_ingreso = user["fecha_ingreso"]
-    today = date.today()
-    anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
-    years = 0
-    while anniv <= today:
-        years += 1
-        anniv = anniv.replace(year=anniv.year + 1)
-
-    total_dias = years * 30
+    total_dias = user["total_dias"]
 
     cursor.execute("""
         SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
@@ -114,7 +107,9 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     dias_tomados = cursor.fetchone()["tomados"]
 
     cursor.execute(
-        "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, fecha_ingreso FROM usuarios WHERE id_usuario = %s",
+        "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, "
+        "TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias "
+        "FROM usuarios WHERE id_usuario = %s",
         (id_usuario,)
     )
     user = cursor.fetchone()
@@ -122,15 +117,8 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     dias_pendientes_este_anio = 0
     dias_pendientes_anteriores = 0
 
-    if user and user.get("fecha_ingreso"):
-        fecha_ingreso = user["fecha_ingreso"]
-        today = date.today()
-        anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
-        years = 0
-        while anniv <= today:
-            years += 1
-            anniv = anniv.replace(year=anniv.year + 1)
-        total_dias = years * 30
+    if user and user.get("total_dias") is not None:
+        total_dias = user["total_dias"]
 
         cursor.execute("""
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
@@ -333,17 +321,14 @@ def mis_reportes():
         dias_pendientes_este_anio = 0
         dias_pendientes_anteriores = 0
 
-        cursor.execute("SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+        cursor.execute(
+            "SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias "
+            "FROM usuarios WHERE id_usuario = %s",
+            (id_usuario,)
+        )
         user = cursor.fetchone()
-        if user and user.get("fecha_ingreso"):
-            fecha_ingreso = user["fecha_ingreso"]
-            today = date.today()
-            anniv = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
-            years = 0
-            while anniv <= today:
-                years += 1
-                anniv = anniv.replace(year=anniv.year + 1)
-            total_dias = years * 30
+        if user and user.get("total_dias") is not None:
+            total_dias = user["total_dias"]
 
             cursor.execute("""
                 SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total

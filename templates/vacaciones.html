@@ -181,7 +181,7 @@
                             <select id="filtroFiscalizador" name="fiscalizador_alerta" class="filtro-input">
                                 <option value="">Todos</option>
                                 {% for u in usuarios %}
-                                <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_alerta') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
+                                <option value="{{ u.id_usuario }}" {% if request.args.get('fiscalizador_alerta') == u.id_usuario|string %}selected{% endif %}>{{ u.nombre }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -429,7 +429,7 @@
                             <select id="filtroVacFiscalizador" name="fiscalizador_vac" class="filtro-input">
                                 <option value="">Todos</option>
                                 {% for u in usuarios %}
-                                <option value="{{ u.nombre }}" {% if request.args.get('fiscalizador_vac') == u.nombre %}selected{% endif %}>{{ u.nombre }}</option>
+                                <option value="{{ u.id_usuario }}" {% if request.args.get('fiscalizador_vac') == u.id_usuario|string %}selected{% endif %}>{{ u.nombre }}</option>
                                 {% endfor %}
                             </select>
                         </div>
