@@ -192,19 +192,19 @@ tr:hover {
     gap: 5px;
     padding: 5px 12px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: var(--color-blanco);
+    white-space: nowrap;
 }
 
 .badge-feriado {
-    background: var(--color-error);
+    background: #fffbeb;
+    color: #92400e;
 }
 
 .badge-dia {
-    background: var(--color-acento);
+    background: #eff6ff;
+    color: #3b82f6;
 }
 
 /* =============================================
@@ -214,11 +214,10 @@ tr:hover {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 5px 14px;
     border-radius: 20px;
     font-size: 12px;
-    font-weight: 500;
-    color: var(--color-blanco);
+    font-weight: 600;
     white-space: nowrap;
     transition: transform var(--transition);
 }
@@ -228,23 +227,28 @@ tr:hover {
 }
 
 .estado-ok {
-    background: var(--color-verde);
+    background: #dcfce7;
+    color: #166534;
 }
 
 .estado-bad {
-    background: var(--color-error);
+    background: #fef2f2;
+    color: #991b1b;
 }
 
 .estado-warn {
-    background: var(--color-naranja);
+    background: #fffbeb;
+    color: #92400e;
 }
 
 .estado-pending {
-    background: var(--color-gris);
+    background: #f1f5f9;
+    color: #475569;
 }
 
 .estado-lock {
-    background: var(--color-sidebar-light);
+    background: #f1f5f9;
+    color: #64748b;
 }
 
 /* =============================================
