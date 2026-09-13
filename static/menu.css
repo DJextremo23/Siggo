@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --sidebar-bg: #0f172a;
     --sidebar-width: 260px;
     --sidebar-hover: #1e293b;
@@ -525,22 +525,22 @@
    TABLAS RESPONSIVE (cards en celulares)
    ============================================= */
 @media (max-width: 640px) {
-    table:has(td[data-label]) {
+    table.tabla-resp {
         display: block;
         width: 100%;
         min-width: 0;
         border: none;
     }
 
-    table:has(td[data-label]) thead {
+    table.tabla-resp thead {
         display: none;
     }
 
-    table:has(td[data-label]) tbody {
+    table.tabla-resp tbody {
         display: block;
     }
 
-    table:has(td[data-label]) tr {
+    table.tabla-resp tr {
         display: block;
         margin-bottom: 14px;
         border: 1px solid #e2e8f0;
@@ -550,7 +550,7 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
-    table:has(td[data-label]) td {
+    table.tabla-resp td {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -561,11 +561,11 @@
         text-align: right;
     }
 
-    table:has(td[data-label]) tr > td:last-child {
+    table.tabla-resp tr > td:last-child {
         border-bottom: none;
     }
 
-    table:has(td[data-label]) td[data-label]::before {
+    table.tabla-resp td[data-label]::before {
         content: attr(data-label);
         font-weight: 600;
         color: #64748b;
@@ -577,14 +577,14 @@
         flex-shrink: 0;
     }
 
-    table:has(td[data-label]) td[colspan] {
+    table.tabla-resp td[colspan] {
         justify-content: center;
         text-align: center;
     }
 
-    table:has(td[data-label]) .acciones-tabla,
-    table:has(td[data-label]) .acciones-asistencia,
-    table:has(td[data-label]) .acciones-bar {
+    table.tabla-resp .acciones-tabla,
+    table.tabla-resp .acciones-asistencia,
+    table.tabla-resp .acciones-bar {
         flex-direction: row;
     }
 }
