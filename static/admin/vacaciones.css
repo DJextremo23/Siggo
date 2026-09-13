@@ -403,23 +403,51 @@ tbody tr.empty-row td {
     background: var(--color-acento);
 }
 
-/* Estado de derecho — texto coloreado */
-.status-disponible { color: #15803d; font-weight: 600; }
-.status-hoy        { color: #1d4ed8; font-weight: 600; }
-.status-faltante   { color: #b45309; font-weight: 600; }
+/* Estado de derecho — badges */
+.badge.derecho-disponible {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.badge.derecho-disponible .badge-dot {
+    background: var(--color-success);
+}
+
+.badge.derecho-hoy {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.badge.derecho-hoy .badge-dot {
+    background: var(--color-acento);
+}
+
+.badge.derecho-faltante {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.badge.derecho-faltante .badge-dot {
+    background: var(--color-warning);
+}
 
 /* Días pendientes de años anteriores (dentro de la alerta) */
 .pendientes-anteriores {
     display: block;
     margin-top: 4px;
     font-size: 12px;
-    font-weight: 600;
-    color: #b45309;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 8px;
-    padding: 2px 8px;
-    width: fit-content;
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* Fecha con ícono de calendario (estilo de fechas del resto del sistema) */
+.inline-flex-center {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 /* =========================
@@ -619,11 +647,9 @@ tbody tr.empty-row td {
 .pagination-bar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 14px 18px;
-    border-top: 1px solid var(--border);
-    background: #fafbfc;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-left: auto;
 }
 
 .pagination-btn {
