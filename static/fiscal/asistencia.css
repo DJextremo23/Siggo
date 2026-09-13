@@ -284,28 +284,31 @@ body {
    ============================================= */
 .tabla-container {
     overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
 }
 
 .tabla-pro {
     width: 100%;
     border-collapse: collapse;
+    font-size: 14px;
 }
 
 .tabla-pro thead th {
     text-align: left;
-    padding: 13px 14px;
-    font-size: 11px;
+    padding: 14px 16px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    background: #f8fafc;
+    letter-spacing: 0.5px;
+    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
     border-bottom: 2px solid #e2e8f0;
     white-space: nowrap;
 }
 
 .tabla-pro tbody td {
-    padding: 14px;
+    padding: 14px 16px;
     border-bottom: 1px solid #f1f5f9;
     font-size: 14px;
     color: var(--text-main);

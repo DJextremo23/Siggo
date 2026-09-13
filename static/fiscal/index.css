@@ -355,7 +355,7 @@ table {
 }
 
 thead {
-    background: #f8fafc;
+    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
     border-bottom: 2px solid #e2e8f0;
 }
 
@@ -374,7 +374,7 @@ td {
     padding: 14px 16px;
     border-bottom: 1px solid #f1f5f9;
     font-size: 14px;
-    color: #334155;
+    color: var(--text-main);
     vertical-align: middle;
 }
 

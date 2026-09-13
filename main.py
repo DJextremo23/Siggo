@@ -2391,6 +2391,8 @@ def mis_guardias():
                         THEN 'realizada'
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                         THEN 'cancelada'
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('justificado')
+                        THEN 'justificada'
                     ELSE 'programada'
                 END AS estado_guardia,
 
@@ -2403,6 +2405,8 @@ def mis_guardias():
                         THEN 'Asistió'
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
                         THEN 'Falta'
+                    WHEN LOWER(COALESCE(a.estado, '')) IN ('justificado')
+                        THEN 'Justificado'
                     ELSE 'Pendiente'
                 END AS asistencia,
 
@@ -2437,51 +2441,25 @@ def mis_guardias():
         # ================= FILTRO ASISTENCIA =================
         if asistencia:
             if asistencia == "Asistió":
-                sql += """
-                    AND (
-                        CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
-                                THEN 'Asistió'
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
-                                THEN 'Falta'
-                            ELSE 'Pendiente'
-                        END
-                    ) = 'Asistió'
-                """
+                sql += " AND LOWER(COALESCE(a.estado, '')) = 'asistio' "
             elif asistencia == "Falta":
-                sql += """
-                    AND (
-                        CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
-                                THEN 'Asistió'
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
-                                THEN 'Falta'
-                            ELSE 'Pendiente'
-                        END
-                    ) = 'Falta'
-                """
+                sql += " AND LOWER(COALESCE(a.estado, '')) = 'falta' "
+            elif asistencia == "Justificado":
+                sql += " AND LOWER(COALESCE(a.estado, '')) = 'justificado' "
             elif asistencia == "Pendiente":
-                sql += """
-                    AND (
-                        CASE
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
-                                THEN 'Asistió'
-                            WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
-                                THEN 'Falta'
-                            ELSE 'Pendiente'
-                        END
-                    ) = 'Pendiente'
-                """
+                sql += " AND (a.estado IS NULL OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistio','falta','justificado')) "
 
         # ================= FILTRO ESTADO GUARDIA =================
         if estado_guardia == "realizada":
             sql += " AND LOWER(COALESCE(a.estado, '')) IN ('asistio') "
         elif estado_guardia == "cancelada":
             sql += " AND LOWER(COALESCE(a.estado, '')) IN ('falta') "
+        elif estado_guardia == "justificada":
+            sql += " AND LOWER(COALESCE(a.estado, '')) IN ('justificado') "
         elif estado_guardia == "programada":
             sql += """ AND (
                 a.estado IS NULL
-                OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistio','falta')
+                OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistio','falta','justificado')
             ) """
 
         sql += " ORDER BY g.fecha_guardia DESC"

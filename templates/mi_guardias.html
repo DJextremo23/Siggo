@@ -89,6 +89,7 @@
                         <option value="">Todos</option>
                         <option value="Asistió" {% if request.args.get('asistencia') == 'Asistió' %}selected{% endif %}>Asistió</option>
                         <option value="Falta" {% if request.args.get('asistencia') == 'Falta' %}selected{% endif %}>Falta</option>
+                        <option value="Justificado" {% if request.args.get('asistencia') == 'Justificado' %}selected{% endif %}>Justificado</option>
                         <option value="Pendiente" {% if request.args.get('asistencia') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
                     </select>
                 </div>
@@ -105,6 +106,7 @@
                         <option value="">Todos</option>
                         <option value="realizada" {% if request.args.get('estado_guardia') == 'realizada' %}selected{% endif %}>Realizada</option>
                         <option value="cancelada" {% if request.args.get('estado_guardia') == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                        <option value="justificada" {% if request.args.get('estado_guardia') == 'justificada' %}selected{% endif %}>Justificada</option>
                         <option value="programada" {% if request.args.get('estado_guardia') == 'programada' %}selected{% endif %}>Programada</option>
                     </select>
                 </div>
@@ -166,6 +168,8 @@
                             <span class="badge aprobado">Asistió</span>
                         {% elif g.asistencia == 'Falta' %}
                             <span class="badge falta">Falta</span>
+                        {% elif g.asistencia == 'Justificado' %}
+                            <span class="badge justificado">Justificado</span>
                         {% else %}
                             <span class="badge gris">Pendiente</span>
                         {% endif %}
@@ -176,6 +180,8 @@
                             <span class="badge aprobado">Realizada</span>
                         {% elif g.estado_guardia == 'cancelada' %}
                             <span class="badge falta">Cancelada</span>
+                        {% elif g.estado_guardia == 'justificada' %}
+                            <span class="badge justificado">Justificada</span>
                         {% elif g.estado_guardia == 'programada' %}
                             <span class="badge gris">Programada</span>
                         {% else %}

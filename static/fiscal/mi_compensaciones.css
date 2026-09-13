@@ -152,7 +152,7 @@ body{
     align-items:center;
     background:#f8fafc;
     border:1px solid #e2e8f0;
-    border-radius:10px;
+    border-radius:8px;
     padding:0 12px;
     transition:border-color .25s ease, box-shadow .25s ease, background .25s ease;
 }
@@ -209,7 +209,7 @@ select.filtro-input{
     gap:8px;
 
     border:none;
-    border-radius:10px;
+    border-radius:8px;
 
     padding:0 20px;
 
@@ -285,10 +285,12 @@ select.filtro-input{
 table{
     width:100%;
     border-collapse:collapse;
+    font-size:14px;
+    border:1px solid #e2e8f0;
 }
 
 thead{
-    background:#f8fafc;
+    background:linear-gradient(180deg,#f8fafc,#f1f5f9);
     border-bottom:2px solid #e2e8f0;
 }
 
@@ -307,6 +309,7 @@ td{
     padding:14px 16px;
     border-bottom:1px solid #f1f5f9;
     font-size:14px;
+    color:var(--text-main);
     vertical-align:middle;
 }
 
@@ -320,20 +323,24 @@ tr:hover{
 
 /* ================= BADGES ================= */
 .badge{
-    padding:6px 12px;
-    border-radius:6px;
-
-    color:white;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:5px 14px;
+    border-radius:20px;
     font-size:12px;
     font-weight:600;
+    white-space:nowrap;
 }
 
 .badge.pendiente{
-    background:#f59e0b;
+    background:#fffbeb;
+    color:#92400e;
 }
 
 .badge.usado{
-    background:var(--verde);
+    background:#f0fdf4;
+    color:#15803d;
 }
 
 /* ================= NOMBRE FISCALIZADOR ================= */
@@ -374,8 +381,8 @@ tr:hover{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    width:34px;
-    height:34px;
+    width:36px;
+    height:36px;
     border-radius:8px;
     text-decoration:none;
     border:none;
@@ -384,23 +391,27 @@ tr:hover{
 }
 
 .btn-edit{
-    background:#eff6ff;
-    color:var(--azul);
+    background:#fef3c7;
+    color:#92400e;
 }
 
 .btn-edit:hover{
-    background:var(--azul);
-    color:white;
+    background:#fde68a;
+    color:#92400e;
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(245,158,11,.25);
 }
 
 .btn-delete{
-    background:#fef2f2;
-    color:var(--rojo);
+    background:#fee2e2;
+    color:#991b1b;
 }
 
 .btn-delete:hover{
-    background:var(--rojo);
-    color:white;
+    background:#fecaca;
+    color:#991b1b;
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(239,68,68,.25);
 }
 
 .form-eliminar{
