@@ -75,9 +75,9 @@
                 <tbody>
                 {% for f in fiscalizadores %}
                 <tr>
-                    <td class="td-id"><span class="id-badge">{{ f.id_usuario }}</span></td>
+                    <td class="td-id" data-label="ID"><span class="id-badge">{{ f.id_usuario }}</span></td>
 
-                    <td class="nombre-col">
+                    <td class="nombre-col" data-label="Nombre y Apellido">
                         <div class="avatar">
                             {% if f.foto %}
                             <img src="{{ url_for('static', filename='fotos/' + f.foto) }}" alt="{{ f.nombre }}" class="avatar-img">
@@ -90,10 +90,10 @@
                         </div>
                     </td>
 
-                    <td>{{ f.correo }}</td>
+                    <td data-label="Correo">{{ f.correo }}</td>
 
                     <!-- 🔥 ESTADO CORREGIDO -->
-                    <td>
+                    <td data-label="Estado">
                         {% set estado = f.estado|string|lower %}
 
                         {% if estado in ['activo', '1', 'true', 'a'] %}

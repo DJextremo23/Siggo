@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, send_file, session, redirect
+from flask import Blueprint, render_template, request, send_file, session, redirect, url_for
 from io import BytesIO
 from datetime import date, datetime
+from urllib.parse import urlencode
 from conexion import conexion
 from utils import acceso_no_autorizado
 from openpyxl import Workbook
@@ -102,6 +103,12 @@ def reporte():
     buscar_vac = request.args.get("buscar_vac", "").strip()
     buscar_resumen_vac = request.args.get("buscar_resumen_vac", "").strip()
 
+    # Por defecto, si no hay ningún filtro de fecha, se muestra el año actual
+    if not anio and not mes and not fecha_desde and not fecha_hasta:
+        args = request.args.to_dict(flat=False)
+        args["anio"] = str(date.today().year)
+        return redirect(url_for("reporte_bp.reporte") + "?" + urlencode(args, doseq=True))
+
     conn = None
     cursor = None
     try:
@@ -135,7 +142,15 @@ def reporte():
                 COUNT(g.id_guardia) AS total_guardias,
                 CAST(SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS UNSIGNED) AS guardias_feriado,
                 COUNT(c.id_compensacion) AS compensaciones,
-                (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
+                (
+                    SELECT COUNT(g2.id_guardia)
+                    FROM guardias g2
+                    LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+                    LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+                    WHERE g2.id_usuario = u.id_usuario
+                      AND a2.estado = 'asistio'
+                      AND c2.id_compensacion IS NULL
+                ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
@@ -331,7 +346,15 @@ def exportar_pdf():
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
                 COUNT(c.id_compensacion) AS compensaciones,
-                (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
+                (
+                    SELECT COUNT(g2.id_guardia)
+                    FROM guardias g2
+                    LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+                    LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+                    WHERE g2.id_usuario = u.id_usuario
+                      AND a2.estado = 'asistio'
+                      AND c2.id_compensacion IS NULL
+                ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
@@ -422,7 +445,15 @@ def exportar_excel():
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
                 COUNT(c.id_compensacion) AS compensaciones,
-                (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
+                (
+                    SELECT COUNT(g2.id_guardia)
+                    FROM guardias g2
+                    LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+                    LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+                    WHERE g2.id_usuario = u.id_usuario
+                      AND a2.estado = 'asistio'
+                      AND c2.id_compensacion IS NULL
+                ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado

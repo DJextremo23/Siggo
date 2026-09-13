@@ -263,13 +263,13 @@
                         <tbody id="alertas-tbody">
                             {% for a in alertas %}
                             <tr>
-                                <td>
+                                <td data-label="Fiscalizador">
                                     <strong>{{ a.nombre }}</strong>
                                     {% if a.dias_pendientes_anteriores > 0 %}
                                         <span class="pendientes-anteriores">{{ a.dias_pendientes_anteriores }} días pend. de años anteriores</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Fecha de habilitación">
                                     <span class="inline-flex-center">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -280,7 +280,7 @@
                                         {{ a.fecha_vacaciones|fecha }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Estado de derecho">
                                     {% if a.dias_faltantes < 0 %}
                                         <span class="badge derecho-disponible">
                                             <span class="badge-dot"></span>Disponible hace {{ a.dias_faltantes|abs }} días
@@ -295,7 +295,7 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Estado">
                                     {% if a.dias_faltantes < 0 %}
                                         <span class="badge listo">
                                             <span class="badge-dot"></span>LISTO
@@ -534,13 +534,13 @@
                         <tbody id="vacaciones-tbody">
                             {% for v in vacaciones %}
                             <tr>
-                                <td class="td-id">
+                                <td class="td-id" data-label="ID">
                                     <span class="id-badge">{{ v.id_vacacion }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Fiscalizador">
                                     <strong>{{ v.nombre }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="Inicio">
                                     <span class="inline-flex-center">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -551,7 +551,7 @@
                                         {{ v.fecha_inicio|fecha }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Fin">
                                     <span class="inline-flex-center">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -562,10 +562,10 @@
                                         {{ v.fecha_fin|fecha }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Días">
                                     <strong>{{ v.dias }}</strong> días
                                 </td>
-                                <td>
+                                <td data-label="Estado">
                                     {% if v.estado == 'pendiente' %}
                                         <span class="badge pendiente">
                                             <span class="badge-dot"></span>Pendiente
@@ -580,7 +580,7 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Acciones">
                                     <div class="acciones-tabla">
                                         <a href="{{ url_for('editar_vacacion', id=v.id_vacacion) }}"
                                            class="btn-editar"

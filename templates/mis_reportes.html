@@ -255,9 +255,9 @@
 {% for d in detalle %}
 <tr class="fila-detalle">
 
-<td><strong>{{ d.fecha_guardia|fecha }}</strong></td>
+<td data-label="Fecha"><strong>{{ d.fecha_guardia|fecha }}</strong></td>
 
-<td>
+<td data-label="Feriado">
 {% if d.feriado != '—' %}
 <span class="feriado-text">{{ d.feriado }}</span>
 {% else %}
@@ -265,10 +265,10 @@
 {% endif %}
 </td>
 
-<td>{{ d.asistencia }}</td>
-<td>{{ d.fecha_compensacion|fecha if d.fecha_compensacion else '—' }}</td>
-<td>{{ d.estado_compensacion }}</td>
-<td>{{ d.observacion or '—' }}</td>
+<td data-label="Asistencia">{{ d.asistencia }}</td>
+<td data-label="Compensación">{{ d.fecha_compensacion|fecha if d.fecha_compensacion else '—' }}</td>
+<td data-label="Estado">{{ d.estado_compensacion }}</td>
+<td data-label="Observaciones">{{ d.observacion or '—' }}</td>
 
 </tr>
 {% endfor %}
@@ -421,10 +421,10 @@
 <tbody id="tabla-vacaciones">
 {% for v in vacaciones %}
 <tr class="fila-vacaciones">
-<td><strong>{{ v.fecha_inicio|fecha }}</strong></td>
-<td><strong>{{ v.fecha_fin|fecha }}</strong></td>
-<td><strong>{{ v.dias_tomados }}</strong></td>
-<td>
+<td data-label="Inicio"><strong>{{ v.fecha_inicio|fecha }}</strong></td>
+<td data-label="Fin"><strong>{{ v.fecha_fin|fecha }}</strong></td>
+<td data-label="Días tomados"><strong>{{ v.dias_tomados }}</strong></td>
+<td data-label="Estado">
   {% if v.estado == 'pendiente' %}
     <span class="status-pendiente">Pendiente</span>
   {% elif v.estado == 'en_curso' %}

@@ -161,11 +161,11 @@
 
                 <tr>
 
-                    <td class="td-id">
+                    <td class="td-id" data-label="ID">
                         <span class="id-badge">{{ c.id_compensacion }}</span>
                     </td>
 
-                    <td>
+                    <td data-label="Fecha Guardia">
                         <span class="inline-flex-center">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -177,7 +177,7 @@
                         </span>
                     </td>
 
-                    <td>
+                    <td data-label="Fecha Compensación">
                         {% if c.fecha_compensacion %}
                         <span class="inline-flex-center">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
@@ -193,7 +193,7 @@
                         {% endif %}
                     </td>
 
-                    <td>
+                    <td data-label="Estado">
                         {% if c.estado == 'pendiente' %}
                             <span class="badge pendiente">Pendiente</span>
 
@@ -205,7 +205,7 @@
                         {% endif %}
                     </td>
 
-                    <td>{{ c.observacion or '-' }}</td>
+                    <td data-label="Observaciones">{{ c.observacion or '-' }}</td>
 
                     <td data-label="Acciones" class="acciones">
                             <a class="btn-accion btn-edit"

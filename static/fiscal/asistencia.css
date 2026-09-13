@@ -430,33 +430,6 @@ body {
         flex-direction: column;
         align-items: flex-start;
     }
-
-    .tabla-pro thead {
-        display: none;
-    }
-
-    .tabla-pro tbody td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 14px;
-        font-size: 13px;
-    }
-
-    .tabla-pro tbody td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: var(--text-muted);
-        font-size: 11px;
-        text-transform: uppercase;
-        margin-right: 12px;
-    }
-
-    .tabla-pro tbody tr {
-        display: block;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 4px 0;
-    }
 }
 
 @media (max-width: 480px) {

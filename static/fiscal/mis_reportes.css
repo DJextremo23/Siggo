@@ -708,6 +708,29 @@ textarea:focus {
     }
 }
 
+@media (max-width: 600px) {
+    .grafico-container {
+        height: 250px;
+    }
+
+    .filtro-field {
+        min-width: 100%;
+    }
+
+    .filtro-actions {
+        width: 100%;
+    }
+
+    .filtro-actions .btn-filtrar,
+    .filtro-actions .btn-limpiar {
+        flex: 1;
+    }
+
+    .card {
+        padding: 16px 14px;
+    }
+}
+
 .svg-icon-sm{margin-right:8px;vertical-align:middle;flex-shrink:0;}
 
 /* ================= FILTROS CORPORATIVOS (unificado) ================= */

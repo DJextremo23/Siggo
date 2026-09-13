@@ -100,3 +100,12 @@
 .status-pendiente { color: #f59e0b; font-weight: 600; }
 .status-en-curso  { color: #3b82f6; font-weight: 600; }
 .status-finalizado { color: #22c55e; font-weight: 600; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 700px) {
+    .dropdown-fisc-content {
+        min-width: 100%;
+        max-width: calc(100vw - 48px);
+        max-height: 60vh;
+    }
+}

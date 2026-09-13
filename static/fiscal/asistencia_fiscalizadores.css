@@ -402,37 +402,6 @@ tr:hover {
     .card {
         padding: 20px;
     }
-
-    .tabla-pro thead {
-        display: none;
-    }
-
-    .tabla-pro tbody td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 14px;
-        gap: 8px;
-    }
-
-    .tabla-pro tbody td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        font-size: 11px;
-        text-transform: uppercase;
-        color: var(--color-muted);
-        flex-shrink: 0;
-    }
-
-    .tabla-pro tbody tr {
-        display: block;
-        border-bottom: 1px solid var(--color-border);
-        padding: 4px 0;
-    }
-
-    .tabla-pro tbody tr:last-child {
-        border-bottom: none;
-    }
 }
 
 @media (max-width: 600px) {

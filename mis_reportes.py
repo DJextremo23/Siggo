@@ -11,6 +11,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from datetime import datetime, date
+from urllib.parse import urlencode
 from estilos_reporte import (
     COLOR_ACENTO, COLOR_TEXTO_MUTED,
     estilos_pdf, build_pdf_tabla,
@@ -156,6 +157,12 @@ def mis_reportes():
     buscar = request.args.get("buscar", "").strip()
     buscar_vac = request.args.get("buscar_vac", "").strip()
 
+    # Por defecto, si no hay filtro de fecha, se muestra el año actual
+    if not anio and not fecha_desde and not fecha_hasta:
+        args = request.args.to_dict(flat=False)
+        args["anio"] = str(date.today().year)
+        return redirect(url_for("mis_reportes_bp.mis_reportes") + "?" + urlencode(args, doseq=True))
+
     conn = None
     cursor = None
     try:
@@ -223,6 +230,20 @@ def mis_reportes():
         """, params_base)
 
         reporte = cursor.fetchall()
+
+        # Pendientes históricas: guardias asistidas sin compensación, sin importar el año
+        cursor.execute("""
+            SELECT COUNT(g2.id_guardia) AS pendientes
+            FROM guardias g2
+            LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+            LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+            WHERE g2.id_usuario = %s
+              AND a2.estado = 'asistio'
+              AND c2.id_compensacion IS NULL
+        """, (id_usuario,))
+        pendientes_hist = cursor.fetchone()
+        if reporte and pendientes_hist is not None:
+            reporte[0]["pendientes"] = pendientes_hist["pendientes"]
 
         # ================= DETALLE =================
         cursor.execute(f"""
@@ -662,6 +683,19 @@ def exportar_resumen_pdf():
         """, params_base)
         resumen = cursor.fetchall()
         r = resumen[0] if resumen else {}
+
+        cursor.execute("""
+            SELECT COUNT(g2.id_guardia) AS pendientes
+            FROM guardias g2
+            LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+            LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+            WHERE g2.id_usuario = %s
+              AND a2.estado = 'asistio'
+              AND c2.id_compensacion IS NULL
+        """, (id_usuario,))
+        pendientes_hist = cursor.fetchone()
+        if resumen and pendientes_hist is not None:
+            r["pendientes"] = pendientes_hist["pendientes"]
     finally:
         if cursor is not None:
             cursor.close()
@@ -752,6 +786,19 @@ def exportar_resumen_excel():
         """, params_base)
         resumen = cursor.fetchall()
         r = resumen[0] if resumen else {}
+
+        cursor.execute("""
+            SELECT COUNT(g2.id_guardia) AS pendientes
+            FROM guardias g2
+            LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+            LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+            WHERE g2.id_usuario = %s
+              AND a2.estado = 'asistio'
+              AND c2.id_compensacion IS NULL
+        """, (id_usuario,))
+        pendientes_hist = cursor.fetchone()
+        if resumen and pendientes_hist is not None:
+            r["pendientes"] = pendientes_hist["pendientes"]
     finally:
         if cursor is not None:
             cursor.close()

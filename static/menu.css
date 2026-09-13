@@ -520,3 +520,62 @@
     from { opacity: 0; transform: scale(0.96); }
     to   { opacity: 1; transform: scale(1); }
 }
+
+/* =============================================
+   TABLAS RESPONSIVE (cards en celulares)
+   ============================================= */
+@media (max-width: 640px) {
+    table:has(td[data-label]) {
+        display: block;
+        width: 100%;
+        border: none;
+    }
+
+    table:has(td[data-label]) thead {
+        display: none;
+    }
+
+    table:has(td[data-label]) tbody {
+        display: block;
+    }
+
+    table:has(td[data-label]) tr {
+        display: block;
+        margin-bottom: 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 2px 14px;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    table:has(td[data-label]) td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 9px 0;
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        text-align: right;
+    }
+
+    table:has(td[data-label]) tr > td:last-child {
+        border-bottom: none;
+    }
+
+    table:has(td[data-label]) td[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    table:has(td[data-label]) td[colspan] {
+        justify-content: center;
+        text-align: center;
+    }
+}

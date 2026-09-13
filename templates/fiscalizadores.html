@@ -176,11 +176,11 @@
                     {% for f in fiscalizadores %}
 
                     <tr>
-                        <td class="td-id">
+                        <td class="td-id" data-label="ID">
                             <span class="id-badge">{{ f.id_usuario }}</span>
                         </td>
 
-                        <td class="nombre-col">
+                        <td class="nombre-col" data-label="Nombre y apellidos">
                             <div class="avatar">
                                 {% if f.foto %}
                                 <img src="{{ url_for('static', filename='fotos/' + f.foto) }}" alt="{{ f.nombre }}" class="avatar-img">
@@ -193,19 +193,19 @@
                             </div>
                         </td>
 
-                        <td>
+                        <td data-label="Correo">
                             <span class="correo-text">{{ f.correo }}</span>
                         </td>
 
-                        <td>
+                        <td data-label="Usuario">
                             <span class="usuario-text">{{ f.usuario }}</span>
                         </td>
 
-                        <td>
+                        <td data-label="Roles">
                             <span class="rol-badge">{{ f.roles }}</span>
                         </td>
 
-                        <td>
+                        <td data-label="Estado">
                             {% if f.estado == 'activo' %}
                                 <span class="estado activo">Activo</span>
                             {% else %}
@@ -213,7 +213,7 @@
                             {% endif %}
                         </td>
 
-                        <td class="td-acciones">
+                        <td class="td-acciones" data-label="Acciones">
                             <div class="acciones-tabla">
 
                                 <a href="{{ url_for('fiscalizadores.editar_usuario', id=f.id_usuario) }}"

@@ -188,15 +188,15 @@
                     {% for v in vacaciones %}
                     <tr>
 
-                        <td class="td-id">
+                        <td class="td-id" data-label="ID">
                             <span class="id-badge">{{ v.id_vacacion }}</span>
                         </td>
 
-                        <td>{{ v.fecha_inicio|fecha }}</td>
-                        <td>{{ v.fecha_fin|fecha }}</td>
-                        <td><strong>{{ v.dias }}</strong> días</td>
+                        <td data-label="Inicio">{{ v.fecha_inicio|fecha }}</td>
+                        <td data-label="Fin">{{ v.fecha_fin|fecha }}</td>
+                        <td data-label="Días"><strong>{{ v.dias }}</strong> días</td>
 
-                        <td>
+                        <td data-label="Estado">
                             {% if v.estado == 'pendiente' %}
                                 <span class="badge pendiente">
                                     <span class="badge-dot"></span>Pendiente
