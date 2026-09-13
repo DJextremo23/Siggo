@@ -1383,6 +1383,14 @@ tbody tr:hover {
         align-items: flex-start;
         gap: 12px;
     }
+
+    .section-card {
+        padding: 18px 16px;
+    }
+
+    .module-card {
+        padding: 16px 14px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1406,5 +1414,31 @@ tbody tr:hover {
     .notif-item {
         flex-direction: column;
         gap: 8px;
+    }
+
+    .welcome-card {
+        padding: 18px 16px;
+    }
+
+    .welcome-card h1 {
+        font-size: 20px;
+    }
+
+    .kpi-card {
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .kpi-info .kpi-number {
+        font-size: 22px;
+    }
+
+    .module-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .resumen-card {
+        padding: 14px;
     }
 }
