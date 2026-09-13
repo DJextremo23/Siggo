@@ -671,6 +671,13 @@ tr:hover{
         width: 30px;
         height: 30px;
     }
+    .filtro-actions{
+        width: 100%;
+    }
+    .filtro-actions .btn-filtrar,
+    .filtro-actions .btn-limpiar{
+        flex: 1;
+    }
 }
 
 .header-actions{margin-bottom:24px;}

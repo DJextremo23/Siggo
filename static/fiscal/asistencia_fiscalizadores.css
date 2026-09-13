@@ -418,4 +418,9 @@ tr:hover {
     .card {
         padding: 16px;
     }
+
+    .btn-asistencia {
+        width: 100%;
+        justify-content: center;
+    }
 }

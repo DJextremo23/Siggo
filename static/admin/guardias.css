@@ -692,6 +692,15 @@ tbody td[colspan] {
     .form-pro .form-group:last-child {
         grid-column: 1 / -1;
     }
+
+    .filtro-form {
+        flex-direction: column;
+    }
+
+    .filtro-actions .btn-filtrar,
+    .filtro-actions .btn-limpiar {
+        flex: 1;
+    }
 }
 
 @media (max-width: 768px) {

@@ -528,6 +528,7 @@
     table:has(td[data-label]) {
         display: block;
         width: 100%;
+        min-width: 0;
         border: none;
     }
 
@@ -568,7 +569,9 @@
         content: attr(data-label);
         font-weight: 600;
         color: #64748b;
-        font-size: 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         text-align: left;
         white-space: nowrap;
         flex-shrink: 0;
@@ -577,5 +580,11 @@
     table:has(td[data-label]) td[colspan] {
         justify-content: center;
         text-align: center;
+    }
+
+    table:has(td[data-label]) .acciones-tabla,
+    table:has(td[data-label]) .acciones-asistencia,
+    table:has(td[data-label]) .acciones-bar {
+        flex-direction: row;
     }
 }
