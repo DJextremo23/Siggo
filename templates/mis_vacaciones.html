@@ -154,7 +154,18 @@
     <!-- CARD - Tabla con historial de vacaciones del fiscalizador -->
     <div class="card">
 
-        <h2>Historial de Vacaciones</h2>
+        <div class="card-header">
+            <div class="card-header-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
+            <div class="card-header-text">
+                <h2>Historial de Vacaciones</h2>
+                <p>Historial de períodos registrados</p>
+            </div>
+        </div>
 
         <div class="table-container">
 
@@ -181,47 +192,24 @@
                             <span class="id-badge">{{ v.id_vacacion }}</span>
                         </td>
 
-                        <td>
-                            <span class="inline-flex-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                                {{ v.fecha_inicio|fecha }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="inline-flex-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                                {{ v.fecha_fin|fecha }}
-                            </span>
-                        </td>
+                        <td>{{ v.fecha_inicio|fecha }}</td>
+                        <td>{{ v.fecha_fin|fecha }}</td>
                         <td><strong>{{ v.dias }}</strong> días</td>
 
                         <td>
                             {% if v.estado == 'pendiente' %}
                                 <span class="badge pendiente">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-                                    Pendiente
+                                    <span class="badge-dot"></span>Pendiente
                                 </span>
 
                             {% elif v.estado == 'en_curso' %}
                                 <span class="badge en_curso">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-                                    En curso
+                                    <span class="badge-dot"></span>En curso
                                 </span>
 
                             {% else %}
                                 <span class="badge finalizado">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-                                    Finalizado
+                                    <span class="badge-dot"></span>Finalizado
                                 </span>
                             {% endif %}
                         </td>

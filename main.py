@@ -153,22 +153,6 @@ DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Dom
 def home():
     return render_template("login.html")
 
-@app.route("/inicio")
-def inicio():
-
-    if "usuario" not in session:
-        return redirect(url_for("login.login"))
-
-    perfil = session.get("perfil_activo")
-
-    if perfil == "admin":
-        return redirect(url_for("administrador"))
-
-    elif perfil == "fiscalizador":
-        return redirect(url_for("panel_fiscalizador"))
-
-    return redirect(url_for("login.login"))
-
 # ==========================
 # PANEL DE ADMINISTRADOR
 # ==========================
@@ -1288,11 +1272,14 @@ def eliminar_vacacion(id):
 # ==========================
 # Dashboard del fiscalizador: guardias, notificaciones, alertas de vacaciones y contadores
 
-@app.route("/index")
-def panel_fiscalizador():
+@app.route("/inicio")
+def inicio():
 
     if "usuario" not in session:
         return redirect(url_for("home"))
+
+    if session.get("perfil_activo", "").lower() == "admin":
+        return redirect(url_for("administrador"))
 
     if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
@@ -1952,15 +1939,33 @@ def asistencia():
     if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
+    fecha_desde = request.args.get("fecha_desde", "").strip()
+    fecha_hasta = request.args.get("fecha_hasta", "").strip()
+    asistencia = request.args.get("asistencia", "").strip()
+
     cursor = conexion.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT *
-        FROM resumen_guardias
-        WHERE id_usuario = %s
-        ORDER BY fecha_guardia DESC
-    """, (session["id_usuario"],))
+    sql = "SELECT * FROM resumen_guardias WHERE id_usuario = %s "
+    params = [session["id_usuario"]]
 
+    if fecha_desde:
+        sql += " AND fecha_guardia >= %s "
+        params.append(fecha_desde)
+
+    if fecha_hasta:
+        sql += " AND fecha_guardia <= %s "
+        params.append(fecha_hasta)
+
+    if asistencia:
+        if asistencia == "pendiente":
+            sql += " AND (asistencia IS NULL OR asistencia = '' OR asistencia = 'pendiente' OR asistencia NOT IN ('asistio','falta','justificado')) "
+        else:
+            sql += " AND asistencia = %s "
+            params.append(asistencia)
+
+    sql += " ORDER BY fecha_guardia DESC"
+
+    cursor.execute(sql, params)
     datos = cursor.fetchall()
 
     for d in datos:

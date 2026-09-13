@@ -332,20 +332,20 @@ body {
    BADGES
    ============================================= */
 .badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     padding: 5px 12px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.3px;
-    color: var(--color-blanco);
     white-space: nowrap;
 }
 
-.badge-feriado    { background: var(--color-error); }
-.badge-dia        { background: var(--color-acento); }
-.badge-compensado { background: var(--color-ok); }
-.badge-empty      { background: #cbd5e1; color: #475569; }
+.badge-feriado    { background: #fffbeb; color: #92400e; }
+.badge-dia        { background: #eff6ff; color: var(--color-acento); }
+.badge-compensado { background: #f0fdf4; color: #15803d; }
+.badge-empty      { background: #f1f5f9; color: #475569; }
 
 /* =============================================
    ESTADOS
@@ -354,11 +354,10 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 5px 14px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    color: var(--color-blanco);
     white-space: nowrap;
     transition: transform var(--transition);
 }
@@ -367,10 +366,10 @@ body {
     flex-shrink: 0;
 }
 
-.estado-ok      { background: var(--color-ok); }
-.estado-bad     { background: var(--color-error); }
-.estado-warn    { background: var(--color-warn); }
-.estado-pending { background: var(--color-pending); }
+.estado-ok      { background: #dcfce7; color: #166534; }
+.estado-bad     { background: #fef2f2; color: #991b1b; }
+.estado-warn    { background: #fffbeb; color: #92400e; }
+.estado-pending { background: #f1f5f9; color: #475569; }
 
 /* =============================================
    EMPTY STATE
@@ -463,4 +462,128 @@ body {
         width: 100%;
         justify-content: center;
     }
+}
+
+/* ================= FILTROS ================= */
+.filtros-card {
+    margin-bottom: 24px;
+}
+
+.filtro-form {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filtro-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 170px;
+    flex: 1;
+}
+
+.filtro-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.filtro-input-wrap {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0 12px;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+}
+
+.filtro-input-wrap:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    background: #ffffff;
+}
+
+.filtro-icon {
+    flex-shrink: 0;
+    color: #94a3b8;
+    margin-right: 8px;
+}
+
+.filtro-input-wrap:focus-within .filtro-icon {
+    color: #3b82f6;
+}
+
+.filtro-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 11px 0;
+    font-size: 14px;
+    color: #0f172a;
+    font-family: inherit;
+    min-width: 0;
+}
+
+select.filtro-input {
+    cursor: pointer;
+}
+
+.filtro-actions {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.btn-filtrar {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 8px;
+    padding: 0 20px;
+    background: #3b82f6;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background .2s, transform .2s, box-shadow .2s;
+}
+
+.btn-filtrar:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37,99,235,0.35);
+}
+
+.btn-limpiar {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 10px;
+    background: #64748b;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .2s, transform .2s, box-shadow .2s;
+}
+
+.btn-limpiar:hover {
+    background: #475569;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(100,116,139,0.35);
 }

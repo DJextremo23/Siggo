@@ -36,8 +36,8 @@ def test_administrador_requires_auth(client):
 
 
 def test_panel_fiscalizador_requires_auth(client):
-    """La ruta /index requiere autenticación."""
-    response = client.get("/index")
+    """La ruta /inicio (panel fiscalizador) requiere autenticación."""
+    response = client.get("/inicio")
     assert response.status_code in (302, 403)
 
 
