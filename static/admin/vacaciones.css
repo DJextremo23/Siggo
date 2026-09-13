@@ -291,6 +291,11 @@ tbody td {
     vertical-align: middle;
 }
 
+tbody td strong {
+    font-weight: 600;
+    color: var(--color-primario);
+}
+
 tbody tr:last-child td {
     border-bottom: none;
 }
@@ -439,8 +444,13 @@ tbody tr.empty-row td {
     display: block;
     margin-top: 4px;
     font-size: 12px;
-    font-weight: 500;
-    color: #64748b;
+    font-weight: 600;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 2px 8px;
+    width: fit-content;
 }
 
 /* Fecha con ícono de calendario (estilo de fechas del resto del sistema) */
