@@ -322,6 +322,22 @@ td.vacio{
     color:#92400e;
 }
 
+.inline-flex-center{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+}
+
+.badge-dia{
+    background:#eff6ff;
+    color:var(--azul);
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    white-space:nowrap;
+}
+
 /* ================= NOMBRE FISCALIZADOR ================= */
 .nombre-fiscalizador{
     display:flex;

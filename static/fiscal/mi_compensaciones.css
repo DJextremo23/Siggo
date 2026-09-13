@@ -343,6 +343,12 @@ tr:hover{
     color:#15803d;
 }
 
+.inline-flex-center{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+}
+
 /* ================= NOMBRE FISCALIZADOR ================= */
 .nombre-fiscalizador{
     display:flex;

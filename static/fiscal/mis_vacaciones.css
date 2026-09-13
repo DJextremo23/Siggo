@@ -383,6 +383,12 @@ tbody tr:hover {
 .en_curso { background: #eff6ff; color: #1d4ed8; }
 .finalizado { background: #f0fdf4; color: #15803d; }
 
+.inline-flex-center {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* =========================
    EMPTY
 ========================= */

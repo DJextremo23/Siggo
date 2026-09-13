@@ -695,6 +695,8 @@ tr:hover{
     font-size: 13px;
     font-weight: 600;
     color: #334155;
+    text-transform: none;
+    letter-spacing: normal;
 }
 
 .filtro-input-wrap {

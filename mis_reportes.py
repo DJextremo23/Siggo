@@ -151,7 +151,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
 
 
 # Ruta principal: tabla resumen + detalle de guardias + vacaciones del fiscalizador
-@mis_reportes_bp.route("/")
+@mis_reportes_bp.route("", strict_slashes=False)
 def mis_reportes():
 
     if "usuario" not in session:

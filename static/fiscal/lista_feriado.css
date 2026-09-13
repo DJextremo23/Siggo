@@ -296,6 +296,12 @@ tr:hover{
     white-space:nowrap;
 }
 
+.inline-flex-center{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+}
+
 /* ================= EMPTY ================= */
 .empty{
     text-align:center;

@@ -159,9 +159,19 @@
                     <td class="td-id">
                         <span class="id-badge">{{ g.id_guardia }}</span>
                     </td>
-                    <td>{{ g.fecha_guardia|fecha }}</td>
+                    <td>
+                        <span class="inline-flex-center">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            {{ g.fecha_guardia|fecha }}
+                        </span>
+                    </td>
 
-                    <td>{{ g.dia_semana }}</td>
+                    <td><span class="badge-dia">{{ g.dia_semana }}</span></td>
 
                     <td>
                         {% if g.asistencia == 'Asistió' %}
@@ -189,7 +199,21 @@
                         {% endif %}
                     </td>
 
-                    <td>{{ g.fecha_compensacion|fecha if g.fecha_compensacion else '—' }}</td>
+                    <td>
+                        {% if g.fecha_compensacion %}
+                        <span class="inline-flex-center">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            {{ g.fecha_compensacion|fecha }}
+                        </span>
+                        {% else %}
+                        &mdash;
+                        {% endif %}
+                    </td>
 
                 </tr>
                 {% endfor %}
