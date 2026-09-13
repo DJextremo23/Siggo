@@ -241,9 +241,25 @@ def administrador():
         cursor.execute("SELECT COUNT(*) AS total FROM compensaciones WHERE YEAR(fecha_compensacion) = YEAR(CURDATE())")
         total_compensaciones = cursor.fetchone()["total"]
 
-        # Resumen operativo: guardias del mes actual
-        cursor.execute("SELECT COUNT(*) AS total FROM guardias WHERE YEAR(fecha_guardia) = YEAR(CURDATE()) AND MONTH(fecha_guardia) = MONTH(CURDATE())")
-        guardias_este_mes = cursor.fetchone()["total"]
+        # Resumen operativo: métricas operativas del año (feriados, asistencias, faltas, pendientes)
+        cursor.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM feriados WHERE YEAR(fecha) = YEAR(CURDATE())) AS feriados,
+                (SELECT COUNT(*) FROM guardias g LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
+                  WHERE a.estado = 'asistio' AND YEAR(g.fecha_guardia) = YEAR(CURDATE())) AS asistencias,
+                (SELECT COUNT(*) FROM guardias g LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
+                  WHERE a.estado = 'falta' AND YEAR(g.fecha_guardia) = YEAR(CURDATE())) AS faltas,
+                (SELECT COUNT(*) FROM guardias g LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
+                  WHERE (a.estado IS NULL OR a.estado = '' OR a.estado NOT IN ('asistio','falta','justificado'))
+                    AND YEAR(g.fecha_guardia) = YEAR(CURDATE())) AS pendientes
+        """)
+        resumen_operativo = cursor.fetchone()
+        resumen_operativo = {
+            "feriados": int(resumen_operativo["feriados"] or 0),
+            "asistencias": int(resumen_operativo["asistencias"] or 0),
+            "faltas": int(resumen_operativo["faltas"] or 0),
+            "pendientes": int(resumen_operativo["pendientes"] or 0),
+        }
 
         # Resumen operativo: guardias agrupadas por año y mes
         cursor.execute("""
@@ -295,7 +311,7 @@ def administrador():
                                total_guardias=total_guardias,
                                total_informes=total_informes,
                                total_compensaciones=total_compensaciones,
-                               guardias_este_mes=guardias_este_mes,
+                               resumen_operativo=resumen_operativo,
                                guardias_por_mes=guardias_por_mes,
                                estado_fiscalizadores=estado_fiscalizadores,
                                proximas_guardias=proximas_guardias)
