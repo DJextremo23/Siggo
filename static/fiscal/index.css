@@ -347,6 +347,8 @@ body {
    ============================================= */
 .table-wrapper {
     overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
 }
 
 table {
@@ -387,67 +389,47 @@ tbody tr:hover {
 }
 
 /* ---- PAGINATION ---- */
-.pagination {
+.pagination-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-top: 1px solid #e2e8f0;
+    background: #fafbfc;
 }
 
-.pagination span {
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #eff6ff;
+    border-color: var(--azul);
+    color: var(--azul);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination-info {
     font-size: 13px;
     color: #64748b;
     font-weight: 500;
     min-width: 70px;
     text-align: center;
-}
-
-.pagination button {
-    width: 34px;
-    height: 34px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background: #ffffff;
-    color: #475569;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-
-.pagination button svg {
-    transition: transform 0.2s ease;
-}
-
-.pagination button:hover:not(:disabled) {
-    background: var(--azul);
-    color: #ffffff;
-    border-color: var(--azul);
-    box-shadow: 0 2px 8px rgba(59,130,246,0.3);
-    transform: translateY(-1px);
-}
-
-.pagination button:hover:not(:disabled) svg {
-    transform: scale(1.15);
-}
-
-.pagination button:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(59,130,246,0.2);
-}
-
-.pagination button:disabled {
-    opacity: 0.3;
-    cursor: default;
-    box-shadow: none;
-}
-
-.pagination span {
-    font-size: 13px;
-    font-weight: 500;
-    color: #64748b;
-    padding: 0 4px;
 }
 
 /* =============================================

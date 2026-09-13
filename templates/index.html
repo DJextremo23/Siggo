@@ -299,20 +299,6 @@
                 </svg>
                 Últimas guardias
             </h3>
-
-            <div class="pagination">
-                <button id="btn-prev" aria-label="Anterior">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="15 18 9 12 15 6"/>
-                    </svg>
-                </button>
-                <span id="contador"></span>
-                <button id="btn-next" aria-label="Siguiente">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                </button>
-            </div>
         </div>
 
         <div class="table-wrapper">
@@ -369,6 +355,20 @@
                     {% endif %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="pagination-bar">
+            <button class="pagination-btn" id="btn-prev" aria-label="Anterior">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            <span class="pagination-info" id="contador"></span>
+            <button class="pagination-btn" id="btn-next" aria-label="Siguiente">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                </svg>
+            </button>
         </div>
     </div>
 
