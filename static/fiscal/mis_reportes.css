@@ -549,6 +549,11 @@ td {
     transition: background var(--transition);
 }
 
+td strong {
+    font-weight: 600;
+    color: var(--color-primario);
+}
+
 tbody tr {
     transition: background var(--transition);
 }
@@ -570,7 +575,7 @@ tbody tr:hover {
    ========================= */
 .feriado-text {
     color: var(--color-ambar);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 /* =========================

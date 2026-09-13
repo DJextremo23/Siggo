@@ -380,6 +380,11 @@ td {
     vertical-align: middle;
 }
 
+td strong {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
 tr:last-child td {
     border-bottom: none;
 }
@@ -1061,11 +1066,125 @@ tbody tr:hover {
 }
 
 /* =============================================
+   RESUMEN OPERATIVO (GRÁFICOS)
+   ============================================= */
+.resumen-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 20px;
+}
+
+.resumen-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.resumen-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.resumen-card-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.resumen-card-title h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.resumen-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    flex-shrink: 0;
+}
+
+.resumen-card-icon.blue {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.resumen-card-icon.green {
+    background: #f0fdf4;
+    color: #22c55e;
+}
+
+.resumen-select {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-main);
+    background: #f8fafc;
+    cursor: pointer;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.resumen-select:focus {
+    outline: none;
+    border-color: var(--azul);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    background: #ffffff;
+}
+
+.resumen-chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.ver-todas-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: var(--azul);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background var(--transition), color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.ver-todas-btn:hover {
+    background: #dbeafe;
+    color: var(--azul-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.resumen-acciones {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+/* =============================================
    RESPONSIVE
    ============================================= */
 @media (max-width: 1100px) {
     .module-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .resumen-grid {
+        grid-template-columns: 1fr;
     }
 }
 

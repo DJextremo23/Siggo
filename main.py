@@ -241,12 +241,59 @@ def administrador():
         cursor.execute("SELECT COUNT(*) AS total FROM compensaciones WHERE YEAR(fecha_compensacion) = YEAR(CURDATE())")
         total_compensaciones = cursor.fetchone()["total"]
 
+        # Resumen operativo: guardias agrupadas por año y mes
+        cursor.execute("""
+            SELECT YEAR(fecha_guardia) AS anio, MONTH(fecha_guardia) AS mes, COUNT(*) AS total
+            FROM guardias
+            GROUP BY YEAR(fecha_guardia), MONTH(fecha_guardia)
+            ORDER BY anio ASC, mes ASC
+        """)
+        guardias_por_mes = cursor.fetchall()
+
+        # Resumen operativo: estado de los fiscalizadores (activos / en vacaciones / inactivos)
+        cursor.execute("""
+            SELECT
+                COALESCE(SUM(CASE WHEN u.estado = 'activo' AND v.id_vacacion IS NULL THEN 1 ELSE 0 END), 0) AS activos,
+                COALESCE(SUM(CASE WHEN u.estado = 'activo' AND v.id_vacacion IS NOT NULL THEN 1 ELSE 0 END), 0) AS en_vacaciones,
+                COALESCE(SUM(CASE WHEN u.estado = 'inactivo' THEN 1 ELSE 0 END), 0) AS inactivos
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            LEFT JOIN vacaciones v
+                ON v.id_usuario = u.id_usuario
+                AND CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin
+            WHERE r.nombre_rol = 'fiscalizador'
+        """)
+        estado_fiscalizadores = cursor.fetchone()
+        estado_fiscalizadores = {
+            "activos": int(estado_fiscalizadores["activos"] or 0),
+            "en_vacaciones": int(estado_fiscalizadores["en_vacaciones"] or 0),
+            "inactivos": int(estado_fiscalizadores["inactivos"] or 0),
+        }
+
+        # Próximas guardias programadas (fechas futuras)
+        cursor.execute("""
+            SELECT g.id_guardia, g.fecha_guardia, CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador
+            FROM guardias g
+            INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+            WHERE g.fecha_guardia >= CURDATE()
+            ORDER BY g.fecha_guardia ASC
+            LIMIT 5
+        """)
+        proximas_guardias = cursor.fetchall()
+        for g in proximas_guardias:
+            fecha = g["fecha_guardia"]
+            g["dia_semana"] = DIAS_ES[fecha.weekday()] if isinstance(fecha, date) else ""
+
         return render_template("administrador.html",
                                alertas=alertas,
                                total_usuarios=total_usuarios,
                                total_guardias=total_guardias,
                                total_informes=total_informes,
-                               total_compensaciones=total_compensaciones)
+                               total_compensaciones=total_compensaciones,
+                               guardias_por_mes=guardias_por_mes,
+                               estado_fiscalizadores=estado_fiscalizadores,
+                               proximas_guardias=proximas_guardias)
     except Exception as e:
         print("ERROR administrador:", e)
         return error_interno()

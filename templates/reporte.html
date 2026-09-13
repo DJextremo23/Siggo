@@ -539,6 +539,11 @@
 <!-- ================= JAVASCRIPT: Exportación dinámica, paginación, filtros por texto, dropdowns de exportación y selección de fiscalizadores ================= -->
 <script nonce="{{ csp_nonce() }}">
 
+/* ===== ESTILO GLOBAL DE LOS GRÁFICOS (Chart.js) ===== */
+Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#64748b';
+
 /* ===== ACTUALIZAR LINKS DE EXPORTACION ===== */
 function actualizarLinksExport() {
     var anioEl = document.getElementById('anio');
