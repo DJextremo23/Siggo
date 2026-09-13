@@ -544,6 +544,31 @@ Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system, sans-serif";
 Chart.defaults.font.size = 12;
 Chart.defaults.color = '#64748b';
 
+/* ===== PLUGIN: MOSTRAR CANTIDAD SOBRE CADA BARRA ===== */
+var barLabelsPlugin = {
+    id: 'barLabels',
+    afterDatasetsDraw: function(chart) {
+        if (chart.config.type !== 'bar') return;
+        var ctx = chart.ctx;
+        chart.data.datasets.forEach(function(dataset, dsIndex) {
+            var meta = chart.getDatasetMeta(dsIndex);
+            if (!meta || !meta.data) return;
+            meta.data.forEach(function(bar, i) {
+                var value = dataset.data[i];
+                if (value === null || value === undefined || value === 0) return;
+                ctx.save();
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '600 10px "Segoe UI", system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(String(value), bar.x, bar.y - 2);
+                ctx.restore();
+            });
+        });
+    }
+};
+
+
 /* ===== ACTUALIZAR LINKS DE EXPORTACION ===== */
 function actualizarLinksExport() {
     var anioEl = document.getElementById('anio');
@@ -653,10 +678,20 @@ function renderResumenChart() {
         legend: { position: 'bottom' }
       },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } },
-        x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0 },
+          grid: { color: 'rgba(148, 163, 184, 0.15)', drawBorder: false },
+          border: { display: false }
+        },
+        x: {
+          ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 },
+          grid: { display: false },
+          border: { display: false }
+        }
       }
-    }
+    },
+    plugins: [barLabelsPlugin]
   });
 }
 
@@ -695,10 +730,20 @@ function renderResumenVacacionesChart() {
         legend: { position: 'bottom' }
       },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } },
-        x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0 },
+          grid: { color: 'rgba(148, 163, 184, 0.15)', drawBorder: false },
+          border: { display: false }
+        },
+        x: {
+          ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 },
+          grid: { display: false },
+          border: { display: false }
+        }
       }
-    }
+    },
+    plugins: [barLabelsPlugin]
   });
 }
 

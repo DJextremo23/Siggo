@@ -578,6 +578,56 @@ function cambiarPagina(tipo,cambio){
   mostrarTabla(tipo);
 }
 
+const barLabelsPlugin = {
+  id: 'barLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'bar') return;
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach((dataset, dsIndex) => {
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || !meta.data) return;
+      meta.data.forEach((bar, i) => {
+        const value = dataset.data[i];
+        if (value === null || value === undefined || value === 0) return;
+        ctx.save();
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '600 10px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(value), bar.x, bar.y - 2);
+        ctx.restore();
+      });
+    });
+  }
+};
+
+const doughnutLabelsPlugin = {
+  id: 'doughnutLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    const ctx = chart.ctx;
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data) return;
+    const data = chart.data.datasets[0].data;
+    meta.data.forEach((arc, i) => {
+      const value = data[i];
+      if (value === null || value === undefined || value === 0) return;
+      if (arc.endAngle - arc.startAngle < 0.2) return;
+      const midAngle = (arc.startAngle + arc.endAngle) / 2;
+      const radius = (arc.innerRadius + arc.outerRadius) / 2;
+      const x = arc.x + Math.cos(midAngle) * radius;
+      const y = arc.y + Math.sin(midAngle) * radius;
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 12px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(value), x, y);
+      ctx.restore();
+    });
+  }
+};
+
 function renderResumenChart() {
   var canvas = document.getElementById('chart-resumen');
   if (!canvas) return;
@@ -601,8 +651,17 @@ function renderResumenChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-    }
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0 },
+          grid: { color: 'rgba(148, 163, 184, 0.15)', drawBorder: false },
+          border: { display: false }
+        }
+      }
+    },
+    plugins: [barLabelsPlugin]
   });
 }
 
@@ -641,7 +700,8 @@ function renderResumenVacacionesChart() {
           }
         }
       }
-    }
+    },
+    plugins: [doughnutLabelsPlugin]
   });
 }
 
