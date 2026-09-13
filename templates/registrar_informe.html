@@ -54,7 +54,21 @@
 
             <!-- GUARDIA -->
             <div class="field">
-                <label for="id_guardia" class="field-label">Guardia</label>
+                <label for="buscar_guardia" class="field-label">Guardia</label>
+                <div class="field-input">
+                    <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text"
+                           id="buscar_guardia"
+                           placeholder="Buscar guardia por fecha (ej. 13.09.2025)..."
+                           autocomplete="off">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="id_guardia" class="field-label">Seleccione la guardia</label>
                 <div class="field-input">
                     <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -66,10 +80,14 @@
                             id="id_guardia"
                             required>
                         <option value="">Seleccione guardia</option>
-                        {% for g in guardias %}
-                            <option value="{{ g.id_guardia }}">
-                                {{ g.fecha_guardia|fecha }}
-                            </option>
+                        {% for anio, lista in guardias_por_anio.items() %}
+                            <optgroup label="{{ anio }}">
+                                {% for g in lista %}
+                                    <option value="{{ g.id_guardia }}">
+                                        {{ g.fecha_guardia|fecha }}
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
                         {% endfor %}
                     </select>
                 </div>
@@ -156,6 +174,34 @@
     </div>
 
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+var buscadorGuardia = document.getElementById('buscar_guardia');
+var selectGuardia = document.getElementById('id_guardia');
+
+buscadorGuardia.addEventListener('input', function() {
+    var termino = buscadorGuardia.value.toLowerCase().trim();
+    var opciones = selectGuardia.querySelectorAll('option');
+    var grupos = selectGuardia.querySelectorAll('optgroup');
+
+    opciones.forEach(function(opcion) {
+        if (opcion.value === '') {
+            opcion.hidden = false;
+            return;
+        }
+        var texto = opcion.textContent.toLowerCase();
+        opcion.hidden = texto.indexOf(termino) === -1;
+    });
+
+    grupos.forEach(function(grupo) {
+        var hayVisibles = Array.prototype.some.call(
+            grupo.querySelectorAll('option'),
+            function(opcion) { return !opcion.hidden; }
+        );
+        grupo.hidden = !hayVisibles;
+    });
+});
+</script>
 
 </body>
 </html>

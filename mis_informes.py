@@ -227,7 +227,8 @@ def registrar_informe():
         cursor.execute("""
             SELECT
                 id_guardia,
-                fecha_guardia
+                fecha_guardia,
+                YEAR(fecha_guardia) AS anio
             FROM guardias
             WHERE id_usuario = %s
             ORDER BY fecha_guardia DESC
@@ -235,9 +236,13 @@ def registrar_informe():
 
         guardias = cursor.fetchall()
 
+        guardias_por_anio = {}
+        for g in guardias:
+            guardias_por_anio.setdefault(g["anio"], []).append(g)
+
         return render_template(
             "registrar_informe.html",
-            guardias=guardias
+            guardias_por_anio=guardias_por_anio
         )
 
     finally:
