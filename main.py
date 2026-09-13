@@ -162,6 +162,9 @@ def cerrar_transaccion_db(exception=None):
 # Días de la semana en español para mostrar en las vistas
 DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
+# Meses abreviados en español para los bloques de fecha
+MESES_ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
 # ==========================
 # RUTAS DE INICIO / LOGIN
 # ==========================
@@ -303,7 +306,14 @@ def administrador():
         proximas_guardias = cursor.fetchall()
         for g in proximas_guardias:
             fecha = g["fecha_guardia"]
-            g["dia_semana"] = DIAS_ES[fecha.weekday()] if isinstance(fecha, date) else ""
+            if isinstance(fecha, date):
+                g["dia_semana"] = DIAS_ES[fecha.weekday()]
+                g["dia_numero"] = fecha.day
+                g["mes_abrev"] = MESES_ABREV[fecha.month - 1]
+            else:
+                g["dia_semana"] = ""
+                g["dia_numero"] = "—"
+                g["mes_abrev"] = ""
 
         return render_template("administrador.html",
                                alertas=alertas,

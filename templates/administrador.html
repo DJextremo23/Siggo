@@ -352,7 +352,7 @@
                     </div>
                     <div class="resumen-stat-info">
                         <span class="resumen-stat-valor">{{ resumen_operativo.asistencias }}</span>
-                        <span class="resumen-stat-label">Asistencias</span>
+                        <span class="resumen-stat-label">Asistencias del año</span>
                     </div>
                 </div>
                 <div class="resumen-stat">
@@ -365,7 +365,7 @@
                     </div>
                     <div class="resumen-stat-info">
                         <span class="resumen-stat-valor">{{ resumen_operativo.faltas }}</span>
-                        <span class="resumen-stat-label">Faltas</span>
+                        <span class="resumen-stat-label">Faltas del año</span>
                     </div>
                 </div>
                 <div class="resumen-stat">
@@ -377,7 +377,7 @@
                     </div>
                     <div class="resumen-stat-info">
                         <span class="resumen-stat-valor">{{ resumen_operativo.pendientes }}</span>
-                        <span class="resumen-stat-label">Pendientes</span>
+                        <span class="resumen-stat-label">Pendientes del año</span>
                     </div>
                 </div>
             </div>
@@ -441,37 +441,28 @@
             </div>
 
             {% if proximas_guardias %}
-            <div class="table-wrapper">
-                <table class="tabla-pro">
-                    <thead>
-                        <tr>
-                            <th>Fiscalizador</th>
-                            <th>Fecha</th>
-                            <th>Día</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for g in proximas_guardias %}
-                        <tr>
-                            <td>
-                                <strong>{{ g.fiscalizador }}</strong>
-                            </td>
-                            <td>
-                                <span class="inline-flex-center">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                        <line x1="16" y1="2" x2="16" y2="6"/>
-                                        <line x1="8" y1="2" x2="8" y2="6"/>
-                                        <line x1="3" y1="10" x2="21" y2="10"/>
-                                    </svg>
-                                    {{ g.fecha_guardia|fecha }}
-                                </span>
-                            </td>
-                            <td><span class="badge-dia">{{ g.dia_semana }}</span></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="prox-lista">
+                {% for g in proximas_guardias %}
+                <div class="prox-item">
+                    <div class="prox-fecha">
+                        <span class="prox-dia">{{ g.dia_numero }}</span>
+                        <span class="prox-mes">{{ g.mes_abrev }}</span>
+                    </div>
+                    <div class="prox-info">
+                        <span class="prox-nombre">{{ g.fiscalizador }}</span>
+                        <span class="prox-fecha-completa">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            {{ g.fecha_guardia|fecha }}
+                        </span>
+                    </div>
+                    <span class="prox-dia-semana">{{ g.dia_semana }}</span>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <div class="empty-state">
@@ -669,7 +660,16 @@
                 layout: { padding: { top: 16 } },
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                    x: {
+                        grid: { display: false },
+                        border: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 },
+                        grid: { color: 'rgba(148, 163, 184, 0.15)', drawBorder: false },
+                        border: { display: false }
+                    }
                 }
             },
             plugins: [barLabelsPlugin]

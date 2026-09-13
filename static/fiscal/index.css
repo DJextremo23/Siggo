@@ -1166,8 +1166,8 @@ tbody tr:hover {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #f8fafc;
-    border: 1px solid #f1f5f9;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 12px;
 }
@@ -1185,7 +1185,7 @@ tbody tr:hover {
 .resumen-stat-icon.amber { background: #fffbeb; color: #f59e0b; }
 .resumen-stat-icon.green { background: #f0fdf4; color: #22c55e; }
 .resumen-stat-icon.red   { background: #fef2f2; color: #ef4444; }
-.resumen-stat-icon.gray  { background: #f1f5f9; color: #64748b; }
+.resumen-stat-icon.gray  { background: #e2e8f0; color: #475569; }
 
 .resumen-stat-info {
     display: flex;
@@ -1194,15 +1194,104 @@ tbody tr:hover {
 }
 
 .resumen-stat-valor {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-main);
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
     line-height: 1.1;
 }
 
 .resumen-stat-label {
     font-size: 12px;
-    color: var(--text-muted);
+    font-weight: 600;
+    color: #334155;
+}
+
+/* Lista de próximas guardias */
+.prox-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.prox-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.prox-item:hover {
+    border-color: #c7d2fe;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+}
+
+.prox-fecha {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    padding: 6px 8px;
+    background: #eff6ff;
+    border-radius: 8px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.prox-dia {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1d4ed8;
+}
+
+.prox-mes {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #3b82f6;
+    margin-top: 3px;
+}
+
+.prox-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.prox-nombre {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prox-fecha-completa {
+    font-size: 12px;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.prox-dia-semana {
+    background: #eef2ff;
+    color: #4338ca;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .ver-todas-btn {
