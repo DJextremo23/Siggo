@@ -1336,6 +1336,47 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 1024px) {
+    .notif-panel {
+        position: fixed;
+        top: 64px;
+        right: 16px;
+        width: 420px;
+        max-width: calc(100vw - 32px);
+        margin-top: 0;
+        max-height: calc(100vh - 80px);
+        max-height: calc(100dvh - 80px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .notif-body {
+        max-height: none;
+        flex: 1;
+    }
+
+    .notif-bell-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .notif-close {
+        width: 36px;
+        height: 36px;
+    }
+
+    .notif-mark-read {
+        width: 36px;
+        height: 36px;
+        margin-top: 0;
+    }
+
+    .notif-mark-all {
+        padding: 8px 14px;
+    }
+}
+
 @media (max-width: 768px) {
     .resumen-grid {
         grid-template-columns: 1fr;
@@ -1391,12 +1432,6 @@ tbody tr:hover {
     .module-card {
         padding: 16px 14px;
     }
-}
-
-@media (max-width: 480px) {
-    .kpi-grid {
-        grid-template-columns: 1fr;
-    }
 
     .notif-panel {
         position: fixed;
@@ -1406,14 +1441,30 @@ tbody tr:hover {
         width: auto;
         max-width: none;
         margin-top: 0;
+        max-height: calc(100vh - 80px);
+        max-height: calc(100dvh - 80px);
+        display: flex;
+        flex-direction: column;
     }
+
     .notif-header {
         flex-wrap: wrap;
         gap: 8px;
     }
+
+    .notif-body {
+        max-height: none;
+        flex: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
     .notif-item {
-        flex-direction: column;
-        gap: 8px;
+        padding: 12px 14px 12px 16px;
     }
 
     .welcome-card {

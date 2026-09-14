@@ -22,6 +22,7 @@ DB_CONFIG = {
     "database": os.getenv("DB_NAME", "guardiaoig"),
     "port": int(os.getenv("DB_PORT", "3306")),
     "connection_timeout": 10,
+    "time_zone": os.getenv("DB_TIMEZONE", "-05:00"),
 }
 
 def conexion():

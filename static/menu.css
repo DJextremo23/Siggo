@@ -22,12 +22,15 @@
     left: 0;
     width: var(--sidebar-width);
     height: 100vh;
+    height: 100dvh;
     background: linear-gradient(180deg, #0f172a 0%, #0c1426 100%);
     color: white;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     z-index: 1000;
     box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35);
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -204,8 +207,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 11px 14px;
+    padding: 13px 14px;
     margin-bottom: 2px;
+    min-height: 44px;
     text-decoration: none;
     color: var(--sidebar-text);
     border-radius: var(--sidebar-radius);
@@ -295,11 +299,11 @@
 .hamburger {
     display: none;
     position: fixed;
-    top: 16px;
-    left: 16px;
+    top: 12px;
+    left: 12px;
     z-index: 1100;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border: none;
     border-radius: 10px;
     background: var(--sidebar-bg);
@@ -308,6 +312,8 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
     transition: background var(--sidebar-transition);
 }
 
@@ -596,4 +602,26 @@
     align-items: center;
     flex-wrap: wrap;
     justify-content: flex-end;
+}
+
+/* =============================================
+   MEJORAS TÁCTILES / RESPONSIVE GLOBALES
+   ============================================= */
+a,
+button,
+[role="button"],
+select,
+input,
+textarea,
+label {
+    touch-action: manipulation;
+}
+
+a,
+button,
+.hamburger,
+.btn-primary,
+.btn-accion,
+.btn-icon {
+    -webkit-tap-highlight-color: transparent;
 }

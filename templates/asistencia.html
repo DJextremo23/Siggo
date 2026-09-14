@@ -35,9 +35,9 @@
         </div>
 
         <!-- TARJETAS KPI (indicadores de asistencia) + BOTÓN PARA MARCAR ASISTENCIA -->
-        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 40px; flex-wrap: wrap;">
+        <div class="kpi-section">
 
-        <div class="kpi-grid" style="margin-bottom: 0; flex: 1 1 0%; min-width: 0;">
+        <div class="kpi-grid">
 
     <div class="kpi-card green">
         <div class="kpi-icon">
@@ -94,7 +94,7 @@
 
 </div>
 
-            <div style="flex-shrink: 0;">
+            <div class="kpi-actions">
                 <a href="{{ url_for('mi_asistencia') }}" class="btn-asistencia">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
