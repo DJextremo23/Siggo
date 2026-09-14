@@ -90,3 +90,28 @@
     line-height: 1.6;
     margin: 0 0 16px 0;
 }
+
+/* --- RESPONSIVE --- */
+@media (max-width: 700px) {
+    .qr-container {
+        padding: 12px;
+    }
+
+    .qr-container svg {
+        max-width: 160px;
+    }
+
+    .secret-key code {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+
+    .verificacion-form {
+        margin-top: 18px;
+        padding-top: 16px;
+    }
+
+    .verificacion-desc {
+        font-size: 12px;
+    }
+}
