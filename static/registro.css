@@ -178,10 +178,30 @@ body.login-body {
     }
 
     .registro-card {
-        padding: 32px 24px;
+        padding: 32px 20px;
+    }
+
+    .field-input input,
+    .field-select select {
+        font-size: 16px;
+    }
+
+    .foto-upload-wrapper {
+        flex-wrap: wrap;
     }
 
     body.login-body {
         align-items: flex-start;
+    }
+}
+
+@media (max-width: 400px) {
+    .registro-card {
+        padding: 24px 16px;
+    }
+
+    .foto-upload-btn {
+        width: 100%;
+        justify-content: center;
     }
 }

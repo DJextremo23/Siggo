@@ -20,7 +20,7 @@ from perfil import perfil_bp
 import mysql.connector.errors
 
 """
-Aplicación principal de SIGGO — Sistema Integrado de Gestión de Guardias y Operaciones.
+Aplicación principal de SIGGO.
 
 Este módulo contiene:
   - Configuración de la aplicación Flask (clave secreta, seguridad HTTPS/CSRF, rate limiting).

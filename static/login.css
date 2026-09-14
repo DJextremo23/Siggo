@@ -17,11 +17,27 @@
     box-sizing: border-box;
 }
 
+a,
+button,
+input,
+select,
+textarea,
+label {
+    touch-action: manipulation;
+}
+
+a,
+button,
+.btn-login {
+    -webkit-tap-highlight-color: transparent;
+}
+
 .login-body {
     margin: 0;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: #0f172a;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -591,6 +607,10 @@
 }
 
 @media (max-width: 700px) {
+    .login-body {
+        align-items: flex-start;
+    }
+
     .login-wrapper {
         flex-direction: column;
         max-width: 420px;
@@ -599,23 +619,35 @@
 
     .login-brand {
         flex: none;
-        padding: 35px 30px 30px;
+        padding: 28px 24px 24px;
     }
 
-    .brand-title {
-        font-size: 30px;
+    .brand-logo-img {
+        width: 64px;
+        height: 64px;
     }
 
     .brand-logo {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 
-    .brand-divider {
-        margin: 16px auto;
+    .brand-title {
+        font-size: 26px;
+    }
+
+    .brand-subtitle,
+    .brand-divider,
+    .brand-desc {
+        display: none;
     }
 
     .login-form-panel {
         flex: none;
-        padding: 35px 30px;
+        padding: 30px 24px 36px;
+    }
+
+    .field-input input,
+    .field-select select {
+        font-size: 16px;
     }
 }
