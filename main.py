@@ -2784,46 +2784,6 @@ def eliminar_mi_compensacion(id_compensacion):
     finally:
         cursor.close()
 
-@app.route("/eliminar_mis_compensaciones", methods=["POST"])
-def eliminar_mis_compensaciones():
-
-    if "usuario" not in session:
-        return redirect(url_for("login.login"))
-
-    if (session.get("perfil_activo") or "").lower() != "fiscalizador":
-        return acceso_no_autorizado()
-
-    ids = request.form.getlist("ids_compensacion")
-    if not ids:
-        flash("No seleccionó ninguna compensación", "error")
-        return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
-
-    ids_int = []
-    for valor in ids:
-        try:
-            ids_int.append(int(valor))
-        except (TypeError, ValueError):
-            return datos_invalidos("Identificador de compensación inválido")
-
-    cursor = conexion.cursor()
-
-    try:
-        placeholders = ",".join(["%s"] * len(ids_int))
-        cursor.execute(
-            f"""DELETE c FROM compensaciones c
-                INNER JOIN guardias g ON c.id_guardia = g.id_guardia
-                WHERE c.id_compensacion IN ({placeholders})
-                  AND g.id_usuario = %s""",
-            tuple(ids_int) + (session.get("id_usuario"),),
-        )
-        conexion.commit()
-        flash(f"Se eliminaron {cursor.rowcount} compensaciones correctamente", "success")
-    finally:
-        cursor.close()
-
-    return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
-
-
 # ==========================
 # FISCALIZADOR — MIS GUARDIAS
 # ==========================

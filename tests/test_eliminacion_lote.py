@@ -49,18 +49,3 @@ def test_eliminar_vacaciones_sin_seleccion(client):
     _login(client, "admin")
     resp = client.post("/eliminar_vacaciones", data={})
     assert resp.status_code == 302
-
-
-# ── Ruta de lote del fiscalizador ────────────────────────────────────────────
-
-def test_eliminar_mis_compensaciones_sin_seleccion(client):
-    _login(client, "fiscalizador")
-    resp = client.post("/eliminar_mis_compensaciones", data={})
-    assert resp.status_code == 302
-
-
-def test_eliminar_mis_compensaciones_rechaza_admin(client):
-    """Un admin no puede usar la ruta de lote del fiscalizador."""
-    _login(client, "admin")
-    resp = client.post("/eliminar_mis_compensaciones", data={})
-    assert resp.status_code in (302, 403)
