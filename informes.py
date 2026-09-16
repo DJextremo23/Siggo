@@ -207,11 +207,12 @@ def admin_registrar_informe():
             flash("Informe registrado correctamente", "success")
             return redirigir_con_filtros("informes.admin_informes", "filtro_informes")
 
-        # GET: listar guardias de todos los fiscalizadores activos (agrupadas por fiscalizador)
+        # GET: listar guardias de todos los fiscalizadores activos
         cursor.execute("""
             SELECT
                 g.id_guardia,
                 g.fecha_guardia,
+                YEAR(g.fecha_guardia) AS anio,
                 u.id_usuario,
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador
             FROM guardias g
@@ -224,13 +225,12 @@ def admin_registrar_informe():
         """)
         guardias = cursor.fetchall()
 
-        guardias_por_fiscalizador = {}
         for g in guardias:
-            guardias_por_fiscalizador.setdefault(g["fiscalizador"], []).append(g)
+            g["fecha_str"] = g["fecha_guardia"].strftime("%d.%m.%Y") if g["fecha_guardia"] else ""
 
         return render_template(
             "registrar_informe_admin.html",
-            guardias_por_fiscalizador=guardias_por_fiscalizador
+            guardias=guardias
         )
 
     finally:

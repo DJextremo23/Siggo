@@ -7,6 +7,100 @@
     <title>Registrar Informe — SIGGO</title>
     <link rel="stylesheet"
           href="{{ url_for('static', filename='fiscal/editar_informe.css') }}">
+    <style>
+        .combobox {
+            position: relative;
+            flex: 1;
+            width: 100%;
+        }
+        .combobox-native-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .combobox-control {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .combobox-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 13px 0;
+            font-size: 14px;
+            color: var(--text-main);
+            font-family: inherit;
+            width: 100%;
+        }
+        .combobox-input::placeholder {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .combobox-chevron {
+            flex-shrink: 0;
+            display: flex;
+            color: #94a3b8;
+            transition: transform var(--transition);
+        }
+        .combobox.open .combobox-chevron {
+            transform: rotate(180deg);
+            color: var(--azul);
+        }
+        .combobox-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .combobox-group-label {
+            position: sticky;
+            top: 0;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            background: #f1f5f9;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .combobox-year-label {
+            padding: 5px 12px 3px 24px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+        }
+        .combobox-option {
+            padding: 9px 12px 9px 32px;
+            font-size: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        .combobox-option:hover,
+        .combobox-option.highlighted {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .combobox-empty {
+            padding: 14px 12px;
+            font-size: 13px;
+            color: #94a3b8;
+            text-align: center;
+        }
+    </style>
 </head>
 
 <body>
@@ -50,7 +144,7 @@
         <form method="POST" enctype="multipart/form-data" class="edit-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-            <!-- GUARDIA (agrupada por fiscalizador) -->
+            <!-- GUARDIA (buscable, agrupada por fiscalizador y año) -->
             <div class="field">
                 <label for="id_guardia" class="field-label">Guardia</label>
                 <div class="field-input">
@@ -62,12 +156,8 @@
                     </svg>
                     <select name="id_guardia" id="id_guardia" required>
                         <option value="">Seleccione guardia</option>
-                        {% for fiscalizador, lista in guardias_por_fiscalizador.items() %}
-                            <optgroup label="{{ fiscalizador }}">
-                                {% for g in lista %}
-                                    <option value="{{ g.id_guardia }}">{{ g.fecha_guardia|fecha }}</option>
-                                {% endfor %}
-                            </optgroup>
+                        {% for g in guardias %}
+                            <option value="{{ g.id_guardia }}">{{ g.fiscalizador }} — {{ g.fecha_str }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -153,6 +243,234 @@
     </div>
 
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    var select = document.getElementById('id_guardia');
+    if (!select) return;
+
+    var fieldInput = select.closest('.field-input');
+    if (!fieldInput) return;
+
+    var guardiasData = {{ guardias | tojson }};
+
+    // Agrupar: fiscalizador -> año -> items
+    var groups = {};
+    guardiasData.forEach(function(g) {
+        var f = g.fiscalizador || 'Sin fiscalizador';
+        var a = String(g.anio == null ? '' : g.anio);
+        if (!groups[f]) groups[f] = {};
+        if (!groups[f][a]) groups[f][a] = [];
+        groups[f][a].push(g);
+    });
+
+    select.classList.add('combobox-native-hidden');
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'combobox';
+
+    var control = document.createElement('div');
+    control.className = 'combobox-control';
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'combobox-input';
+    input.placeholder = 'Buscar fiscalizador o fecha...';
+    input.autocomplete = 'off';
+    input.setAttribute('aria-label', 'Seleccione guardia');
+
+    var chevron = document.createElement('span');
+    chevron.className = 'combobox-chevron';
+    chevron.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+    control.appendChild(input);
+    control.appendChild(chevron);
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'combobox-dropdown';
+    dropdown.hidden = true;
+
+    var emptyMsg = document.createElement('div');
+    emptyMsg.className = 'combobox-empty';
+    emptyMsg.textContent = 'Sin resultados';
+    dropdown.appendChild(emptyMsg);
+
+    wrapper.appendChild(control);
+    wrapper.appendChild(dropdown);
+    select.parentNode.insertBefore(wrapper, select);
+
+    var allItems = [];
+    var fiscalizadorGroups = []; // { el, items: [] }
+    var yearLabels = [];          // { el, items: [] }
+
+    Object.keys(groups).sort(function(a, b) { return a.localeCompare(b); }).forEach(function(fiscalizador) {
+        var fGroup = document.createElement('div');
+        fGroup.className = 'combobox-group';
+
+        var fLabel = document.createElement('div');
+        fLabel.className = 'combobox-group-label';
+        fLabel.textContent = fiscalizador;
+        fGroup.appendChild(fLabel);
+
+        var groupEntry = { el: fGroup, items: [] };
+        fiscalizadorGroups.push(groupEntry);
+
+        var years = groups[fiscalizador];
+        Object.keys(years).sort(function(a, b) { return b - a; }).forEach(function(anio) {
+            var yLabel = document.createElement('div');
+            yLabel.className = 'combobox-year-label';
+            yLabel.textContent = anio;
+            fGroup.appendChild(yLabel);
+
+            var yearEntry = { el: yLabel, items: [] };
+            yearLabels.push(yearEntry);
+
+            years[anio].forEach(function(g) {
+                var opt = document.createElement('div');
+                opt.className = 'combobox-option';
+                opt.textContent = g.fecha_str;
+                opt.dataset.value = g.id_guardia;
+                opt.dataset.search = (fiscalizador + ' ' + anio + ' ' + g.fecha_str).toLowerCase();
+                fGroup.appendChild(opt);
+
+                var item = {
+                    el: opt,
+                    value: String(g.id_guardia),
+                    text: fiscalizador + ' — ' + g.fecha_str
+                };
+                allItems.push(item);
+                groupEntry.items.push(item);
+                yearEntry.items.push(item);
+            });
+        });
+
+        dropdown.appendChild(fGroup);
+    });
+
+    var open = false;
+    var highlightIndex = -1;
+
+    function setValue(value, text) {
+        select.value = value;
+        input.value = text || '';
+    }
+
+    function restoreDisplay() {
+        var selected = select.querySelector('option[value="' + select.value + '"]');
+        input.value = selected && selected.value ? selected.text : '';
+    }
+
+    function toggleDropdown(show) {
+        open = show;
+        dropdown.hidden = !show;
+        wrapper.classList.toggle('open', show);
+        if (show) { filter(input.value); }
+    }
+
+    function visibleItems() {
+        return allItems.filter(function(item) { return item.el.style.display !== 'none'; });
+    }
+
+    function clearHighlight() {
+        allItems.forEach(function(item) { item.el.classList.remove('highlighted'); });
+    }
+
+    function setHighlight(index) {
+        var vis = visibleItems();
+        if (vis.length === 0) { highlightIndex = -1; return; }
+        if (index < 0) index = 0;
+        if (index >= vis.length) index = vis.length - 1;
+        highlightIndex = index;
+        clearHighlight();
+        vis[index].el.classList.add('highlighted');
+        vis[index].el.scrollIntoView({ block: 'nearest' });
+    }
+
+    function filter(term) {
+        term = term.toLowerCase().trim();
+        var anyVisible = false;
+
+        allItems.forEach(function(item) {
+            var match = term === '' || item.el.dataset.search.indexOf(term) !== -1;
+            item.el.style.display = match ? '' : 'none';
+            if (match) anyVisible = true;
+        });
+
+        yearLabels.forEach(function(y) {
+            var show = y.items.some(function(item) { return item.el.style.display !== 'none'; });
+            y.el.style.display = show ? '' : 'none';
+        });
+
+        fiscalizadorGroups.forEach(function(fg) {
+            var show = fg.items.some(function(item) { return item.el.style.display !== 'none'; });
+            fg.el.style.display = show ? '' : 'none';
+        });
+
+        emptyMsg.style.display = anyVisible ? 'none' : '';
+        highlightIndex = -1;
+        clearHighlight();
+    }
+
+    function choose(item) {
+        setValue(item.value, item.text);
+        toggleDropdown(false);
+    }
+
+    input.addEventListener('focus', function() {
+        toggleDropdown(true);
+    });
+
+    input.addEventListener('input', function() {
+        if (!open) toggleDropdown(true);
+        filter(input.value);
+    });
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!open) { toggleDropdown(true); }
+            setHighlight(highlightIndex + 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlight(highlightIndex - 1);
+        } else if (e.key === 'Enter') {
+            if (open) {
+                var vis = visibleItems();
+                if (highlightIndex >= 0 && vis[highlightIndex]) {
+                    e.preventDefault();
+                    choose(vis[highlightIndex]);
+                }
+            }
+        } else if (e.key === 'Escape') {
+            toggleDropdown(false);
+            restoreDisplay();
+        } else if (e.key === 'Tab') {
+            toggleDropdown(false);
+        }
+    });
+
+    dropdown.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+    });
+
+    dropdown.addEventListener('click', function(e) {
+        var opt = e.target.closest('.combobox-option');
+        if (opt) {
+            var item = allItems.find(function(it) { return it.el === opt; });
+            if (item) choose(item);
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!wrapper.contains(e.target)) {
+            toggleDropdown(false);
+            restoreDisplay();
+        }
+    });
+
+    restoreDisplay();
+})();
+</script>
 
 </body>
 </html>
