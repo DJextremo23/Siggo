@@ -960,7 +960,7 @@ def _analizar_con_gemini(texto, titulo, descripcion):
     # Eliminar duplicados manteniendo el orden
     modelos = list(dict.fromkeys(modelos_fallback))
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=api_key, http_options={"timeout": 300000})
 
     prompt = _cargar_pront() + f"""
 
@@ -1104,7 +1104,7 @@ IMPORTANTE:
                 # Error desconocido: devolver inmediatamente
                 print(f"[IA] Error al conectar con Gemini: {error_str}")
                 return {
-                    "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
+                    "error": f"Error de Gemini: {error_str}",
                     "hallazgos": [],
                     "recomendaciones": [],
                     "graficas": []
@@ -1127,8 +1127,9 @@ IMPORTANTE:
             pass
 
     print("[IA] Cuota de Gemini agotada o servicio no disponible en este momento")
+    detalle = ultimo_error or "servicio no disponible"
     return {
-        "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
+        "error": f"El análisis no está disponible en este momento. Detalle: {detalle}",
         "hallazgos": [],
         "recomendaciones": [],
         "graficas": []
