@@ -538,13 +538,15 @@ tr:hover{
 }
 
 .btn-edit{
-    background: #eff6ff;
-    color: var(--azul);
+    background: #fef3c7;
+    color: #92400e;
 }
 
 .btn-edit:hover{
-    background: var(--azul);
-    color: white;
+    background: #fde68a;
+    color: #92400e;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245,158,11,.25);
 }
 
 .btn-download{

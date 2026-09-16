@@ -11,7 +11,7 @@ perfil_bp = Blueprint("perfil", __name__)
 # Carpeta donde se almacenan las fotos de perfil
 FOTOS_FOLDER = os.path.join("static", "fotos")
 # Extensiones de imagen permitidas para la foto de perfil
-ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "jfif", "gif", "webp"}
 # Tamaño máximo de foto: 5 MB
 MAX_PHOTO_SIZE = 5 * 1024 * 1024
 
@@ -161,31 +161,47 @@ def actualizar_mi_perfil():
                 usuario_form, id_usuario
             ))
 
-        # Procesa la foto de perfil si se subió un archivo válido
+        # Procesa la foto de perfil si se subió un archivo
         foto = request.files.get("foto")
-        if foto and foto.filename and foto_permitida(foto.filename):
-            contenido = foto.read()
-            if len(contenido) <= MAX_PHOTO_SIZE:
-                ext = foto.filename.rsplit(".", 1)[1].lower()
-                # Verifica que el contenido real del archivo coincida con la extensión declarada
-                if not validar_mime_real(contenido[:12], ext):
-                    return render_template(
-                        "editar_mi_perfil.html",
-                        error="El contenido de la imagen no coincide con su extensión",
-                        usuario=_datos_error(dos_factores, foto_actual)
-                    )
-                # Genera un nombre único para la foto y la guarda en disco
-                nombre_foto = f"{id_usuario}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
-                ruta_foto = os.path.join(FOTOS_FOLDER, nombre_foto)
-                with open(ruta_foto, "wb") as f:
-                    f.write(contenido)
+        if foto and foto.filename:
 
-                cursor.execute(
-                    "UPDATE usuarios SET foto = %s WHERE id_usuario = %s",
-                    (nombre_foto, id_usuario)
+            if not foto_permitida(foto.filename):
+                return render_template(
+                    "editar_mi_perfil.html",
+                    error="Formato de imagen no válido. Formatos permitidos: PNG, JPG, JPEG, JFIF, GIF o WEBP.",
+                    usuario=_datos_error(dos_factores, foto_actual)
                 )
 
-                session["foto"] = nombre_foto
+            contenido = foto.read()
+
+            if len(contenido) > MAX_PHOTO_SIZE:
+                return render_template(
+                    "editar_mi_perfil.html",
+                    error="La imagen excede el tamaño máximo permitido (5 MB).",
+                    usuario=_datos_error(dos_factores, foto_actual)
+                )
+
+            ext = foto.filename.rsplit(".", 1)[1].lower()
+            # Verifica que el contenido real del archivo coincida con la extensión declarada
+            if not validar_mime_real(contenido[:12], ext):
+                return render_template(
+                    "editar_mi_perfil.html",
+                    error="El contenido de la imagen no coincide con su extensión",
+                    usuario=_datos_error(dos_factores, foto_actual)
+                )
+
+            # Genera un nombre único para la foto y la guarda en disco
+            nombre_foto = f"{id_usuario}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
+            ruta_foto = os.path.join(FOTOS_FOLDER, nombre_foto)
+            with open(ruta_foto, "wb") as f:
+                f.write(contenido)
+
+            cursor.execute(
+                "UPDATE usuarios SET foto = %s WHERE id_usuario = %s",
+                (nombre_foto, id_usuario)
+            )
+
+            session["foto"] = nombre_foto
 
         conn.commit()
 

@@ -17,8 +17,8 @@ load_dotenv()
 # Configuración de la base de datos obtenida desde variables de entorno
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", "admin"),
+    "user": os.getenv("DB_USER", ""),
+    "password": os.getenv("DB_PASSWORD", ""),
     "database": os.getenv("DB_NAME", "guardiaoig"),
     "port": int(os.getenv("DB_PORT", "3306")),
     "connection_timeout": 10,

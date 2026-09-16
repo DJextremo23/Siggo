@@ -172,10 +172,18 @@ def admin_registrar_informe():
                 return datos_invalidos("El contenido del archivo no coincide con su extensión")
 
             # Obtener el fiscalizador dueño de la guardia seleccionada
-            cursor.execute("SELECT id_usuario FROM guardias WHERE id_guardia = %s", (id_guardia,))
+            cursor.execute("""
+                SELECT g.id_usuario, u.estado
+                FROM guardias g
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                WHERE g.id_guardia = %s
+            """, (id_guardia,))
             guardia = cursor.fetchone()
             if not guardia:
                 return no_encontrado("La guardia seleccionada no existe")
+
+            if guardia["estado"] != "activo":
+                return datos_invalidos("No se puede registrar un informe para un usuario inactivo")
 
             nombre = (
                 datetime.now().strftime("%Y%m%d%H%M%S_")

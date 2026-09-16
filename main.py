@@ -42,7 +42,13 @@ load_dotenv()
 # -----------------------------------------------
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
+
+# La clave de sesión DEBE venir del entorno; si falta, se aborta el arranque
+# para no firmar sesiones con una clave aleatoria que cambiaría en cada reinicio.
+_secret_key = os.getenv("SECRET_KEY")
+if not _secret_key:
+    raise RuntimeError("SECRET_KEY no está configurada en el entorno")
+app.secret_key = _secret_key
 
 # Detectar HTTPS detrás de un proxy inverso (Railway / nginx)
 # Permite que session_cookie_secure y force_https funcionen correctamente
@@ -950,6 +956,7 @@ def vacaciones():
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
             WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
             ORDER BY nombre
         """)
 
@@ -1264,7 +1271,7 @@ def guardar_vacacion():
         # OBTENER USUARIO
         # =========================
         cursor.execute("""
-            SELECT fecha_ingreso
+            SELECT fecha_ingreso, estado
             FROM usuarios
             WHERE id_usuario = %s
         """, (id_usuario,))
@@ -1273,6 +1280,10 @@ def guardar_vacacion():
 
         if not user:
             flash("Usuario no encontrado", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+        if user["estado"] != "activo":
+            flash("No se pueden registrar vacaciones para un usuario inactivo", "error")
             return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         fecha_ingreso = user["fecha_ingreso"]
@@ -1456,6 +1467,7 @@ def inicio():
             WHERE id_usuario = (
                 SELECT id_usuario FROM usuarios WHERE usuario = %s
             )
+              AND YEAR(fecha_guardia) = YEAR(CURDATE())
             ORDER BY fecha_guardia DESC
         """, (session["usuario"],))
 
@@ -1531,19 +1543,9 @@ def inicio():
                 (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
             )
 
-        # 🔥 CONTADORES
-        total = len(datos)
-        asistencias = sum(1 for d in datos if d["asistencia"] == "asistio")
-        faltas = sum(1 for d in datos if d["asistencia"] == "falta")
-        pendientes = sum(1 for d in datos if d["asistencia"] == "sin registro")
-
         return render_template(
             "index.html",
             datos=datos,
-            total=total,
-            asistencias=asistencias,
-            faltas=faltas,
-            pendientes=pendientes,
             notificaciones=notificaciones,
             notif_no_leidas=notif_no_leidas,
             alertas=alertas
@@ -1763,6 +1765,15 @@ def agregar_guardia():
     cursor = conexion.cursor()
 
     try:
+        cursor.execute("SELECT estado FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+        usuario = cursor.fetchone()
+        if not usuario:
+            flash("Usuario no encontrado", "error")
+            return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+        if usuario[0] != "activo":
+            flash("No se puede registrar una guardia para un usuario inactivo", "error")
+            return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
         cursor.execute("""
             SELECT 1 FROM guardias
             WHERE id_usuario = %s AND fecha_guardia = %s
@@ -1851,6 +1862,16 @@ def editar_guardia(id):
                 flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
                 return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
+            # Verificar que el fiscalizador destino esté activo
+            cursor.execute("SELECT estado FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+            usuario = cursor.fetchone()
+            if not usuario:
+                flash("Usuario no encontrado", "error")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+            if usuario["estado"] != "activo":
+                flash("No se puede asignar la guardia a un usuario inactivo", "error")
+                return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
             # Verificar que no exista otra guardia del mismo fiscalizador en esa fecha
             cursor.execute("""
                 SELECT 1 FROM guardias
@@ -1917,7 +1938,9 @@ def editar_guardia(id):
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
             WHERE r.nombre_rol = 'fiscalizador'
-        """)
+              AND (u.estado = 'activo' OR u.id_usuario = %s)
+            ORDER BY u.nombre
+        """, (guardia["id_usuario"],))
 
         fiscalizadores = cursor.fetchall()
 
@@ -2918,7 +2941,7 @@ if __name__ == "__main__":
     host = "0.0.0.0"
     threads = int(os.getenv("WAITRESS_THREADS", 8))
     print(f"\n{'='*60}")
-    print(f"  SIGGO - Guardia OIG")
+    print("  SIGGO - Guardia OIG")
     print(f"  http://{host}:{port}")
     print(f"{'='*60}\n")
     serve(app, host=host, port=port, threads=threads)

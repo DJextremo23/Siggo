@@ -6,7 +6,7 @@ editar, eliminar, descargar y analizar informes con IA
 from flask import Blueprint, render_template, request, redirect, session, send_file, url_for, jsonify, flash
 from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
+from utils import acceso_no_autorizado, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
 from utils.validators import archivo_permitido, sanitizar_nombre, validar_mime_real, validar_longitudes
 from datetime import datetime
 from io import BytesIO
@@ -17,9 +17,9 @@ from reportlab.lib.pagesizes import landscape, letter
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 import os
 import json

@@ -281,6 +281,11 @@ td strong{
     color:var(--text-main);
 }
 
+.descripcion-text{
+    color:var(--text-muted);
+    font-weight:500;
+}
+
 tr:last-child td{
     border-bottom:none;
 }

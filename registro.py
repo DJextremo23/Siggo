@@ -15,7 +15,7 @@ registro_bp = Blueprint("registro", __name__)
 
 FOTOS_FOLDER = os.path.join("static", "fotos")
 # Extensiones de imagen permitidas para la foto de perfil
-ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "jfif", "gif", "webp"}
 MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5 MB
 
 os.makedirs(FOTOS_FOLDER, exist_ok=True)

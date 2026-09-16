@@ -19,6 +19,20 @@ from estilos_reporte import (
 reporte_bp = Blueprint("reporte_bp", __name__)
 
 
+# Estado de compensación considerando si la fecha ya se disfrutó (compensado)
+# o si está pendiente/futura (pendiente).
+ESTADO_COMPENSACION_SQL = """
+CASE
+    WHEN a.estado = 'falta' THEN '❌ No cumple'
+    WHEN a.estado = 'justificado' THEN '🟡 Justificado'
+    WHEN a.estado = 'asistio' AND c.id_compensacion IS NULL THEN '⚠️ Pendiente'
+    WHEN a.estado = 'asistio' AND c.fecha_compensacion > CURDATE() THEN '⏳ Pendiente'
+    WHEN a.estado = 'asistio' THEN '✔ Compensado'
+    ELSE '—'
+END
+"""
+
+
 def _fecha(valor):
     """Formatea una fecha como día.mes.año (DD.MM.YYYY)."""
     if valor is None or valor == "":
@@ -141,7 +155,7 @@ def reporte():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
                 CAST(SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS UNSIGNED) AS guardias_feriado,
-                COUNT(c.id_compensacion) AS compensaciones,
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
                 (
                     SELECT COUNT(g2.id_guardia)
                     FROM guardias g2
@@ -149,7 +163,7 @@ def reporte():
                     LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
                     WHERE g2.id_usuario = u.id_usuario
                       AND a2.estado = 'asistio'
-                      AND c2.id_compensacion IS NULL
+                      AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
@@ -177,13 +191,7 @@ def reporte():
                 END AS asistencia,
                 c.fecha_compensacion,
                 c.observacion,
-                CASE 
-                    WHEN a.estado = 'falta' THEN '❌ No cumple'
-                    WHEN a.estado = 'justificado' THEN '🟡 Justificado'
-                    WHEN a.estado = 'asistio' AND c.id_compensacion IS NULL THEN '⚠️ Pendiente'
-                    WHEN a.estado = 'asistio' AND c.id_compensacion IS NOT NULL THEN '✔ Compensado'
-                    ELSE '—'
-                END AS estado_compensacion
+                {ESTADO_COMPENSACION_SQL} AS estado_compensacion
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
@@ -244,27 +252,51 @@ def reporte():
         # ==========================
         # RESUMEN VACACIONES
         # ==========================
+        filtro_usuarios = ""
+        params_usuarios = []
+        if ids_usuarios:
+            placeholders = ",".join(["%s"] * len(ids_usuarios))
+            filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
+            params_usuarios = list(ids_usuarios)
+
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
                 u.foto,
-                SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_tomados,
-                SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_pendientes,
+                COALESCE((
+                    SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                    FROM vacaciones v2
+                    WHERE v2.id_usuario = u.id_usuario
+                      AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
+                ), 0) AS dias_tomados,
+                GREATEST(0, 30 - COALESCE((
+                    SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                    FROM vacaciones v2
+                    WHERE v2.id_usuario = u.id_usuario
+                      AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
+                ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
-                         SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
-                         FROM vacaciones v2
-                         WHERE v2.id_usuario = u.id_usuario
+                         SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1)
+                         FROM vacaciones v3
+                         WHERE v3.id_usuario = u.id_usuario
                      ), 0))
-                    - GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1))
+                    - GREATEST(0, 30 - COALESCE((
+                         SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
+                         FROM vacaciones v4
+                         WHERE v4.id_usuario = u.id_usuario
+                           AND YEAR(v4.fecha_inicio) = YEAR(CURDATE())
+                     ), 0))
                 ) AS dias_pendientes_anteriores
-            FROM vacaciones v
-            JOIN usuarios u ON u.id_usuario = v.id_usuario
-            {filtro_vac}
-            GROUP BY u.id_usuario, u.nombre, u.apellidos, u.foto
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_vac)
+        """, params_usuarios)
 
         resumen_vacaciones = cursor.fetchall()
     finally:
@@ -345,7 +377,7 @@ def exportar_pdf():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                COUNT(c.id_compensacion) AS compensaciones,
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
                 (
                     SELECT COUNT(g2.id_guardia)
                     FROM guardias g2
@@ -353,7 +385,7 @@ def exportar_pdf():
                     LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
                     WHERE g2.id_usuario = u.id_usuario
                       AND a2.estado = 'asistio'
-                      AND c2.id_compensacion IS NULL
+                      AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
@@ -444,7 +476,7 @@ def exportar_excel():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                COUNT(c.id_compensacion) AS compensaciones,
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
                 (
                     SELECT COUNT(g2.id_guardia)
                     FROM guardias g2
@@ -452,7 +484,7 @@ def exportar_excel():
                     LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
                     WHERE g2.id_usuario = u.id_usuario
                       AND a2.estado = 'asistio'
-                      AND c2.id_compensacion IS NULL
+                      AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
@@ -539,13 +571,7 @@ def exportar_detalle_fecha_pdf():
                 END AS asistencia,
                 c.fecha_compensacion,
                 c.observacion,
-                CASE 
-                    WHEN a.estado = 'falta' THEN '❌ No cumple'
-                    WHEN a.estado = 'justificado' THEN '🟡 Justificado'
-                    WHEN a.estado = 'asistio' AND c.id_compensacion IS NULL THEN '⚠️ Pendiente'
-                    WHEN a.estado = 'asistio' AND c.id_compensacion IS NOT NULL THEN '✔ Compensado'
-                    ELSE '—'
-                END AS estado_compensacion
+                {ESTADO_COMPENSACION_SQL} AS estado_compensacion
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
@@ -643,13 +669,7 @@ def exportar_detalle_fecha_excel():
                 END AS asistencia,
                 c.fecha_compensacion,
                 c.observacion,
-                CASE 
-                    WHEN a.estado = 'falta' THEN '❌ No cumple'
-                    WHEN a.estado = 'justificado' THEN '🟡 Justificado'
-                    WHEN a.estado = 'asistio' AND c.id_compensacion IS NULL THEN '⚠️ Pendiente'
-                    WHEN a.estado = 'asistio' AND c.id_compensacion IS NOT NULL THEN '✔ Compensado'
-                    ELSE '—'
-                END AS estado_compensacion
+                {ESTADO_COMPENSACION_SQL} AS estado_compensacion
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
@@ -904,7 +924,6 @@ def exportar_resumen_vacaciones_pdf():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -916,50 +935,50 @@ def exportar_resumen_vacaciones_pdf():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        filtro_vac = "WHERE 1=1"
-        params_vac = []
-
-        if fecha_desde:
-            filtro_vac += " AND v.fecha_inicio >= %s"
-            params_vac.append(fecha_desde)
-
-        if fecha_hasta:
-            filtro_vac += " AND v.fecha_fin <= %s"
-            params_vac.append(fecha_hasta)
-
-        if not fecha_desde and not fecha_hasta:
-            if anio:
-                filtro_vac += " AND YEAR(v.fecha_inicio) = %s"
-                params_vac.append(int(anio))
-            if mes:
-                filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
-                params_vac.append(int(mes))
-
+        filtro_usuarios = ""
+        params_usuarios = []
         if ids_usuarios:
             placeholders = ",".join(["%s"] * len(ids_usuarios))
-            filtro_vac += f" AND v.id_usuario IN ({placeholders})"
-            params_vac.extend(ids_usuarios)
+            filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
+            params_usuarios = list(ids_usuarios)
 
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
-                SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_tomados,
-                SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_pendientes,
+                COALESCE((
+                    SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                    FROM vacaciones v2
+                    WHERE v2.id_usuario = u.id_usuario
+                      AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
+                ), 0) AS dias_tomados,
+                GREATEST(0, 30 - COALESCE((
+                    SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                    FROM vacaciones v2
+                    WHERE v2.id_usuario = u.id_usuario
+                      AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
+                ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
-                         SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
-                         FROM vacaciones v2
-                         WHERE v2.id_usuario = u.id_usuario
+                         SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1)
+                         FROM vacaciones v3
+                         WHERE v3.id_usuario = u.id_usuario
                      ), 0))
-                    - GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1))
+                    - GREATEST(0, 30 - COALESCE((
+                         SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
+                         FROM vacaciones v4
+                         WHERE v4.id_usuario = u.id_usuario
+                           AND YEAR(v4.fecha_inicio) = YEAR(CURDATE())
+                     ), 0))
                 ) AS dias_pendientes_anteriores
-            FROM vacaciones v
-            JOIN usuarios u ON u.id_usuario = v.id_usuario
-            {filtro_vac}
-            GROUP BY u.id_usuario, u.nombre, u.apellidos
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_vac)
+        """, params_usuarios)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:
@@ -1014,10 +1033,6 @@ def exportar_resumen_vacaciones_excel():
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    anio = request.args.get("anio")
-    mes = request.args.get("mes")
-    fecha_desde = request.args.get("fecha_desde")
-    fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
     buscar_resumen_vac = request.args.get("buscar_resumen_vac")
 
@@ -1027,50 +1042,50 @@ def exportar_resumen_vacaciones_excel():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        filtro_vac = "WHERE 1=1"
-        params_vac = []
-
-        if fecha_desde:
-            filtro_vac += " AND v.fecha_inicio >= %s"
-            params_vac.append(fecha_desde)
-
-        if fecha_hasta:
-            filtro_vac += " AND v.fecha_fin <= %s"
-            params_vac.append(fecha_hasta)
-
-        if not fecha_desde and not fecha_hasta:
-            if anio:
-                filtro_vac += " AND YEAR(v.fecha_inicio) = %s"
-                params_vac.append(int(anio))
-            if mes:
-                filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
-                params_vac.append(int(mes))
-
+        filtro_usuarios = ""
+        params_usuarios = []
         if ids_usuarios:
             placeholders = ",".join(["%s"] * len(ids_usuarios))
-            filtro_vac += f" AND v.id_usuario IN ({placeholders})"
-            params_vac.extend(ids_usuarios)
+            filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
+            params_usuarios = list(ids_usuarios)
 
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
-                SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_tomados,
-                SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_pendientes,
+                COALESCE((
+                    SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                    FROM vacaciones v2
+                    WHERE v2.id_usuario = u.id_usuario
+                      AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
+                ), 0) AS dias_tomados,
+                GREATEST(0, 30 - COALESCE((
+                    SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
+                    FROM vacaciones v2
+                    WHERE v2.id_usuario = u.id_usuario
+                      AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
+                ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
-                         SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
-                         FROM vacaciones v2
-                         WHERE v2.id_usuario = u.id_usuario
+                         SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1)
+                         FROM vacaciones v3
+                         WHERE v3.id_usuario = u.id_usuario
                      ), 0))
-                    - GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1))
+                    - GREATEST(0, 30 - COALESCE((
+                         SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
+                         FROM vacaciones v4
+                         WHERE v4.id_usuario = u.id_usuario
+                           AND YEAR(v4.fecha_inicio) = YEAR(CURDATE())
+                     ), 0))
                 ) AS dias_pendientes_anteriores
-            FROM vacaciones v
-            JOIN usuarios u ON u.id_usuario = v.id_usuario
-            {filtro_vac}
-            GROUP BY u.id_usuario, u.nombre, u.apellidos
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_vac)
+        """, params_usuarios)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:

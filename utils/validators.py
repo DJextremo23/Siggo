@@ -12,6 +12,7 @@ MIME_MAP = {
     "png": "image/png",
     "jpg": "image/jpeg",
     "jpeg": "image/jpeg",
+    "jfif": "image/jpeg",
     "gif": "image/gif",
     "webp": "image/webp",
 }
@@ -38,10 +39,10 @@ def validar_mime_real(file_bytes, extension):
         return magic[:4] in (b"PK\x03\x04", b"PK\0\0")
     elif extension == "pdf":
         return magic[:4] == b"%PDF"
-    elif extension in ("png", "jpg", "jpeg", "gif", "webp"):
+    elif extension in ("png", "jpg", "jpeg", "jfif", "gif", "webp"):
         if extension == "png":
             return magic[:8] == b"\x89PNG\r\n\x1a\n"
-        elif extension == "jpg" or extension == "jpeg":
+        elif extension in ("jpg", "jpeg", "jfif"):
             return magic[:3] == b"\xff\xd8\xff"
         elif extension == "gif":
             return magic[:4] in (b"GIF8", b"GIF9")

@@ -9,10 +9,9 @@ import secrets
 from flask import session, request, abort
 
 # Rutas exentas de validación CSRF (webhooks, APIs externas, etc.)
-CSRF_SKIP_PATHS = [
-    "/notificaciones/",
-    "/api",
-]
+# Nota: no se dejan rutas exentas por defecto; los endpoints internos que
+# modifican estado envían su token CSRF desde el frontend.
+CSRF_SKIP_PATHS = []
 
 
 def generate_token():
