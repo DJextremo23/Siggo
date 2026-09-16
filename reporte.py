@@ -269,7 +269,7 @@ def reporte():
                     WHERE v2.id_usuario = u.id_usuario
                       AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
                 ), 0) AS dias_tomados,
-                GREATEST(0, 30 - COALESCE((
+                GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
@@ -282,7 +282,7 @@ def reporte():
                          FROM vacaciones v3
                          WHERE v3.id_usuario = u.id_usuario
                      ), 0))
-                    - GREATEST(0, 30 - COALESCE((
+                    - GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
@@ -951,7 +951,7 @@ def exportar_resumen_vacaciones_pdf():
                     WHERE v2.id_usuario = u.id_usuario
                       AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
                 ), 0) AS dias_tomados,
-                GREATEST(0, 30 - COALESCE((
+                GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
@@ -964,7 +964,7 @@ def exportar_resumen_vacaciones_pdf():
                          FROM vacaciones v3
                          WHERE v3.id_usuario = u.id_usuario
                      ), 0))
-                    - GREATEST(0, 30 - COALESCE((
+                    - GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
@@ -1058,7 +1058,7 @@ def exportar_resumen_vacaciones_excel():
                     WHERE v2.id_usuario = u.id_usuario
                       AND YEAR(v2.fecha_inicio) = YEAR(CURDATE())
                 ), 0) AS dias_tomados,
-                GREATEST(0, 30 - COALESCE((
+                GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
@@ -1071,7 +1071,7 @@ def exportar_resumen_vacaciones_excel():
                          FROM vacaciones v3
                          WHERE v3.id_usuario = u.id_usuario
                      ), 0))
-                    - GREATEST(0, 30 - COALESCE((
+                    - GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario

@@ -2869,7 +2869,7 @@ def mis_vacaciones():
             dias_tomados = result["total"] if result else 0
             dias_tomados_anio = result["total_anio"] if result else 0
 
-            dias_pendientes_este_anio = max(0, 30 - dias_tomados_anio)
+            dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados_anio)
             dias_pendientes_anteriores = max(0, (total_dias - dias_tomados) - dias_pendientes_este_anio)
             dias_pendientes = dias_pendientes_este_anio + dias_pendientes_anteriores
 

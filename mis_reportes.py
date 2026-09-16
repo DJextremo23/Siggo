@@ -128,7 +128,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         dias_tomados_total = result["total"] if result else 0
         dias_tomados = result["total_anio"] if result else 0
 
-        dias_pendientes_este_anio = max(0, 30 - dias_tomados)
+        dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
         dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
     return {
@@ -351,7 +351,7 @@ def mis_reportes():
             dias_tomados_total = result["total"] if result else 0
             dias_tomados = result["total_anio"] if result else 0
 
-            dias_pendientes_este_anio = max(0, 30 - dias_tomados)
+            dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
             dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
     finally:
