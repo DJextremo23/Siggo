@@ -248,8 +248,8 @@ def reporte():
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
                 u.foto,
-                SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
-                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
+                SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_tomados,
+                SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
@@ -943,8 +943,8 @@ def exportar_resumen_vacaciones_pdf():
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
-                SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
-                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
+                SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_tomados,
+                SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
@@ -1054,8 +1054,8 @@ def exportar_resumen_vacaciones_excel():
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
-                SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1) AS dias_tomados,
-                GREATEST(0, 30 - SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)) AS dias_pendientes,
+                SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_tomados,
+                SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((

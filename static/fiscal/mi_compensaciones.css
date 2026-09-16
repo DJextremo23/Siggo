@@ -368,7 +368,8 @@ tr:hover{
 /* ================= ACCIONES ================= */
 .th-acciones{
     text-align:center;
-    width:100px;
+    width:120px;
+    min-width:120px;
 }
 
 .acciones{
@@ -422,8 +423,12 @@ tr:hover{
 }
 
 .form-eliminar{
-    display:inline;
+    display:inline-flex;
     margin:0;
+}
+
+.acciones .acciones-btns{
+    flex-wrap:nowrap;
 }
 
 /* ================= RESPONSIVE ================= */

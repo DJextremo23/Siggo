@@ -2506,15 +2506,7 @@ def actualizar_mi_compensacion(id_compensacion):
         conexion.commit()
 
         flash("Compensación actualizada correctamente", "success")
-        compensacion = {
-            "id_compensacion": id_compensacion,
-            "fecha_compensacion": fecha,
-            "observacion": obs,
-            "estado": estado,
-            "fecha_guardia": fecha_guardia,
-        }
-        return render_template("editar_mi_compensacion.html",
-                               compensacion=compensacion)
+        return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
 
     finally:
         cursor.close()

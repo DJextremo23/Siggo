@@ -460,7 +460,8 @@ th{
 
 .th-acciones{
     text-align: center;
-    width: 170px;
+    width: 200px;
+    min-width: 200px;
 }
 
 td{
@@ -469,6 +470,11 @@ td{
     font-size: 14px;
     color: var(--text-main);
     vertical-align: middle;
+}
+
+td strong{
+    font-weight: 600;
+    color: var(--text-main);
 }
 
 tr:last-child td{
@@ -612,8 +618,12 @@ tr:hover{
 }
 
 .form-eliminar{
-    display: inline;
+    display: inline-flex;
     margin: 0;
+}
+
+.acciones .acciones-btns{
+    flex-wrap: nowrap;
 }
 
 /* ================= EMPTY STATE ================= */

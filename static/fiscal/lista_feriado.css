@@ -276,6 +276,11 @@ td{
     vertical-align:middle;
 }
 
+td strong{
+    font-weight:600;
+    color:var(--text-main);
+}
+
 tr:last-child td{
     border-bottom:none;
 }

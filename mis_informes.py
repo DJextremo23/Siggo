@@ -899,6 +899,38 @@ def _cargar_pront():
         return f.read()
 
 
+def _extraer_json_respuesta(texto):
+    """Extrae un JSON válido de la respuesta de Gemini, tolerando markdown,
+    bloques de código y texto adicional antes o después del JSON."""
+    if not texto:
+        return None
+    t = texto.strip()
+    if t.startswith("\ufeff"):
+        t = t[1:].strip()
+
+    # Quitar bloques de código markdown (```json ... ```)
+    t = re.sub(r"```(?:json|JSON)?\s*", "", t)
+    t = re.sub(r"\s*```", "", t)
+    t = t.strip()
+
+    # Intento directo
+    try:
+        return json.loads(t)
+    except json.JSONDecodeError:
+        pass
+
+    # Aislar el primer objeto JSON ({ ... }) si hay texto adicional alrededor
+    inicio = t.find("{")
+    fin = t.rfind("}")
+    if inicio != -1 and fin > inicio:
+        try:
+            return json.loads(t[inicio:fin + 1])
+        except json.JSONDecodeError:
+            pass
+
+    return None
+
+
 def _analizar_con_gemini(texto, titulo, descripcion):
     """Envía el texto a Gemini y devuelve la respuesta estructurada.
     Prueba múltiples modelos gratuitos en cascada si hay error de cuota."""
@@ -917,13 +949,13 @@ def _analizar_con_gemini(texto, titulo, descripcion):
             "recomendaciones": []
         }
 
-    # Modelos gratuitos de Google en orden de prioridad (más capaz → menos capaz)
-    # Se prueban en cascada: si uno se queda sin cuota, el siguiente toma el relevo
+    # Modelos de Google en orden de prioridad (más capaz → menos capaz)
+    # Se prueban en cascada: si uno falla por cuota/demanda, el siguiente toma el relevo.
+    # Nota: gemini-2.0-flash y gemini-2.0-flash-lite ya fueron descontinuados (404).
     modelos_fallback = [
         model_principal,
+        "gemini-3-flash-preview",
         "gemini-2.5-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
     ]
     # Eliminar duplicados manteniendo el orden
     modelos = list(dict.fromkeys(modelos_fallback))
@@ -1016,24 +1048,26 @@ IMPORTANTE:
                     model=modelo,
                     contents=prompt
                 )
-                texto_respuesta = respuesta.text.strip()
+                texto_respuesta = (respuesta.text or "").strip()
 
-                # Limpiar posible markdown de bloque de código
-                texto_respuesta = re.sub(r'^```(?:json)?\s*', '', texto_respuesta)
-                texto_respuesta = re.sub(r'\s*```$', '', texto_respuesta)
+                resultado = _extraer_json_respuesta(texto_respuesta)
+                if resultado is None:
+                    print(f"[IA] {modelo}: respuesta sin JSON válido (intento {intento}/{max_intentos_por_modelo})")
+                    ultimo_error = "La IA devolvió una respuesta no válida."
+                    if intento < max_intentos_por_modelo:
+                        time.sleep(2 ** intento)
+                        continue
+                    break
 
-                resultado = json.loads(texto_respuesta)
                 return _validar_coherencia_analisis(resultado)
 
             except json.JSONDecodeError as e:
                 print(f"[IA] Error al interpretar la respuesta de Gemini: {e}")
-                return {
-                    "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
-                    "resumen": "",
-                    "hallazgos": [],
-                    "recomendaciones": [],
-                    "graficas": []
-                }
+                ultimo_error = "La IA devolvió una respuesta no válida."
+                if intento < max_intentos_por_modelo:
+                    time.sleep(2 ** intento)
+                    continue
+                break
             except Exception as e:
                 error_str = str(e)
                 es_503 = "503" in error_str or "UNAVAILABLE" in error_str.upper()
@@ -1086,11 +1120,9 @@ IMPORTANTE:
                 model=model_principal,
                 contents=prompt
             )
-            texto_respuesta = respuesta.text.strip()
-            texto_respuesta = re.sub(r'^```(?:json)?\s*', '', texto_respuesta)
-            texto_respuesta = re.sub(r'\s*```$', '', texto_respuesta)
-            resultado = json.loads(texto_respuesta)
-            return _validar_coherencia_analisis(resultado)
+            resultado = _extraer_json_respuesta((respuesta.text or "").strip())
+            if resultado is not None:
+                return _validar_coherencia_analisis(resultado)
         except Exception:
             pass
 

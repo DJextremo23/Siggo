@@ -6,11 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Editar Vacación — SIGGO</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/editar_form.css') }}">
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 </head>
 
 <body>
@@ -43,12 +38,7 @@
                         <line x1="8" y1="2" x2="8" y2="6"/>
                         <line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
-                    <input type="text"
-                           id="inicio"
-                           name="fecha_inicio"
-                           value="{{ data.fecha_inicio }}"
-                           placeholder="AAAA-MM-DD"
-                           required>
+                    <input type="date" id="inicio" name="fecha_inicio" value="{{ data.fecha_inicio }}" required>
                 </div>
             </div>
 
@@ -61,12 +51,7 @@
                         <line x1="8" y1="2" x2="8" y2="6"/>
                         <line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
-                    <input type="text"
-                           id="fin"
-                           name="fecha_fin"
-                           value="{{ data.fecha_fin }}"
-                           placeholder="AAAA-MM-DD"
-                           required>
+                    <input type="date" id="fin" name="fecha_fin" value="{{ data.fecha_fin }}" required>
                 </div>
             </div>
 
@@ -93,40 +78,6 @@
     </div>
 
 </div>
-
-<!-- Flatpickr -->
-<script nonce="{{ csp_nonce() }}">
-flatpickr("#inicio", {
-    dateFormat: "Y-m-d"
-});
-
-flatpickr("#fin", {
-    dateFormat: "Y-m-d"
-});
-</script>
-
-<!-- SweetAlert -->
-{% if success %}
-<script nonce="{{ csp_nonce() }}">
-Swal.fire({
-    icon: 'success',
-    title: 'Actualizado',
-    text: 'La vacación se actualizó correctamente',
-    confirmButtonColor: '#27ae60'
-});
-</script>
-{% endif %}
-
-{% if error %}
-<script nonce="{{ csp_nonce() }}">
-Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: '{{ error }}',
-    confirmButtonColor: '#e74c3c'
-});
-</script>
-{% endif %}
 
 </body>
 </html>

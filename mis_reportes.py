@@ -59,7 +59,7 @@ def _fecha(valor):
 
 
 def _dias_pendientes_acumulados(cursor, id_usuario):
-    """Días pendientes acumulados: (años cumplidos × 30) − total tomado en toda la historia."""
+    """Días pendientes acumulados: (años cumplidos × 30) − total tomado (iniciado/finalizado) en toda la historia."""
     cursor.execute(
         "SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias "
         "FROM usuarios WHERE id_usuario = %s",
@@ -72,7 +72,7 @@ def _dias_pendientes_acumulados(cursor, id_usuario):
     total_dias = user["total_dias"]
 
     cursor.execute("""
-        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+        SELECT COALESCE(SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END), 0) AS total
         FROM vacaciones v
         WHERE v.id_usuario = %s
     """, (id_usuario,))
@@ -101,11 +101,15 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         params.append(fecha_hasta)
 
     cursor.execute(f"""
-        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS tomados
+        SELECT
+            COALESCE(SUM(CASE WHEN CURDATE() >= v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END), 0) AS tomados,
+            COALESCE(SUM(CASE WHEN CURDATE() < v.fecha_inicio THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 ELSE 0 END), 0) AS pendientes
         FROM vacaciones v
         {filtro}
     """, params)
-    dias_tomados = cursor.fetchone()["tomados"]
+    fila = cursor.fetchone()
+    dias_tomados = fila["tomados"]
+    dias_pendientes_este_anio = fila["pendientes"]
 
     cursor.execute(
         "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, "
@@ -115,7 +119,6 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     )
     user = cursor.fetchone()
     nombre = user["nombre"] if user else ""
-    dias_pendientes_este_anio = 0
     dias_pendientes_anteriores = 0
 
     if user and user.get("total_dias") is not None:
@@ -128,8 +131,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         """, (id_usuario,))
         dias_tomados_total = cursor.fetchone()["total"]
 
-        dias_pendientes_este_anio = max(0, 30 - dias_tomados)
-        dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
+        dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - max(0, 30 - (dias_tomados + dias_pendientes_este_anio)))
 
     return {
         "nombre": nombre,
@@ -334,12 +336,16 @@ def mis_reportes():
         vacaciones = cursor.fetchall()
 
         dias_tomados = 0
+        dias_pendientes_este_anio = 0
         for v in vacaciones:
             if v["fecha_inicio"] and v["fecha_fin"]:
-                dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
+                dias = (v["fecha_fin"] - v["fecha_inicio"]).days + 1
+                if v["estado"] == "pendiente":
+                    dias_pendientes_este_anio += dias
+                else:
+                    dias_tomados += dias
 
         # ================= RESUMEN VACACIONES (gráfico, respetando los filtros) =================
-        dias_pendientes_este_anio = 0
         dias_pendientes_anteriores = 0
 
         cursor.execute(
@@ -359,9 +365,7 @@ def mis_reportes():
             result = cursor.fetchone()
             dias_tomados_total = result["total"] if result else 0
 
-            # "Días Tomados" del gráfico = días tomados en el período filtrado (dias_tomados)
-            dias_pendientes_este_anio = max(0, 30 - dias_tomados)
-            dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
+            dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - max(0, 30 - (dias_tomados + dias_pendientes_este_anio)))
 
     finally:
         if cursor is not None:
@@ -900,7 +904,7 @@ def exportar_vacaciones_pdf():
 
         dias_tomados = 0
         for v in data:
-            if v["fecha_inicio"] and v["fecha_fin"]:
+            if v["fecha_inicio"] and v["fecha_fin"] and v["estado"] != "pendiente":
                 dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
 
         dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
@@ -1022,7 +1026,7 @@ def exportar_vacaciones_excel():
 
         dias_tomados = 0
         for v in data:
-            if v["fecha_inicio"] and v["fecha_fin"]:
+            if v["fecha_inicio"] and v["fecha_fin"] and v["estado"] != "pendiente":
                 dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
 
         dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
