@@ -1092,12 +1092,19 @@ IMPORTANTE:
                     ultimo_error = f"Modelo {modelo} no disponible. Probando siguiente..."
                     break
 
-                if (es_503 or es_conexion) and intento < max_intentos_por_modelo:
-                    espera = 2 ** intento
-                    time.sleep(espera)
+                if es_503 and intento < max_intentos_por_modelo:
+                    time.sleep(4)
                     continue
 
-                if es_503 or es_conexion:
+                if es_conexion and intento < max_intentos_por_modelo:
+                    time.sleep(2 ** intento)
+                    continue
+
+                if es_503:
+                    ultimo_error = "Gemini está experimentando alta demanda. Inténtalo nuevamente en unos minutos."
+                    break
+
+                if es_conexion:
                     ultimo_error = "Gemini está experimentando alta demanda en este momento."
                     break
 
