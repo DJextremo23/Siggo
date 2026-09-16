@@ -387,6 +387,90 @@ def eliminar_usuario(id):
         if cursor is not None: cursor.close()
         if conn is not None: conn.close()
 
+
+@fiscalizadores_bp.route("/eliminar_usuarios", methods=["POST"])
+def eliminar_usuarios():
+
+    if "usuario" not in session or session.get("perfil_activo") != "admin":
+        return redirect(url_for("login.login"))
+
+    ids = request.form.getlist("ids_usuario")
+    if not ids:
+        flash("No seleccionó ningún usuario", "error")
+        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+    ids_int = []
+    for valor in ids:
+        try:
+            ids_int.append(int(valor))
+        except (TypeError, ValueError):
+            continue
+    if not ids_int:
+        flash("No seleccionó ningún usuario válido", "error")
+        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+    conn = None
+    cursor = None
+    eliminados = 0
+    desactivados = 0
+
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+
+        for id in ids_int:
+            if id == session.get("id_usuario"):
+                continue
+
+            cursor.execute("""
+                SELECT (SELECT COUNT(*) FROM guardias WHERE id_usuario = %s) AS cnt
+                FROM usuarios u
+                WHERE u.id_usuario = %s
+            """, (id, id))
+            usuario = cursor.fetchone()
+            if not usuario:
+                continue
+
+            if usuario["cnt"] > 0:
+                nuevo_estado = _cambiar_estado_usuario(cursor, id)
+                if nuevo_estado == "inactivo":
+                    desactivados += 1
+            else:
+                cursor.execute(
+                    "DELETE FROM usuarios_roles WHERE id_usuario = %s",
+                    (id,)
+                )
+                cursor.execute(
+                    "DELETE FROM usuarios WHERE id_usuario = %s",
+                    (id,)
+                )
+                eliminados += 1
+
+        conn.commit()
+
+        partes = []
+        if eliminados:
+            partes.append(f"{eliminados} eliminado(s)")
+        if desactivados:
+            partes.append(f"{desactivados} desactivado(s) (tienen guardias)")
+        flash("Usuarios procesados: " + (", ".join(partes) if partes else "sin cambios"), "success")
+
+        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+    except Exception as e:
+
+        if conn is not None: conn.rollback()
+
+        print("ERROR ELIMINAR USUARIOS:", e)
+        flash("Error interno del servidor al eliminar usuarios", "error")
+
+        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+    finally:
+
+        if cursor is not None: cursor.close()
+        if conn is not None: conn.close()
+
 # ==========================
 # TOGGLE USUARIO (ACTIVAR / DESACTIVAR)
 # ==========================

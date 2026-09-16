@@ -211,7 +211,7 @@ def administrador():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND YEAR(v.fecha_inicio) = YEAR(CURDATE())
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
@@ -649,6 +649,46 @@ def eliminar_compensacion(id_guardia):
 
         cursor.close()
 
+@app.route("/eliminar_compensaciones", methods=["POST"])
+def eliminar_compensaciones():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "admin":
+        return acceso_no_autorizado()
+
+    ids = request.form.getlist("ids_compensacion")
+    if not ids:
+        flash("No seleccionó ninguna compensación", "error")
+        return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
+
+    ids_int = []
+    for valor in ids:
+        try:
+            ids_int.append(int(valor))
+        except (TypeError, ValueError):
+            return datos_invalidos("Identificador de compensación inválido")
+
+    cursor = conexion.cursor()
+
+    try:
+        placeholders = ",".join(["%s"] * len(ids_int))
+        cursor.execute(
+            f"DELETE FROM compensaciones WHERE id_guardia IN ({placeholders})",
+            tuple(ids_int),
+        )
+        conexion.commit()
+        flash(f"Se eliminaron {cursor.rowcount} compensaciones correctamente", "success")
+    except Exception as e:
+        conexion.rollback()
+        print("ERROR ELIMINAR COMPENSACIONES:", e)
+        flash("Ocurrió un error al eliminar las compensaciones", "error")
+    finally:
+        cursor.close()
+
+    return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
+
 # ==========================
 # ADMIN — FERIADOS
 # ==========================
@@ -927,6 +967,46 @@ def eliminar_feriado(id):
 
         cursor.close()
 
+@app.route("/eliminar_feriados", methods=["POST"])
+def eliminar_feriados():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "admin":
+        return acceso_no_autorizado()
+
+    ids = request.form.getlist("ids_feriado")
+    if not ids:
+        flash("No seleccionó ningún feriado", "error")
+        return redirigir_con_filtros("feriados", "filtro_feriados")
+
+    ids_int = []
+    for valor in ids:
+        try:
+            ids_int.append(int(valor))
+        except (TypeError, ValueError):
+            return datos_invalidos("Identificador de feriado inválido")
+
+    cursor = conexion.cursor()
+
+    try:
+        placeholders = ",".join(["%s"] * len(ids_int))
+        cursor.execute(
+            f"DELETE FROM feriados WHERE id_feriado IN ({placeholders})",
+            tuple(ids_int),
+        )
+        conexion.commit()
+        flash(f"Se eliminaron {cursor.rowcount} feriados correctamente", "success")
+    except Exception as e:
+        conexion.rollback()
+        print("ERROR ELIMINAR FERIADOS:", e)
+        flash("Ocurrió un error al eliminar los feriados", "error")
+    finally:
+        cursor.close()
+
+    return redirigir_con_filtros("feriados", "filtro_feriados")
+
 
 
 # ==========================
@@ -1070,7 +1150,7 @@ def vacaciones():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND YEAR(v.fecha_inicio) = YEAR(CURDATE())), 0
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)), 0
                 ) AS dias_tomados_anio
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -1291,7 +1371,11 @@ def guardar_vacacion():
         # =========================
         # VALIDAR 1 AÑO DE ANTIGÜEDAD
         # =========================
-        fecha_habil = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+        try:
+            fecha_habil = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+        except ValueError:
+            # 29 de febrero en un año no bisiesto: se toma el 28 de febrero
+            fecha_habil = fecha_ingreso.replace(year=fecha_ingreso.year + 1, day=28)
 
         if datetime.now().date() < fecha_habil:
             flash("El usuario aún no cumple 1 año de antigüedad para solicitar vacaciones", "error")
@@ -1436,6 +1520,66 @@ def eliminar_vacacion(id):
     finally:
         cursor.close()
 
+@app.route("/eliminar_vacaciones", methods=["POST"])
+def eliminar_vacaciones():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "admin":
+        return acceso_no_autorizado()
+
+    ids = request.form.getlist("ids_vacacion")
+    if not ids:
+        flash("No seleccionó ninguna vacación", "error")
+        return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+    ids_int = []
+    for valor in ids:
+        try:
+            ids_int.append(int(valor))
+        except (TypeError, ValueError):
+            return datos_invalidos("Identificador de vacación inválido")
+
+    cursor = conexion.cursor(dictionary=True)
+
+    try:
+        placeholders = ",".join(["%s"] * len(ids_int))
+        cursor.execute(f"""
+            SELECT v.id_usuario, v.fecha_inicio, v.fecha_fin,
+                   CONCAT(u.nombre,' ',u.apellidos) AS nombre_completo
+            FROM vacaciones v
+            INNER JOIN usuarios u ON v.id_usuario = u.id_usuario
+            WHERE v.id_vacacion IN ({placeholders})
+        """, tuple(ids_int))
+        vacaciones_data = cursor.fetchall()
+
+        cursor.execute(
+            f"DELETE FROM vacaciones WHERE id_vacacion IN ({placeholders})",
+            tuple(ids_int),
+        )
+
+        for vac in vacaciones_data:
+            cursor.execute("""
+                INSERT INTO notificaciones (id_usuario, titulo, mensaje)
+                VALUES (%s, %s, %s)
+            """, (
+                vac["id_usuario"],
+                "Vacaciones eliminadas",
+                f"Se han eliminado las vacaciones del {vac['fecha_inicio']} al {vac['fecha_fin']} de {vac['nombre_completo']}."
+            ))
+
+        conexion.commit()
+        flash(f"Se eliminaron {len(vacaciones_data)} vacaciones correctamente", "success")
+    except Exception as e:
+        conexion.rollback()
+        print("ERROR ELIMINAR VACACIONES:", e)
+        flash("Ocurrió un error al eliminar las vacaciones", "error")
+    finally:
+        cursor.close()
+
+    return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
 
 
 # ==========================
@@ -1517,7 +1661,7 @@ def inicio():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND YEAR(v.fecha_inicio) = YEAR(CURDATE())
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
@@ -1954,6 +2098,41 @@ def editar_guardia(id):
         cursor.close()
 
 
+# ── Limpieza de archivos físicos de informes al eliminar guardias ──
+UPLOAD_FOLDER = "uploads"
+
+
+def _eliminar_archivos_informes(rutas):
+    """Elimina del disco los archivos de informes (protección contra path traversal)."""
+    uploads_real = os.path.realpath(UPLOAD_FOLDER)
+    for ruta in rutas:
+        if not ruta:
+            continue
+        ruta_real = os.path.realpath(ruta)
+        if ruta_real != uploads_real and not ruta_real.startswith(uploads_real + os.sep):
+            continue
+        try:
+            if os.path.isfile(ruta_real):
+                os.remove(ruta_real)
+        except OSError:
+            pass
+
+
+def _eliminar_guardias_con_archivos(cursor, ids_guardia):
+    """Elimina guardias y los archivos físicos de sus informes asociados."""
+    placeholders = ",".join(["%s"] * len(ids_guardia))
+    cursor.execute(
+        f"SELECT ruta_archivo FROM informes WHERE id_guardia IN ({placeholders})",
+        tuple(ids_guardia),
+    )
+    rutas = [fila[0] for fila in cursor.fetchall() if fila[0]]
+    cursor.execute(
+        f"DELETE FROM guardias WHERE id_guardia IN ({placeholders})",
+        tuple(ids_guardia),
+    )
+    _eliminar_archivos_informes(rutas)
+
+
 @app.route("/eliminar_guardia/<int:id>", methods=["POST"])
 def eliminar_guardia(id):
 
@@ -1966,10 +2145,7 @@ def eliminar_guardia(id):
     cursor = conexion.cursor()
 
     try:
-        cursor.execute("""
-            DELETE FROM guardias
-            WHERE id_guardia = %s
-        """, (id,))
+        _eliminar_guardias_con_archivos(cursor, [id])
 
         conexion.commit()
 
@@ -1987,6 +2163,42 @@ def eliminar_guardia(id):
     finally:
 
         cursor.close()
+
+@app.route("/eliminar_guardias", methods=["POST"])
+def eliminar_guardias():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "admin":
+        return acceso_no_autorizado()
+
+    ids = request.form.getlist("ids_guardia")
+    if not ids:
+        flash("No seleccionó ninguna guardia", "error")
+        return redirigir_con_filtros("ver_guardias", "filtro_guardias")
+
+    ids_int = []
+    for valor in ids:
+        try:
+            ids_int.append(int(valor))
+        except (TypeError, ValueError):
+            return datos_invalidos("Identificador de guardia inválido")
+
+    cursor = conexion.cursor()
+
+    try:
+        _eliminar_guardias_con_archivos(cursor, ids_int)
+        conexion.commit()
+        flash(f"Se eliminaron {cursor.rowcount} guardias correctamente", "success")
+    except Exception as e:
+        conexion.rollback()
+        print("ERROR ELIMINAR GUARDIAS:", e)
+        flash("Ocurrió un error al eliminar las guardias", "error")
+    finally:
+        cursor.close()
+
+    return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
 
 # ==========================
@@ -2572,6 +2784,45 @@ def eliminar_mi_compensacion(id_compensacion):
     finally:
         cursor.close()
 
+@app.route("/eliminar_mis_compensaciones", methods=["POST"])
+def eliminar_mis_compensaciones():
+
+    if "usuario" not in session:
+        return redirect(url_for("login.login"))
+
+    if (session.get("perfil_activo") or "").lower() != "fiscalizador":
+        return acceso_no_autorizado()
+
+    ids = request.form.getlist("ids_compensacion")
+    if not ids:
+        flash("No seleccionó ninguna compensación", "error")
+        return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
+
+    ids_int = []
+    for valor in ids:
+        try:
+            ids_int.append(int(valor))
+        except (TypeError, ValueError):
+            return datos_invalidos("Identificador de compensación inválido")
+
+    cursor = conexion.cursor()
+
+    try:
+        placeholders = ",".join(["%s"] * len(ids_int))
+        cursor.execute(
+            f"""DELETE c FROM compensaciones c
+                INNER JOIN guardias g ON c.id_guardia = g.id_guardia
+                WHERE c.id_compensacion IN ({placeholders})
+                  AND g.id_usuario = %s""",
+            tuple(ids_int) + (session.get("id_usuario"),),
+        )
+        conexion.commit()
+        flash(f"Se eliminaron {cursor.rowcount} compensaciones correctamente", "success")
+    finally:
+        cursor.close()
+
+    return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
+
 
 # ==========================
 # FISCALIZADOR — MIS GUARDIAS
@@ -2858,10 +3109,11 @@ def mis_vacaciones():
             cursor.execute("""
                 SELECT 
                     COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                    COALESCE(SUM(CASE WHEN YEAR(v.fecha_inicio) = YEAR(CURDATE())
+                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                                       THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                       ELSE 0 END), 0) AS total_anio
                 FROM vacaciones v
+                JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
             """, (session["id_usuario"],))
 

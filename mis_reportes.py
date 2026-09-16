@@ -118,10 +118,11 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         cursor.execute("""
             SELECT
                 COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                COALESCE(SUM(CASE WHEN YEAR(v.fecha_inicio) = YEAR(CURDATE())
+                COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                                   THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                   ELSE 0 END), 0) AS total_anio
             FROM vacaciones v
+            JOIN usuarios u ON u.id_usuario = v.id_usuario
             WHERE v.id_usuario = %s
         """, (id_usuario,))
         result = cursor.fetchone()
@@ -341,10 +342,11 @@ def mis_reportes():
             cursor.execute("""
                 SELECT
                     COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                    COALESCE(SUM(CASE WHEN YEAR(v.fecha_inicio) = YEAR(CURDATE())
+                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                                       THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                       ELSE 0 END), 0) AS total_anio
                 FROM vacaciones v
+                JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
             """, (id_usuario,))
             result = cursor.fetchone()

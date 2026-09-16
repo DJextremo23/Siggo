@@ -256,12 +256,30 @@
                 </form>
             </div>
 
+            <!-- BARRA DE ELIMINACIÓN EN LOTE -->
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px;">
+                <span style="font-size:13px; color:#64748b;">Marque los registros y elimine varios a la vez</span>
+                <button type="button" id="btn-eliminar-seleccion" disabled
+                        style="display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border:1px solid #fecaca; border-radius:6px; background:#fee2e2; color:#991b1b; font-weight:600; font-size:13px; cursor:default; opacity:0.5;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        <line x1="10" y1="11" x2="10" y2="17"/>
+                        <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    Eliminar seleccionados (<span id="count-seleccion">0</span>)
+                </button>
+            </div>
+
             <div class="tabla-container">
 
                 <table class="tabla-resp">
 
                     <thead>
                         <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" id="check-all-feriados" title="Seleccionar todos">
+                            </th>
                             <th>ID</th>
                             <th>Fecha</th>
                             <th>Dia</th>
@@ -275,6 +293,10 @@
                     {% for f in feriados %}
 
                         <tr>
+
+                            <td data-label="Selección" style="text-align:center;">
+                                <input type="checkbox" class="check-feriado" value="{{ f.id_feriado }}">
+                            </td>
 
                             <td class="td-id" data-label="ID">
                                 <span class="id-badge">{{ f.id_feriado }}</span>
@@ -332,7 +354,7 @@
                     {% else %}
 
                         <tr>
-                            <td colspan="5">
+                            <td colspan="6">
                                 <div class="flex-col-center" style="padding: 24px; color: #94a3b8;">
                                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -379,6 +401,7 @@
     <!-- ===== JAVASCRIPT: Confirmación de eliminación con envío de formulario POST vía CSRF ===== -->
     <script nonce="{{ csp_nonce() }}">
     var pendingUrl = null;
+    var pendingIds = [];
 
     function confirmarEliminar(id){
         document.getElementById('confirm-message').textContent = "¿Eliminar este feriado?";
@@ -400,12 +423,21 @@
         csrf.name = 'csrf_token';
         csrf.value = '{{ csrf_token }}';
         form.appendChild(csrf);
+        pendingIds.forEach(function(id) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'ids_feriado';
+            inp.value = id;
+            form.appendChild(inp);
+        });
+        pendingIds = [];
         document.body.appendChild(form);
         form.submit();
     }
 
     function cancelarConfirmacion() {
         pendingUrl = null;
+        pendingIds = [];
         document.getElementById('confirm-overlay').classList.remove('show');
     }
 
@@ -431,6 +463,44 @@
             if (alert) alert.remove();
         });
     });
+
+    /* --- Eliminación en lote --- */
+    function actualizarSeleccion() {
+        var checks = document.querySelectorAll('.check-feriado:checked');
+        var btn = document.getElementById('btn-eliminar-seleccion');
+        var count = document.getElementById('count-seleccion');
+        if (count) count.textContent = checks.length;
+        if (btn) {
+            btn.disabled = checks.length === 0;
+            btn.style.opacity = checks.length === 0 ? '0.5' : '1';
+            btn.style.cursor = checks.length === 0 ? 'default' : 'pointer';
+        }
+    }
+
+    document.getElementById('check-all-feriados').addEventListener('change', function() {
+        var checked = this.checked;
+        document.querySelectorAll('.check-feriado').forEach(function(cb) {
+            cb.checked = checked;
+        });
+        actualizarSeleccion();
+    });
+
+    document.querySelectorAll('.check-feriado').forEach(function(cb) {
+        cb.addEventListener('change', actualizarSeleccion);
+    });
+
+    function confirmarEliminarSeleccion() {
+        var checks = document.querySelectorAll('.check-feriado:checked');
+        if (checks.length === 0) return;
+        pendingIds = [];
+        checks.forEach(function(cb) { pendingIds.push(cb.value); });
+        document.getElementById('confirm-message').textContent =
+            '¿Eliminar ' + pendingIds.length + ' feriados seleccionados?';
+        pendingUrl = '{{ url_for("eliminar_feriados") }}';
+        document.getElementById('confirm-overlay').classList.add('show');
+    }
+
+    document.getElementById('btn-eliminar-seleccion').addEventListener('click', confirmarEliminarSeleccion);
     </script>
 
 </body>
