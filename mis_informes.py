@@ -30,6 +30,13 @@ from limiter_instance import limiter
 # Cargar variables de entorno desde archivo .env
 load_dotenv()
 
+# Debug: confirmar si la API key de Gemini está disponible en el entorno
+_ia_key = os.getenv("GEMINI_API_KEY", "")
+if _ia_key:
+    print(f"[IA] GEMINI_API_KEY detectada: {_ia_key[:6]}... (longitud {len(_ia_key)})")
+else:
+    print("[IA] GEMINI_API_KEY NO detectada en el entorno")
+
 # Blueprint principal de informes
 informe_bp = Blueprint("informe", __name__)
 
