@@ -2360,7 +2360,7 @@ def asistencia_admin():
 # ==========================
 # Vista de asistencias del fiscalizador logueado
 
-@app.route("/asistencia")
+@app.route("/mis_asistencias")
 def asistencia():
 
     if "usuario" not in session:
@@ -2416,7 +2416,7 @@ def asistencia():
 # ==========================
 # Permite al fiscalizador registrar su asistencia del día
 
-@app.route("/mi_asistencia")
+@app.route("/registrar_asistencia")
 def mi_asistencia():
 
     if "usuario" not in session:

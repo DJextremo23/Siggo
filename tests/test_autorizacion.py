@@ -21,8 +21,8 @@ RUTAS_FISCALIZADOR = [
     "/mis_compensaciones",
     "/mis_feriados",
     "/mis_vacaciones",
-    "/asistencia",
-    "/mi_asistencia",
+    "/mis_asistencias",
+    "/registrar_asistencia",
     "/mis_reportes",
 ]
 
