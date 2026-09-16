@@ -12,7 +12,7 @@ RUTAS_ADMIN = [
     "/feriados",
     "/vacaciones",
     "/admin/fiscalizadores",
-    "/admin/informes",
+    "/informes",
 ]
 
 # ── Rutas exclusivas del fiscalizador ───────────────────────────────────────

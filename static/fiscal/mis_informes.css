@@ -493,6 +493,14 @@ tr:hover{
     color: var(--text-muted);
 }
 
+.td-titulo{
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-muted);
+}
+
 .td-fecha{
     white-space: nowrap;
     color: var(--text-muted);

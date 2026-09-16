@@ -420,7 +420,8 @@ th{
 
 .th-acciones{
     text-align: center;
-    width: 130px;
+    width: 200px;
+    min-width: 200px;
 }
 
 td{
@@ -546,6 +547,16 @@ tr:hover{
     color: white;
 }
 
+.btn-ai{
+    background: #f5f3ff;
+    color: #8b5cf6;
+}
+
+.btn-ai:hover{
+    background: #8b5cf6;
+    color: white;
+}
+
 .btn-delete{
     background: #fef2f2;
     color: var(--rojo);
@@ -557,8 +568,12 @@ tr:hover{
 }
 
 .form-eliminar{
-    display: inline;
+    display: inline-flex;
     margin: 0;
+}
+
+.acciones .acciones-btns{
+    flex-wrap: nowrap;
 }
 
 /* ================= EMPTY STATE ================= */
