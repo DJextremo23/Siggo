@@ -940,20 +940,7 @@ Si una conclusión depende de evidencia visual, indícalo.
 
 ---
 
-# 39. RECOMENDACIONES
-
-Genera recomendaciones únicamente cuando estén respaldadas por hallazgos concretos.
-
-Formato:
-
-| Hallazgo | Recomendación | Justificación |
-| -------- | ------------- | ------------- |
-
-No inventes soluciones técnicas.
-
----
-
-# 40. TRAZABILIDAD
+# 39. TRAZABILIDAD
 
 Para cada resultado importante indica su origen cuando sea posible:
 
@@ -971,7 +958,7 @@ La trazabilidad debe permitir identificar exactamente **de dónde proviene cada 
 
 ---
 
-# 41. MATRIZ DE TRAZABILIDAD VISUAL
+# 40. MATRIZ DE TRAZABILIDAD VISUAL
 
 Cuando existan imágenes:
 
@@ -994,7 +981,7 @@ Utiliza como nivel de legibilidad:
 
 ---
 
-# 42. ESTRUCTURA FINAL
+# 41. ESTRUCTURA FINAL
 
 Entrega el informe en este orden:
 
@@ -1040,11 +1027,9 @@ Entrega el informe en este orden:
 
 ## 20. Conclusiones
 
-## 21. Recomendaciones
-
 ---
 
-# 43. CONTROL FINAL OBLIGATORIO
+# 42. CONTROL FINAL OBLIGATORIO
 
 Antes de entregar el informe verifica:
 
@@ -1125,8 +1110,6 @@ Antes de entregar el informe verifica:
 [ ] Diferencié gráficos originales de gráficos generados o recomendados.
 
 [ ] Las conclusiones están respaldadas por evidencia.
-
-[ ] Las recomendaciones están respaldadas por hallazgos.
 
 [ ] Cada hallazgo importante tiene trazabilidad.
 
@@ -1240,7 +1223,6 @@ La estructura de reporte descrita arriba es tu **metodología de análisis**. Si
 {
   "resumen": "Texto completo del RESUMEN EJECUTIVO en formato legible, incluyendo total de actividades, producción recuperada en BOPD, total de trabajos críticos y desglose por tipo y taller. Usa saltos de línea \n para separar secciones.",
   "hallazgos": ["Hallazgo clave 1", "Hallazgo clave 2", "Hallazgo clave 3", "Hallazgo clave 4", "Hallazgo clave 5"],
-  "recomendaciones": ["Recomendación 1", "Recomendación 2", "Recomendación 3", "Recomendación 4", "Recomendación 5"],
   "graficas": [
     {
       "tipo": "bar",

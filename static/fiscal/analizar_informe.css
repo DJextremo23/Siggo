@@ -343,7 +343,6 @@
         .result-header .header-icon.resumen { background: #eff6ff; color: #3b82f6; }
         .result-header .header-icon.hallazgos { background: #fffbeb; color: #f59e0b; }
         .result-header .header-icon.graficas { background: #f0fdf4; color: #22c55e; }
-        .result-header .header-icon.recomendaciones { background: #ecfdf5; color: #10b981; }
         .result-header .header-icon.modulo2 { background: #eff6ff; color: #2563eb; }
         .result-header .header-icon.modulo3 { background: #fffbeb; color: #f59e0b; }
         .result-header .header-icon.modulo4 { background: #ecfdf5; color: #10b981; }
@@ -430,45 +429,6 @@
         .hallazgo-texto {
             font-size: 14px;
             color: #78350f;
-            line-height: 1.6;
-            padding-top: 4px;
-        }
-
-        /* ---- RECOMENDACIONES ---- */
-        .recomendacion-item {
-            display: flex;
-            gap: 14px;
-            padding: 16px;
-            border-radius: 12px;
-            background: #f0fdf4;
-            margin-bottom: 10px;
-            transition: .2s;
-            border: 1px solid #bbf7d0;
-        }
-        .recomendacion-item:last-child {
-            margin-bottom: 0;
-        }
-        .recomendacion-item:hover {
-            transform: translateX(4px);
-            box-shadow: 0 2px 8px rgba(34,197,94,.12);
-        }
-        .recomendacion-numero {
-            flex-shrink: 0;
-            width: 30px;
-            height: 30px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 13px;
-            box-shadow: 0 2px 8px rgba(34,197,94,.3);
-        }
-        .recomendacion-texto {
-            font-size: 14px;
-            color: #14532d;
             line-height: 1.6;
             padding-top: 4px;
         }

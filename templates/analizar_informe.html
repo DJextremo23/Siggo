@@ -182,22 +182,6 @@
                 </div>
             </div>
 
-            <!-- Recomendaciones -->
-            <div class="result-card" id="recomendaciones-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon recomendaciones">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                    </div>
-                    <h2>Recomendaciones</h2>
-                </div>
-                <div class="result-body">
-                    <div id="recomendaciones-list"></div>
-                </div>
-            </div>
-
             <!-- Análisis de Imágenes y Elementos Visuales -->
             <div class="result-card" id="imagenes-card" style="display:none;">
                 <div class="result-header">
@@ -406,20 +390,6 @@ function mostrarResultados(data) {
         }).join('');
     } else {
         hallazgosCard.style.display = 'none';
-    }
-
-    // Recomendaciones
-    const recomendacionesCard = document.getElementById('recomendaciones-card');
-    if (data.recomendaciones && data.recomendaciones.length > 0) {
-        recomendacionesCard.style.display = 'block';
-        recomendacionesCard.style.animation = 'none';
-        recomendacionesCard.offsetHeight;
-        recomendacionesCard.style.animation = 'card-enter .5s .15s ease backwards';
-        document.getElementById('recomendaciones-list').innerHTML = data.recomendaciones.map(function (r, i) {
-            return '<div class="recomendacion-item"><div class="recomendacion-numero">' + (i + 1) + '</div><div class="recomendacion-texto">' + escapeHtml(r) + '</div></div>';
-        }).join('');
-    } else {
-        recomendacionesCard.style.display = 'none';
     }
 
     // Análisis de imágenes y elementos visuales

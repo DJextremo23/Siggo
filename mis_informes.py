@@ -1077,8 +1077,7 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
     if not api_key or api_key == "TU_GEMINI_API_KEY":
         print("[IA] API Key de Gemini no configurada")
         return {
-            "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
-            "recomendaciones": []
+            "error": "El análisis no está disponible en este momento. Inténtalo nuevamente en unos minutos."
         }
 
     # Modelos de Google en orden de prioridad (más capaz → menos capaz)
@@ -1205,7 +1204,6 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                 return {
                     "error": f"Error de Gemini: {error_str}",
                     "hallazgos": [],
-                    "recomendaciones": [],
                     "graficas": []
                 }
 
@@ -1231,7 +1229,6 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
     return {
         "error": f"El análisis no está disponible en este momento. Detalle: {detalle}",
         "hallazgos": [],
-        "recomendaciones": [],
         "graficas": []
     }
 
@@ -2119,34 +2116,35 @@ def generar_ppt_analisis(id_informe):
                 _render_pendientes(s7b, pendientes[pg:pg + per_page], pg)
 
         # ═══════════════════════════════
-        # S8 — HALLAZGOS Y RECOMENDACIONES (combinados en una diapositiva)
+        # S8 — HALLAZGOS CLAVE
         # ═══════════════════════════════
         hallazgos = data.get("hallazgos") or []
-        recomendaciones = data.get("recomendaciones") or []
-        if hallazgos or recomendaciones:
+        if hallazgos:
             s8 = prs.slides.add_slide(prs.slide_layouts[6])
             _set_bg(s8, C_LIGHT_BG)
-            _add_header(s8, "Hallazgos y Recomendaciones", C_GOLD, "Aspectos clave y acciones sugeridas", 6)
+            _add_header(s8, "Hallazgos Clave", C_GOLD, "Aspectos relevantes identificados en el análisis", 6)
 
-            def _col(slide, x, w, titulo, color, items):
-                _section_title(slide, x, 1.6, w, titulo, color, 13)
-                y = 2.1
-                for i, it in enumerate(items[:5]):
-                    _rounded_rect(slide, x, y, w, 0.86, C_CARD_BG, C_BORDER)
-                    _rect(slide, x, y + 0.06, 0.06, 0.74, color)
-                    _text_box(slide, x + 0.2, y + 0.06, 0.4, 0.74, str(i + 1), 14, color, True,
-                              PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
-                    _text_box(slide, x + 0.7, y + 0.06, w - 0.9, 0.74, _fit(str(it), w - 0.9, 11, 3),
-                              11, C_TEXT, False, PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.05)
-                    y += 0.96
+            y = 1.65
+            for i, h in enumerate(hallazgos[:6]):
+                card_h = 0.72
+                _rounded_rect(s8, 0.6, y, 12.1, card_h, C_CARD_BG, C_BORDER)
+                _rect(s8, 0.6, y + 0.06, 0.06, card_h - 0.12, C_GOLD)
 
-            if hallazgos and recomendaciones:
-                _col(s8, 0.6, 5.9, "HALLAZGOS", C_GOLD, hallazgos)
-                _col(s8, 6.85, 5.9, "RECOMENDACIONES", C_GREEN, recomendaciones)
-            elif hallazgos:
-                _col(s8, 0.6, 12.1, "HALLAZGOS", C_GOLD, hallazgos)
-            else:
-                _col(s8, 0.6, 12.1, "RECOMENDACIONES", C_GREEN, recomendaciones)
+                num = s8.shapes.add_shape(
+                    MSO_SHAPE.OVAL, Inches(0.95), Inches(y + (card_h - 0.42) / 2), Inches(0.42), Inches(0.42)
+                )
+                num.fill.solid(); num.fill.fore_color.rgb = C_GOLD
+                _no_line(num); _no_shadow(num)
+                ntf = num.text_frame; ntf.word_wrap = False
+                ntf.vertical_anchor = MSO_ANCHOR.MIDDLE
+                ntf.margin_left = 0; ntf.margin_right = 0; ntf.margin_top = 0; ntf.margin_bottom = 0
+                ntf.paragraphs[0].alignment = PP_ALIGN.CENTER
+                nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
+                nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
+
+                _text_box(s8, 1.6, y, 10.9, card_h, _fit(str(h), 10.9, 12, 2), 12, C_TEXT, False,
+                          PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.1)
+                y += card_h + 0.16
 
         # ═══════════════════════════════
         # S10 — ANÁLISIS DE IMÁGENES Y ELEMENTOS VISUALES (imágenes incrustadas)
