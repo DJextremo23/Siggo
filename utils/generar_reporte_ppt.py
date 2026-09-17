@@ -337,6 +337,80 @@ def _cierre(prs):
     return s
 
 
+def _evidencia_card(slide, x, y, w, evidencia, foto_bytes):
+    """Dibuja una evidencia: foto + tres compartimientos (Descripción, Hallazgos, Acción)."""
+    card_h = 2.5
+    _rrect(slide, x, y, w, card_h, C_WHITE, C_SEP, radius=0.05)
+
+    partes = []
+    n = evidencia.get("n_evidencia", "")
+    partes.append(f"Evidencia {n}" if n != "" else "Evidencia")
+    item_ref = evidencia.get("item_ref", "")
+    if item_ref:
+        partes.append(f"Ítem Ref. {item_ref}")
+    pozo = evidencia.get("pozo_equipo", "")
+    if pozo:
+        partes.append(f"Pozo/Equipo: {pozo}")
+    responsable = evidencia.get("responsable", "")
+    if responsable:
+        partes.append(f"Responsable: {responsable}")
+    fecha = evidencia.get("fecha_hora", "")
+    if fecha:
+        partes.append(f"Fecha/Hora: {fecha}")
+    _text(slide, x + 0.25, y + 0.12, w - 0.5, 0.28, "  ·  ".join(partes), 10, C_MUTED, True)
+
+    foto_w = 2.6
+    foto_h = 1.85
+    foto_x = x + 0.25
+    foto_y = y + 0.5
+    if foto_bytes:
+        try:
+            _add_picture_fitted(slide, foto_bytes, foto_x, foto_y, foto_w, foto_h)
+        except Exception:
+            _rrect(slide, foto_x, foto_y, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
+    else:
+        _rrect(slide, foto_x, foto_y, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
+
+    comp_x = foto_x + foto_w + 0.25
+    comp_gap = 0.18
+    comp_w = (x + w - 0.25 - comp_x - 2 * comp_gap) / 3
+    compartimientos = [
+        ("Descripción del Incidente", evidencia.get("descripcion", "")),
+        ("Hallazgos", evidencia.get("hallazgos", "")),
+        ("Acción Tomada", evidencia.get("accion_tomada", "")),
+    ]
+    for i, (lbl, val) in enumerate(compartimientos):
+        cx = comp_x + i * (comp_w + comp_gap)
+        _rrect(slide, cx, foto_y, comp_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
+        _text(slide, cx + 0.12, foto_y + 0.08, comp_w - 0.24, 0.25, lbl, 9, C_TEAL, True)
+        _text(slide, cx + 0.12, foto_y + 0.36, comp_w - 0.24, foto_h - 0.45, val if val else "", 9, C_TEXT, wrap=True)
+    return card_h
+
+
+def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
+    """Construye las diapositivas 'Seguridad y Medio Ambiente' (foto + 3 compartimientos)."""
+    total = max(len(evidencias), len(imagenes_archivo))
+    if total == 0:
+        s = _nueva_contenido(prs, mes_ano, num)
+        _titulo_contenido(s, "Seguridad y Medio Ambiente")
+        _evidencia_card(s, 0.6, 1.4, 12.1, {}, None)
+        return num + 1
+
+    s_actual = None
+    cursor_y = 0.0
+    for i in range(total):
+        ev = evidencias[i] if i < len(evidencias) else {}
+        foto = imagenes_archivo[i].get("bytes") if i < len(imagenes_archivo) else None
+        if s_actual is None or cursor_y + 2.8 > 6.85:
+            s_actual = _nueva_contenido(prs, mes_ano, num)
+            _titulo_contenido(s_actual, "Seguridad y Medio Ambiente")
+            num += 1
+            cursor_y = 1.15
+        _evidencia_card(s_actual, 0.6, cursor_y, 12.1, ev, foto)
+        cursor_y += 2.8
+    return num
+
+
 # ── Generador principal ─────────────────────────────────────────────────────
 def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     """Construye la presentación con el formato rv0 rellena con los datos de la IA."""
@@ -358,8 +432,10 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     # 1) Portada
     _portada(prs, informe)
 
-    # 2) Producción (resumen del formato)
-    num = 2
+    # 2) Seguridad y Medio Ambiente (segunda hoja)
+    num = _seccion_seguridad(prs, mes_ano, 2, evidencias, imagenes_archivo)
+
+    # 3) Producción (resumen del formato)
     cabecera_items = [
         ("Producción OIL (BPD)", cabecera.get("produccion_oil_bpd")),
         ("Prod. Perdida imputada", cabecera.get("prod_perdida_imputada")),
@@ -379,7 +455,7 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
             _text(s, x + 0.2, y + 0.2, 5.5, 0.3, lbl, 10, C_MUTED, True)
             _text(s, x + 0.2, y + 0.55, 5.5, 0.4, str(val if val not in (None, "") else "—"), 18, C_NAVY, True)
 
-    # 3) Talleres (tablas)
+    # 4) Talleres (tablas)
     COLS_TALLER = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado",
                    "Fecha", "Tipo", "Relev.", "Cuadrilla", "Actividad Ejecutada"]
     RATIOS_TALLER = [0.5, 1.3, 1.0, 0.9, 2.6, 0.8, 1.0, 0.9, 0.7, 0.9, 2.8]
@@ -404,7 +480,7 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
         _add_table(s_actual, 0.6, cursor_y + 0.35, 12.1, COLS_TALLER, rows, RATIOS_TALLER, font_size=7, row_h=0.3)
         cursor_y += 0.5 + 0.32 + len(rows) * 0.30 + 0.25
 
-    # 4) Pendientes
+    # 5) Pendientes
     if pendientes_reg:
         COLS_PEND = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado", "Fecha", "Actividad Ejecutada"]
         RATIOS_PEND = [0.5, 1.4, 1.0, 1.0, 3.0, 0.9, 1.1, 3.0]
@@ -427,37 +503,6 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
             _text(s_actual, 0.6, cursor_y, 8.0, 0.3, nombre.upper(), 12, C_GREEN, True)
             _add_table(s_actual, 0.6, cursor_y + 0.35, 12.1, COLS_PEND, rows, RATIOS_PEND, font_size=8, row_h=0.3)
             cursor_y += 0.5 + 0.32 + len(rows) * 0.30 + 0.25
-
-    # 5) Evidencias (imágenes / seguridad y medio ambiente)
-    if evidencias:
-        COLS_EVID = ["N", "Ítem Ref.", "Pozo / Equipo", "Descripción", "Hallazgos", "Acción Tomada", "Responsable", "Fecha / Hora"]
-        RATIOS_EVID = [0.4, 0.8, 1.4, 2.6, 2.2, 2.2, 1.6, 1.2]
-        campos_evid = ["n_evidencia", "item_ref", "pozo_equipo", "descripcion", "hallazgos",
-                       "accion_tomada", "responsable", "fecha_hora"]
-        rows = [[e.get(c, "") for c in campos_evid] for e in evidencias]
-        s_ev = _nueva_contenido(prs, mes_ano, num)
-        _titulo_contenido(s_ev, "Imágenes / Seguridad y Medio Ambiente")
-        _add_table(s_ev, 0.6, 1.3, 12.1, COLS_EVID, rows, RATIOS_EVID, font_size=8, row_h=0.35)
-        num += 1
-
-    # 5b) Fotografías del Excel (solo si el archivo contiene imágenes)
-    if imagenes_archivo:
-        per_page = 6
-        s_foto = None
-        for idx, im in enumerate(imagenes_archivo):
-            pos = idx % per_page
-            if pos == 0:
-                s_foto = _nueva_contenido(prs, mes_ano, num)
-                _titulo_contenido(s_foto, "Evidencias Fotográficas")
-                num += 1
-            col = pos % 2
-            fila = pos // 2
-            x = 0.7 + col * 6.1
-            y = 1.2 + fila * 1.9
-            try:
-                _add_picture_fitted(s_foto, im.get("bytes"), x, y, 5.6, 1.7)
-            except Exception:
-                _rrect(s_foto, x, y, 5.6, 1.7, C_ZEBRA, C_SEP, radius=0.06)
 
     # 6) Cierre
     _cierre(prs)
