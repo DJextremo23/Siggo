@@ -1530,6 +1530,18 @@ def generar_ppt_analisis(id_informe):
                 return texto
             return texto[:max(1, limite - 1)].rstrip() + "…"
 
+        def _nlineas(texto, w, size):
+            """Estima cuántas líneas ocupa un texto al envolverse en una caja de ancho w."""
+            cpl = max(8, int(0.80 * (144.0 / size) * w))
+            total = 0
+            for p in str(texto or "").split("\n"):
+                total += max(1, (len(p) + cpl - 1) // cpl)
+            return total
+
+        def _alto_lineas(n, size, line_spacing=1.2):
+            """Alto en pulgadas para n líneas a un tamaño de fuente dado."""
+            return n * (size * line_spacing / 72.0)
+
         def _rounded_rect(slide, x, y, w, h, fill_color=C_CARD_BG, border_color=None, radius=0.12):
             shape = slide.shapes.add_shape(
                 MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h)
@@ -1715,7 +1727,7 @@ def generar_ppt_analisis(id_informe):
                       10, color, True, PP_ALIGN.RIGHT, MSO_ANCHOR.MIDDLE)
 
         def _section_title(slide, x, y, w, text, color=C_PRIMARY, size=14):
-            _text_box(slide, x, y, w, 0.35, _fit(text, w, size, 1), size, color, True,
+            _text_box(slide, x, y, w, 0.45, _fit(text, w, size, 2), size, color, True,
                       anchor=MSO_ANCHOR.MIDDLE)
 
         def _rich_text(slide, x, y, w, h, runs, size=11, align=PP_ALIGN.LEFT,
@@ -1755,7 +1767,7 @@ def generar_ppt_analisis(id_informe):
                 except (TypeError, ValueError):
                     fv = 0.0
                 pct = (fv / max_v * 100) if max_v > 0 else 0
-                _text_box(slide, x, cy, 2.0, 0.3, str(label)[:16], 11, C_TEXT, True,
+                _text_box(slide, x, cy, 2.0, 0.3, _fit(label, 2.0, 11, 1), 11, C_TEXT, True,
                           anchor=MSO_ANCHOR.MIDDLE)
                 _progress_bar(slide, x + 2.05, cy + 0.03, w - 3.15, pct, clr)
                 _text_box(slide, x + w - 1.05, cy, 1.0, 0.3, f"{v}{value_suffix}", 11, C_TEXT, True,
@@ -1878,16 +1890,42 @@ def generar_ppt_analisis(id_informe):
 
         resumen = (data.get("resumen") or "No se generó resumen.").strip()
         resumen = re.sub(r"[ \t]*\n{3,}", "\n\n", resumen)
-        lineas = [_fit(l.strip(), 11.5, 12, 1) for l in resumen.split("\n") if l.strip()]
-        if not lineas:
-            lineas = ["No se generó resumen."]
-        if len(lineas) > 11:
-            lineas = lineas[:11] + ["…"]
+        parrafos = [p.strip() for p in resumen.split("\n") if p.strip()]
+        if not parrafos:
+            parrafos = ["No se generó resumen."]
 
-        _rounded_rect(s2, 0.6, 3.4, 12.1, 3.8, C_CARD_BG, C_BORDER)
-        _rect(s2, 0.6, 3.4, 0.06, 3.8, C_ACCENT)
-        _text_box(s2, 0.9, 3.55, 1.8, 0.35, "RESUMEN", 11, C_ACCENT, True)
-        _multi_text(s2, 0.9, 3.95, 11.5, 3.1, lineas, 12, C_TEXT, line_spacing=1.12)
+        def _paginar_resumen(parrafos, primer_max, resto_max, w, size):
+            paginas = []
+            actual = []
+            n = 0
+            max_actual = primer_max
+            for p in parrafos:
+                ln = _nlineas(p, w, size)
+                if n + ln > max_actual and actual:
+                    paginas.append(actual)
+                    actual = [p]
+                    n = ln
+                    max_actual = resto_max
+                else:
+                    actual.append(p)
+                    n += ln
+            if actual:
+                paginas.append(actual)
+            return paginas
+
+        def _card_resumen(slide, parrafos, y, h):
+            _rounded_rect(slide, 0.6, y, 12.1, h, C_CARD_BG, C_BORDER)
+            _rect(slide, 0.6, y, 0.06, h, C_ACCENT)
+            _text_box(slide, 0.9, y + 0.15, 1.8, 0.35, "RESUMEN", 11, C_ACCENT, True)
+            _multi_text(slide, 0.9, y + 0.55, 11.5, h - 0.7, parrafos, 12, C_TEXT, line_spacing=1.15)
+
+        paginas = _paginar_resumen(parrafos, 12, 24, 11.5, 12)
+        _card_resumen(s2, paginas[0], 3.4, 3.8)
+        for pg in paginas[1:]:
+            s2b = prs.slides.add_slide(prs.slide_layouts[6])
+            _set_bg(s2b, C_LIGHT_BG)
+            _add_header(s2b, "Resumen Ejecutivo (cont.)", C_ACCENT, None, 1)
+            _card_resumen(s2b, pg, 1.55, 5.7)
 
         # ═══════════════════════════════
         # S3 — MÓDULO 2: EFICACIA POR TALLER (tarjetas con barra de progreso)
@@ -1930,14 +1968,30 @@ def generar_ppt_analisis(id_informe):
         # ═══════════════════════════════
         importantes = data.get("modulo3_trabajos_importantes") or []
         if importantes:
-            def _render_importantes(slide, chunk, start_idx):
-                cy = 1.95
-                for k, r in enumerate(chunk):
+            def _card_altura(r):
+                taller = r.get("taller", "") or ""
+                pozo = r.get("pozo", "") or ""
+                falla = r.get("falla", "") or ""
+                solucion = r.get("solucion", "") or ""
+                enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
+                h_enc = _alto_lineas(_nlineas(enc, 11.0, 14), 14)
+                h_falla = _alto_lineas(_nlineas(falla, 10.2, 11), 11)
+                h_sol = _alto_lineas(_nlineas(solucion, 10.2, 11), 11)
+                return 0.20 + h_enc + h_falla + h_sol + 0.28
+
+            def _render_importantes(slide, items, start_idx):
+                cy = 2.15
+                for k, r in enumerate(items):
                     taller = r.get("taller", "") or ""
                     pozo = r.get("pozo", "") or ""
                     falla = r.get("falla", "") or ""
                     solucion = r.get("solucion", "") or ""
-                    card_h = 1.15
+                    enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
+                    h_enc = _alto_lineas(_nlineas(enc, 11.0, 14), 14)
+                    h_falla = _alto_lineas(_nlineas(falla, 10.2, 11), 11)
+                    h_sol = _alto_lineas(_nlineas(solucion, 10.2, 11), 11)
+                    card_h = _card_altura(r)
+
                     _rounded_rect(slide, 0.6, cy, 12.1, card_h, C_CARD_BG, C_BORDER)
                     _rect(slide, 0.6, cy + 0.06, 0.06, card_h - 0.12, C_GOLD)
 
@@ -1953,13 +2007,12 @@ def generar_ppt_analisis(id_informe):
                     nr = ntf.paragraphs[0].add_run(); nr.text = str(start_idx + k + 1)
                     nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
 
-                    enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
-                    _text_box(slide, 1.6, cy + 0.08, 11.0, 0.32, _fit(enc, 11.0, 14, 1), 14, C_GOLD, True,
-                              anchor=MSO_ANCHOR.MIDDLE)
-                    _rich_text(slide, 1.6, cy + 0.42, 11.0, 0.32,
-                               [("Falla:  ", True, C_SUBTLE), (_fit(falla, 10.0, 11, 1), False, C_TEXT)])
-                    _rich_text(slide, 1.6, cy + 0.76, 11.0, 0.32,
-                               [("Solución:  ", True, C_GREEN), (_fit(solucion, 10.0, 11, 1), False, C_TEXT)])
+                    yy = cy + 0.08
+                    _text_box(slide, 1.6, yy, 11.0, h_enc, enc, 14, C_GOLD, True, anchor=MSO_ANCHOR.MIDDLE)
+                    yy += h_enc + 0.05
+                    _rich_text(slide, 1.6, yy, 11.0, h_falla, [("Falla:  ", True, C_SUBTLE), (falla, False, C_TEXT)])
+                    yy += h_falla + 0.05
+                    _rich_text(slide, 1.6, yy, 11.0, h_sol, [("Solución:  ", True, C_GREEN), (solucion, False, C_TEXT)])
                     cy += card_h + 0.12
 
             s4 = prs.slides.add_slide(prs.slide_layouts[6])
@@ -1971,13 +2024,27 @@ def generar_ppt_analisis(id_informe):
                       f"⚠  {len(importantes)} trabajos críticos identificados que requieren atención prioritaria",
                       13, C_GOLD, True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
 
-            per_page = 4
-            _render_importantes(s4, importantes[:per_page], 0)
-            for pg in range(per_page, len(importantes), per_page):
-                s4b = prs.slides.add_slide(prs.slide_layouts[6])
-                _set_bg(s4b, C_LIGHT_BG)
-                _add_header(s4b, "Trabajos Importantes (cont.)", C_GOLD, None, 3)
-                _render_importantes(s4b, importantes[pg:pg + per_page], pg)
+            pend = list(importantes)
+            idx = 0
+            slide_actual = s4
+            while pend:
+                cy = 2.15
+                tomados = []
+                for r in pend:
+                    ch = _card_altura(r)
+                    if cy + ch > 7.35:
+                        break
+                    tomados.append(r)
+                    cy += ch + 0.12
+                if not tomados:
+                    break
+                _render_importantes(slide_actual, tomados, idx)
+                idx += len(tomados)
+                pend = pend[len(tomados):]
+                if pend:
+                    slide_actual = prs.slides.add_slide(prs.slide_layouts[6])
+                    _set_bg(slide_actual, C_LIGHT_BG)
+                    _add_header(slide_actual, "Trabajos Importantes (cont.)", C_GOLD, None, 3)
 
         # ═══════════════════════════════
         # S5 — MÓDULO 4: RESUMEN OPERATIVO (producción recuperada y clasificación)
@@ -2061,7 +2128,7 @@ def generar_ppt_analisis(id_informe):
                         int(paleta[li % len(paleta)][3:5], 16),
                         int(paleta[li % len(paleta)][5:7], 16)
                     )
-                    _text_box(s6, 0.8, cy_cursor, 2.6, 0.28, str(label)[:22], 10, C_TEXT, True,
+                    _text_box(s6, 0.8, cy_cursor, 2.6, 0.28, _fit(label, 2.6, 10, 1), 10, C_TEXT, True,
                               anchor=MSO_ANCHOR.MIDDLE)
                     _progress_bar(s6, 3.5, cy_cursor + 0.02, 8.2, pct, bar_color)
                     _text_box(s6, 11.85, cy_cursor, 0.9, 0.28, str(val), 10, C_TEXT, True,
@@ -2083,20 +2150,21 @@ def generar_ppt_analisis(id_informe):
                     estado = r.get("estado", "Pendiente") or "Pendiente"
                     es_proceso = str(estado).lower() in ("pendiente", "en proceso", "en_proceso")
                     dot_color = C_GOLD if es_proceso else C_RED
-                    _rounded_rect(slide, 0.6, cy, 12.1, 0.62, C_CARD_BG, C_BORDER)
+                    enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
+                    card_h = max(0.62, _alto_lineas(_nlineas(req, 6.3, 10), 10) + 0.22)
+                    _rounded_rect(slide, 0.6, cy, 12.1, card_h, C_CARD_BG, C_BORDER)
                     dot = slide.shapes.add_shape(
-                        MSO_SHAPE.OVAL, Inches(0.9), Inches(cy + 0.2), Inches(0.22), Inches(0.22)
+                        MSO_SHAPE.OVAL, Inches(0.9), Inches(cy + (card_h - 0.22) / 2), Inches(0.22), Inches(0.22)
                     )
                     dot.fill.solid(); dot.fill.fore_color.rgb = dot_color
                     _no_line(dot); _no_shadow(dot)
-                    enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
-                    _text_box(slide, 1.35, cy + 0.04, 2.7, 0.28, _fit(enc, 2.7, 11, 1), 11, C_TEXT, True,
+                    _text_box(slide, 1.35, cy + 0.04, 2.7, card_h - 0.08, enc, 11, C_TEXT, True,
                               anchor=MSO_ANCHOR.MIDDLE)
-                    _text_box(slide, 4.1, cy + 0.04, 6.3, 0.55, _fit(req, 6.3, 10, 2), 10, C_SUBTLE, False,
+                    _text_box(slide, 4.1, cy + 0.04, 6.3, card_h - 0.08, req, 10, C_SUBTLE, False,
                               anchor=MSO_ANCHOR.MIDDLE)
-                    _text_box(slide, 10.5, cy + 0.04, 2.0, 0.55, estado.upper(), 11, dot_color, True,
+                    _text_box(slide, 10.5, cy + 0.04, 2.0, card_h - 0.08, estado.upper(), 11, dot_color, True,
                               PP_ALIGN.RIGHT, MSO_ANCHOR.MIDDLE)
-                    cy += 0.7
+                    cy += card_h + 0.12
 
             s7 = prs.slides.add_slide(prs.slide_layouts[6])
             _set_bg(s7, C_LIGHT_BG)
@@ -2107,13 +2175,28 @@ def generar_ppt_analisis(id_informe):
                       f"⚠  {len(pendientes)} actividades pendientes que requieren seguimiento inmediato",
                       13, C_RED, True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
 
-            per_page = 7
-            _render_pendientes(s7, pendientes[:per_page], 0)
-            for pg in range(per_page, len(pendientes), per_page):
-                s7b = prs.slides.add_slide(prs.slide_layouts[6])
-                _set_bg(s7b, C_LIGHT_BG)
-                _add_header(s7b, "Reporte de Actividades Pendientes (cont.)", C_RED, None, 5)
-                _render_pendientes(s7b, pendientes[pg:pg + per_page], pg)
+            pend = list(pendientes)
+            idx = 0
+            slide_actual = s7
+            while pend:
+                cy = 2.15
+                tomados = []
+                for r in pend:
+                    req = r.get("requerimiento", "") or ""
+                    ch = max(0.62, _alto_lineas(_nlineas(req, 6.3, 10), 10) + 0.22)
+                    if cy + ch > 7.35:
+                        break
+                    tomados.append(r)
+                    cy += ch + 0.12
+                if not tomados:
+                    break
+                _render_pendientes(slide_actual, tomados, idx)
+                idx += len(tomados)
+                pend = pend[len(tomados):]
+                if pend:
+                    slide_actual = prs.slides.add_slide(prs.slide_layouts[6])
+                    _set_bg(slide_actual, C_LIGHT_BG)
+                    _add_header(slide_actual, "Reporte de Actividades Pendientes (cont.)", C_RED, None, 5)
 
         # ═══════════════════════════════
         # S8 — HALLAZGOS CLAVE
@@ -2126,7 +2209,9 @@ def generar_ppt_analisis(id_informe):
 
             y = 1.65
             for i, h in enumerate(hallazgos[:6]):
-                card_h = 0.72
+                texto = str(h)
+                lineas = _nlineas(texto, 10.9, 12)
+                card_h = max(0.62, _alto_lineas(lineas, 12) + 0.22)
                 _rounded_rect(s8, 0.6, y, 12.1, card_h, C_CARD_BG, C_BORDER)
                 _rect(s8, 0.6, y + 0.06, 0.06, card_h - 0.12, C_GOLD)
 
@@ -2142,9 +2227,9 @@ def generar_ppt_analisis(id_informe):
                 nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
                 nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
 
-                _text_box(s8, 1.6, y, 10.9, card_h, _fit(str(h), 10.9, 12, 2), 12, C_TEXT, False,
+                _text_box(s8, 1.6, y, 10.9, card_h, texto, 12, C_TEXT, False,
                           PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.1)
-                y += card_h + 0.16
+                y += card_h + 0.14
 
         # ═══════════════════════════════
         # S10 — ANÁLISIS DE IMÁGENES Y ELEMENTOS VISUALES (imágenes incrustadas)
@@ -2162,16 +2247,16 @@ def generar_ppt_analisis(id_informe):
                 d = desc_list[idx] if idx < len(desc_list) else {}
                 referencia = d.get("referencia", "") or f"Imagen {idx + 1}"
                 descripcion = d.get("descripcion", "") or ""
-                _text_box(slide, x, y, 5.6, 0.32, _fit(str(referencia), 5.6, 12, 1), 12, C_ACCENT, True,
+                _text_box(slide, x, y, 5.6, 0.34, _fit(str(referencia), 5.6, 12, 2), 12, C_ACCENT, True,
                           anchor=MSO_ANCHOR.MIDDLE)
                 if idx < len(imagenes_archivo):
                     try:
-                        _add_picture_fitted(slide, imagenes_archivo[idx]["bytes"], x, y + 0.4, 5.6, 3.9)
+                        _add_picture_fitted(slide, imagenes_archivo[idx]["bytes"], x, y + 0.4, 5.6, 3.1)
                     except Exception:
-                        _rounded_rect(slide, x, y + 0.4, 5.6, 3.9, C_LIGHT_BG, C_BORDER)
+                        _rounded_rect(slide, x, y + 0.4, 5.6, 3.1, C_LIGHT_BG, C_BORDER)
                 else:
-                    _rounded_rect(slide, x, y + 0.4, 5.6, 3.9, C_LIGHT_BG, C_BORDER)
-                _text_box(slide, x, y + 4.4, 5.6, 1.2, _fit(str(descripcion), 5.6, 11, 4), 11, C_TEXT, False,
+                    _rounded_rect(slide, x, y + 0.4, 5.6, 3.1, C_LIGHT_BG, C_BORDER)
+                _text_box(slide, x, y + 3.65, 5.6, 1.9, str(descripcion), 11, C_TEXT, False,
                           anchor=MSO_ANCHOR.TOP, line_spacing=1.05)
 
             s_img = prs.slides.add_slide(prs.slide_layouts[6])
