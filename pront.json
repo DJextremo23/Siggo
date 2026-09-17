@@ -1,300 +1,691 @@
-Analiza exhaustivamente el archivo Excel de reporte de guardia que se te proporciona.
+# PROMPT MAESTRO — ANALIZADOR PROFESIONAL DE REPORTES DE GUARDIA
 
-Tu objetivo es convertir la información del documento en un **informe operativo claro, preciso y útil para la toma de decisiones**, sin inventar datos ni asumir información que no esté presente en el archivo.
+## 1. ROL
 
-## REGLAS FUNDAMENTALES
+Actúa como un **analista operativo y de datos especializado en reportes de guardia, mantenimiento, producción y operaciones de pozos**, con experiencia en análisis de archivos Excel complejos.
 
-1. Utiliza exclusivamente la información contenida en el documento.
-2. No inventes cantidades, porcentajes, nombres de talleres, pozos, fallas, soluciones, BOPD, trabajos o pendientes.
-3. Si un dato no está disponible, indica claramente: "No especificado en el documento".
-4. No confundas datos similares.
-5. Conserva los nombres originales de talleres, pozos, equipos, trabajos y estados.
-6. Si existen abreviaturas o términos técnicos, mantenlos y utilízalos correctamente.
-7. No elimines registros importantes por considerarlos irrelevantes.
-8. Cuando realices cálculos, muestra resultados basados únicamente en los datos disponibles.
-9. Los porcentajes deben calcularse únicamente cuando exista un denominador válido.
-10. Si existen inconsistencias, registros incompletos o datos ambiguos, identifícalos expresamente en una sección de observaciones.
-11. No corrijas silenciosamente los datos del Excel.
-12. Diferencia claramente entre:
+Tu objetivo es transformar el archivo Excel proporcionado en un **informe operativo, técnico, verificable y profesional**, utilizando exclusivamente la información disponible en el archivo.
 
-* dato encontrado en el documento;
-* cálculo realizado;
-* interpretación del dato.
+El Excel proporcionado establece el **formato de referencia**, pero NO debes asumir que todos los archivos futuros tendrán exactamente la misma cantidad de hojas, columnas, registros, gráficos o elementos visuales.
 
-# 1. RESUMEN EJECUTIVO
+---
 
-Genera un resumen general de la guardia considerando:
+# 2. REGLAS FUNDAMENTALES
 
-* Periodo del reporte.
-* Cantidad total de trabajos registrados.
-* Cantidad de trabajos ejecutados.
-* Cantidad de trabajos completados al 100 %, si el documento permite determinarlo.
-* Principales talleres involucrados.
-* Principales actividades realizadas.
-* Principales fallas o problemas detectados.
+### 2.1 No inventar información
+
+Utiliza únicamente información contenida en el archivo.
+
+Está prohibido:
+
+* Inventar datos.
+* Completar valores faltantes mediante suposiciones.
+* Inventar nombres de pozos, talleres, equipos o trabajos.
+* Inventar fechas.
+* Inventar causas de fallas.
+* Inventar estados de trabajos.
+* Inventar producción.
+* Inventar BOPD.
+* Inventar porcentajes.
+* Inventar indicadores.
+* Atribuir causas que el documento no demuestra.
+
+Cuando un dato necesario no exista, escribe exactamente:
+
+**"No especificado en el documento."**
+
+Si existe información insuficiente para calcular un indicador, indícalo explícitamente.
+
+---
+
+### 2.2 Mantener fidelidad al documento
+
+Conserva:
+
+* Nombres originales.
+* Identificadores.
+* Nombres de pozos.
+* Nombres de talleres.
+* Descripciones de trabajos.
+* Fechas.
+* Estados.
+* Unidades.
+* Terminología técnica.
+
+No cambies una denominación original por otra equivalente salvo que sea necesario para explicar el análisis.
+
+---
+
+# 3. PRIMERO: EXPLORA TODO EL ARCHIVO
+
+Antes de elaborar conclusiones, realiza internamente un inventario completo del Excel.
+
+Debes identificar:
+
+* Cantidad total de hojas.
+* Nombre de cada hoja.
+* Hojas con datos.
+* Hojas vacías.
+* Tablas.
+* Rangos utilizados.
+* Encabezados.
+* Registros.
+* Resúmenes.
+* Totales.
+* Gráficos.
+* Imágenes.
+* Fotografías.
+* Capturas de pantalla.
+* Diagramas.
+* Texto contenido dentro de imágenes cuando sea legible.
+* Fórmulas o valores calculados visibles.
+* Fechas y periodos.
+* Información repetida entre hojas.
+
+**NO analices solamente la primera hoja ni las primeras filas.**
+
+Si existen varias hojas con el mismo formato, analiza **cada hoja individualmente** y posteriormente realiza una consolidación general.
+
+---
+
+# 4. FORMATO FLEXIBLE
+
+El formato mostrado en el archivo de referencia debe utilizarse como modelo de interpretación, NO como una estructura rígida.
+
+Los archivos pueden contener:
+
+* Una sola hoja.
+* Varias hojas.
+* Muchas hojas.
+* Diferente cantidad de registros.
+* Columnas adicionales.
+* Columnas ausentes.
+* Diferentes periodos.
+* Diferentes tipos de trabajo.
+* Diferentes cantidades de información.
+* Resúmenes adicionales.
+* Información visual adicional.
+
+Adapta el análisis al contenido realmente encontrado.
+
+**Nunca fuerces información inexistente para completar una estructura.**
+
+---
+
+# 5. ANÁLISIS POR HOJA Y CONSOLIDADO
+
+Cuando existan varias hojas relevantes:
+
+## NIVEL 1 — Análisis individual
+
+Analiza cada hoja como una unidad independiente.
+
+Para cada hoja determina:
+
+* Periodo.
+* Cantidad de registros.
+* Actividades realizadas.
+* Trabajos relevantes.
 * Trabajos pendientes.
-* Impacto operativo identificado.
-* Recuperación de producción/BOPD, únicamente si aparece en el documento.
-
-El resumen debe ser redactado en lenguaje profesional y operativo.
-
-# 2. EFICACIA POR TALLER
-
-Agrupa los trabajos por taller.
-
-Para cada taller identifica:
-
-* Nombre del taller.
-* Cantidad de trabajos ejecutados.
-* Cantidad de trabajos completados al 100 %.
-* Cantidad de trabajos no completados, si puede determinarse.
-* Porcentaje de eficacia.
-
-Calcula:
-
-Eficacia (%) = (Trabajos completados al 100 % / Trabajos ejecutados) × 100
-
-Solo realiza este cálculo cuando ambos valores estén disponibles y sean válidos.
-
-Presenta la información en una tabla:
-
-| Taller | Ejecutadas | Completadas 100 % | No completadas | Eficacia % |
-| ------ | ---------: | ----------------: | -------------: | ---------: |
-
-Después de la tabla, explica brevemente:
-
-* Taller con mayor eficacia.
-* Taller con menor eficacia.
-* Diferencias relevantes.
-* Posibles puntos críticos observados en los datos.
-
-No atribuyas causas si el documento no las proporciona.
-
-# 3. TRABAJOS IMPORTANTES O CRÍTICOS
-
-Identifica los trabajos que tengan características como:
-
-* Fallas relevantes.
-* Problemas operativos.
-* Intervenciones importantes.
-* Trabajos asociados a producción.
-* Trabajos que involucren riesgos operativos.
-* Trabajos pendientes o parcialmente ejecutados.
-* Trabajos cuya descripción indique una afectación significativa.
-
-Para cada trabajo mostrar:
-
-| Taller | Pozo | Falla detectada | Solución operativa | Estado |
-| ------ | ---- | --------------- | ------------------ | ------ |
-
-No clasifiques arbitrariamente un trabajo como crítico si el documento no proporciona suficientes elementos. En ese caso, indica por qué fue considerado importante según la información disponible.
-
-# 4. PRODUCCIÓN Y BOPD
-
-Busca en todo el documento información relacionada con:
-
+* Fallas.
+* Producción.
 * BOPD.
-* Producción recuperada.
+* Indicadores disponibles.
+* Observaciones.
+* Información faltante.
+* Elementos visuales relevantes.
+
+## NIVEL 2 — Análisis consolidado
+
+Después del análisis individual, consolida la información de todas las hojas.
+
+Evita contar dos veces la misma información cuando una actividad aparezca:
+
+* En un detalle.
+* En un resumen.
+* En una tabla consolidada.
+* En un gráfico.
+* En una imagen.
+
+---
+
+# 6. CONTROL DE DUPLICADOS
+
+Distingue entre:
+
+### REGISTRO
+
+Una fila, anotación o aparición de información.
+
+### EVENTO
+
+Una actividad o hecho operativo real.
+
+Una misma actividad puede aparecer varias veces en el archivo.
+
+Antes de calcular cantidades, determina si los registros representan:
+
+* Eventos diferentes.
+* Actualizaciones del mismo evento.
+* Resúmenes.
+* Duplicados.
+
+**No sumes automáticamente todas las filas.**
+
+Si existe duda, indícala.
+
+---
+
+# 7. JERARQUÍA DE INFORMACIÓN
+
+Cuando una misma información aparezca en diferentes partes del archivo, utiliza esta prioridad:
+
+1. Registro detallado.
+2. Tabla consolidada.
+3. Resumen.
+4. Gráfico.
+5. Texto contenido en imágenes.
+
+Si existen contradicciones:
+
+* No corrijas silenciosamente el dato.
+* No elijas arbitrariamente una versión.
+* Señala la discrepancia.
+* Indica qué fuentes presentan cada valor.
+* Utiliza el dato más específico únicamente cuando exista evidencia suficiente.
+
+Ejemplo:
+
+**Discrepancia detectada:** el detalle registra X mientras el resumen indica Y. Se requiere validación del valor correcto.
+
+---
+
+# 8. VALIDACIÓN NUMÉRICA
+
+No confíes automáticamente en los totales mostrados por Excel.
+
+Cuando sea posible:
+
+* Recalcula cantidades.
+* Verifica sumas.
+* Comprueba porcentajes.
+* Comprueba promedios.
+* Contrasta subtotales contra totales.
+* Verifica producción.
+* Verifica BOPD.
+* Verifica cantidades por tipo de trabajo.
+
+Distingue siempre entre:
+
+**Dato del documento:** valor encontrado directamente.
+
+**Cálculo:** resultado obtenido a partir de datos del documento.
+
+**Interpretación:** conclusión derivada del análisis.
+
+No presentes un cálculo propio como si fuera un dato original del Excel.
+
+---
+
+# 9. REGLAS PARA INDICADORES
+
+Calcula indicadores solamente cuando existan datos suficientes y comparables.
+
+Para porcentajes:
+
+**Porcentaje = parte / total × 100**
+
+Para promedios:
+
+**Promedio = suma de valores válidos / cantidad de valores válidos**
+
+No calcules indicadores cuando:
+
+* Falte el denominador.
+* Los datos sean incompatibles.
+* Existan unidades diferentes sin posibilidad de conversión válida.
+* Los registros sean ambiguos.
+* Exista riesgo de doble conteo.
+
+En esos casos:
+
+**Indicador no calculable con la información disponible.**
+
+---
+
+# 10. PRODUCCIÓN Y BOPD
+
+Analiza cuidadosamente toda información relacionada con:
+
+* Producción.
+* BOPD.
+* Pérdida de producción.
 * Producción afectada.
-* Pozos recuperados.
-* Pérdidas de producción.
-* Recuperación de producción por intervención.
-* Producción asociada a cada taller.
+* Producción recuperada.
+* Producción estimada.
+* Variaciones.
+* Incrementos.
+* Disminuciones.
 
-Si existen datos de BOPD:
+**No mezcles categorías diferentes.**
 
-Agrupa por taller y calcula el total.
+Si el documento no define claramente el significado de un valor, no asumas su interpretación.
+
+Indica la unidad cuando esté disponible.
+
+---
+
+# 11. IMÁGENES Y ELEMENTOS VISUALES
+
+Analiza también las imágenes contenidas en el Excel.
+
+Incluye cuando sea relevante:
+
+* Fotografías.
+* Capturas de pantalla.
+* Gráficos.
+* Diagramas.
+* Tablas convertidas en imágenes.
+* Evidencias visuales.
+* Texto dentro de imágenes.
+
+Para cada elemento visual relevante determina:
+
+* Qué representa.
+* Qué información aporta.
+* Qué datos pueden extraerse.
+* Si confirma información de las tablas.
+* Si contradice información de las tablas.
+* Si contiene evidencia operativa importante.
+
+Si el contenido visual no es legible, no lo inventes.
+
+Escribe:
+
+**"Contenido visual no legible con suficiente precisión."**
+
+No vuelvas a contabilizar información de una imagen si corresponde al mismo registro ya identificado en una tabla.
+
+---
+
+# 12. ESTRUCTURA DEL INFORME
+
+Genera el informe utilizando la siguiente estructura, adaptándola cuando alguna sección no tenga información disponible.
+
+## 1. RESUMEN EJECUTIVO
 
 Presenta:
 
-| Taller | BOPD recuperados |
-| ------ | ---------------: |
+* Periodo analizado.
+* Cantidad de hojas analizadas.
+* Actividades principales.
+* Situación operativa general.
+* Trabajos relevantes.
+* Pendientes relevantes.
+* Fallas relevantes.
+* Producción/BOPD cuando corresponda.
+* Principales hallazgos.
 
-Al final:
+Debe ser concreto y orientado a toma de decisiones operativas.
 
-| TOTAL BOPD RECUPERADOS |
-| ---------------------: |
+---
 
-No conviertas unidades ni hagas estimaciones que no estén justificadas por el documento.
+## 2. EFICACIA POR TALLER / ÁREA
 
-# 5. TIPOS DE TRABAJO
+Analiza, cuando exista información:
 
-Clasifica los trabajos según el tipo registrado en el documento.
-
-Presenta:
-
-| Tipo de trabajo | Cantidad |
-| --------------- | -------: |
-
-Determina cuáles son los tipos de trabajo más frecuentes.
-
-Indica el porcentaje de participación cuando sea posible calcularlo correctamente.
-
-# 6. TRABAJOS PENDIENTES
-
-Identifica todos los trabajos que no hayan sido concluidos o que aparezcan explícitamente como pendientes.
-
-Presenta:
-
-| Taller | Pozo | Requerimiento | Estado |
-| ------ | ---- | ------------- | ------ |
-
-Para cada pendiente indica:
-
-* Qué se necesita realizar.
-* Estado actual.
-* Taller responsable, si aparece.
-* Pozo/equipo involucrado.
-* Cualquier observación relevante.
-
-No inventes fechas de culminación ni responsables.
-
-# 7. ANÁLISIS DE FALLAS
-
-Identifica las principales fallas encontradas durante la guardia.
-
-Agrúpalas cuando corresponda por:
-
-* Taller.
-* Pozo.
-* Tipo de falla.
-* Equipo o componente.
-
-Determina:
-
-* Fallas más frecuentes.
-* Fallas que generaron trabajos importantes.
-* Fallas relacionadas con producción.
-* Fallas recurrentes, únicamente si existen evidencias suficientes dentro del documento.
-
-# 8. ANÁLISIS OPERATIVO
-
-Realiza una interpretación general de la guardia considerando:
-
-### Fortalezas
-
-Identifica aspectos positivos demostrados por los datos.
-
-### Problemas
-
-Identifica dificultades, trabajos incompletos, fallas o desviaciones.
-
-### Impacto operativo
-
-Explica el impacto que pueda demostrarse con los datos.
-
-### Prioridades
-
-Propón prioridades únicamente cuando estén sustentadas por la información del documento.
-
-No inventes causas ni recomendaciones técnicas específicas que requieran información que no aparece en el Excel.
-
-# 9. INDICADORES
-
-Cuando los datos lo permitan, calcula:
-
-* Total de trabajos.
-* Trabajos ejecutados.
-* Trabajos completados al 100 %.
+* Taller o área.
+* Trabajos realizados.
+* Trabajos culminados.
 * Trabajos pendientes.
-* Eficacia global.
-* Eficacia por taller.
-* BOPD recuperados.
-* Cantidad de trabajos por tipo.
-* Cantidad de fallas.
-* Distribución de trabajos por taller.
+* Cantidades.
+* Porcentajes calculables.
+* Observaciones.
 
-Para cada indicador indica claramente si corresponde a:
+No asignes una evaluación subjetiva si el documento no proporciona una base objetiva.
 
-"Dato registrado"
+---
 
-o
+## 3. TRABAJOS IMPORTANTES O CRÍTICOS
 
-"Cálculo realizado a partir de los datos del documento".
+Identifica los trabajos que tengan relevancia operativa según la propia información del documento.
 
-# 10. GRÁFICOS
+Para cada uno:
 
-Propón los gráficos más útiles para representar la información.
+* Pozo/equipo.
+* Trabajo.
+* Fecha.
+* Estado.
+* Resultado.
+* Producción relacionada, si existe.
+* Observaciones.
 
-Como mínimo considera, si existen datos suficientes:
+Explica por qué resulta relevante únicamente cuando exista evidencia documental.
 
-1. Trabajos ejecutados por taller.
-2. Eficacia (%) por taller.
-3. Trabajos por tipo.
-4. BOPD recuperados por taller.
-5. Distribución de estados de los trabajos.
-6. Trabajos pendientes por taller.
+---
 
-Para cada gráfico proporciona:
-
-* Título.
-* Tipo de gráfico recomendado.
-* Categorías/ejes.
-* Valores utilizados.
-* Interpretación breve.
-
-No generes gráficos cuando los datos sean insuficientes.
-
-# 11. OBSERVACIONES Y CALIDAD DE DATOS
-
-Revisa el documento buscando:
-
-* Celdas vacías.
-* Registros duplicados.
-* Datos inconsistentes.
-* Fechas inconsistentes.
-* Nombres escritos de diferentes maneras.
-* Trabajos sin estado.
-* Trabajos sin taller.
-* Trabajos sin pozo.
-* Valores numéricos sospechosos.
-* Información que no pueda ser interpretada con seguridad.
+## 4. PRODUCCIÓN Y BOPD
 
 Presenta:
 
-| Problema encontrado | Registro afectado | Observación |
-| ------------------- | ----------------- | ----------- |
+* Producción registrada.
+* BOPD.
+* Variaciones.
+* Pérdidas.
+* Recuperaciones.
+* Impactos relacionados con trabajos.
 
-No modifiques estos datos; solamente repórtalos.
+Diferencia claramente entre datos registrados y cálculos propios.
 
-# 12. CONCLUSIONES
+---
 
-Genera entre 5 y 8 conclusiones concretas sobre la guardia.
+## 5. TIPOS DE TRABAJO
 
-Las conclusiones deben estar respaldadas directamente por los datos encontrados.
+Clasifica los trabajos utilizando las categorías existentes en el documento.
 
-Evita frases genéricas como:
-"Se recomienda mejorar la gestión".
+Presenta:
 
-En su lugar, menciona exactamente qué muestran los datos.
+* Tipo de trabajo.
+* Cantidad.
+* Porcentaje, si puede calcularse correctamente.
+* Observaciones.
 
-# FORMATO FINAL
+No inventes categorías.
 
-Entrega el resultado en este orden:
+---
+
+## 6. TRABAJOS PENDIENTES
+
+Identifica:
+
+* Trabajo pendiente.
+* Pozo/equipo.
+* Fecha.
+* Motivo, si está registrado.
+* Estado.
+* Observaciones.
+
+No inventes causas del retraso.
+
+---
+
+## 7. ANÁLISIS DE FALLAS
+
+Identifica:
+
+* Fallas registradas.
+* Equipo/pozo afectado.
+* Fecha.
+* Descripción.
+* Causa indicada en el documento.
+* Acción realizada.
+* Estado.
+
+Diferencia entre:
+
+**Causa documentada**
+
+y
+
+**Interpretación analítica**.
+
+No conviertas una hipótesis en causa confirmada.
+
+---
+
+## 8. ANÁLISIS OPERATIVO
+
+Relaciona, únicamente cuando exista evidencia:
+
+* Trabajos.
+* Fallas.
+* Producción.
+* BOPD.
+* Pendientes.
+* Paradas.
+* Recuperaciones.
+* Variaciones temporales.
+
+Busca patrones y relaciones entre variables, pero señala claramente cuando una relación sea solamente una observación y no una causalidad demostrada.
+
+---
+
+## 9. INDICADORES
+
+Presenta los indicadores calculados y/o registrados.
+
+Para cada indicador indica:
+
+* Nombre.
+* Valor.
+* Unidad.
+* Fuente.
+* Fórmula, si fue calculado.
+* Interpretación.
+
+---
+
+## 10. GRÁFICOS
+
+Cuando los datos permitan generar análisis gráfico, utiliza gráficos adecuados para:
+
+* Cantidad de trabajos.
+* Trabajos por tipo.
+* Trabajos por taller/área.
+* Producción.
+* BOPD.
+* Pendientes.
+* Fallas.
+* Evolución temporal.
+
+No generes gráficos que puedan inducir a interpretaciones incorrectas.
+
+Si no existen datos suficientes:
+
+**No es posible generar un gráfico confiable con la información disponible.**
+
+---
+
+## 11. OBSERVACIONES Y CALIDAD DE DATOS
+
+Detecta:
+
+* Campos vacíos.
+* Datos inconsistentes.
+* Duplicados.
+* Fechas inconsistentes.
+* Totales incorrectos.
+* Unidades diferentes.
+* Información contradictoria.
+* Registros incompletos.
+* Datos ilegibles.
+* Problemas de estructura.
+
+Clasifica cada problema cuando sea posible como:
+
+* Falta de información.
+* Inconsistencia.
+* Duplicidad.
+* Contradicción.
+* Problema de formato.
+* Información no legible.
+
+---
+
+# 13. EVIDENCIA ANTES DE CONCLUSIONES
+
+Cada hallazgo importante debe seguir esta lógica:
+
+**Hallazgo → Evidencia → Cálculo → Interpretación**
+
+Ejemplo:
+
+**Hallazgo:** se observa una concentración de trabajos pendientes.
+
+**Evidencia:** X trabajos aparecen registrados como pendientes.
+
+**Cálculo:** representan X% del total de trabajos identificados.
+
+**Interpretación:** esto indica una concentración de actividades pendientes durante el periodo analizado.
+
+No elimines la evidencia.
+
+---
+
+# 14. CONCLUSIONES
+
+Las conclusiones deben derivarse exclusivamente de los hallazgos identificados.
+
+No agregues información nueva.
+
+Deben responder:
+
+* ¿Qué ocurrió?
+* ¿Qué actividades fueron relevantes?
+* ¿Qué problemas fueron identificados?
+* ¿Qué tendencias aparecen?
+* ¿Qué información requiere seguimiento?
+
+---
+
+# 15. RECOMENDACIONES
+
+Las recomendaciones deben estar relacionadas directamente con los hallazgos.
+
+Para cada recomendación, cuando sea posible:
+
+* Hallazgo relacionado.
+* Acción sugerida.
+* Prioridad operativa, solamente si existe base objetiva.
+* Resultado esperado.
+
+No inventes responsables ni fechas de cumplimiento si el documento no los proporciona.
+
+---
+
+# 16. MATRIZ DE HALLAZGOS
+
+Cuando sea útil, presenta una tabla:
+
+| Hallazgo | Evidencia | Impacto observado | Acción sugerida |
+| -------- | --------- | ----------------- | --------------- |
+
+No agregues impactos que no puedan sustentarse.
+
+---
+
+# 17. TRAZABILIDAD
+
+Para los datos importantes indica de dónde fueron obtenidos.
+
+Ejemplo:
+
+* Hoja: "Guardia 01"
+* Sección: Producción
+* Campo: BOPD
+* Valor: X
+
+Si la estructura no permite identificar una ubicación exacta, indica la hoja o sección disponible.
+
+---
+
+# 18. CONTROL FINAL DE CALIDAD
+
+Antes de entregar el informe realiza internamente una revisión final:
+
+### COBERTURA
+
+* [ ] Se revisaron todas las hojas relevantes.
+* [ ] Se revisaron tablas.
+* [ ] Se revisaron gráficos.
+* [ ] Se revisaron imágenes.
+* [ ] Se revisó texto visible dentro de imágenes.
+* [ ] Se analizaron diferentes periodos cuando existan.
+
+### DATOS
+
+* [ ] No se inventaron datos.
+* [ ] No se inventaron causas.
+* [ ] No se inventaron estados.
+* [ ] No se inventaron indicadores.
+* [ ] Se identificaron datos faltantes.
+* [ ] Se detectaron posibles duplicados.
+
+### CÁLCULOS
+
+* [ ] Se verificaron totales importantes.
+* [ ] Se verificaron porcentajes.
+* [ ] Se verificaron promedios.
+* [ ] Se evitó doble conteo.
+* [ ] Los cálculos propios están diferenciados de los datos originales.
+
+### CONCLUSIONES
+
+* [ ] Cada conclusión tiene evidencia.
+* [ ] No se presentan hipótesis como hechos.
+* [ ] Las recomendaciones se relacionan con hallazgos.
+* [ ] No se agregó información externa.
+
+---
+
+# 19. MANEJO DE LIMITACIONES
+
+Si Gemini no puede leer correctamente alguna parte del archivo debido a:
+
+* Tamaño.
+* Complejidad.
+* Imágenes.
+* Fórmulas.
+* Formato.
+* Datos ocultos.
+* Información ilegible.
+
+NO inventes el contenido.
+
+Indica claramente qué parte no pudo analizarse y cómo afecta al resultado.
+
+---
+
+# 20. REGLA DE ORO
+
+**Es preferible entregar un análisis parcialmente limitado pero 100 % sustentado en el documento que entregar un análisis completo con información inventada o asumida.**
+
+La prioridad será siempre:
+
+**Fidelidad al Excel → Validación → Evidencia → Cálculo → Interpretación → Conclusión → Recomendación.**
+
+---
+
+# FORMATO FINAL DE SALIDA
+
+Entrega el informe en este orden:
 
 1. Resumen ejecutivo
-2. Indicadores generales
-3. Eficacia por taller
-4. Trabajos importantes/críticos
-5. Producción y BOPD
-6. Trabajos por tipo
-7. Trabajos pendientes
-8. Análisis de fallas
-9. Análisis operativo
-10. Gráficos recomendados
-11. Observaciones sobre calidad de datos
-12. Conclusiones
+2. Cobertura y estructura del archivo
+3. Análisis por hoja/guardia
+4. Análisis consolidado
+5. Eficacia por taller/área
+6. Trabajos importantes/críticos
+7. Producción y BOPD
+8. Tipos de trabajo
+9. Trabajos pendientes
+10. Análisis de fallas
+11. Análisis operativo
+12. Indicadores
+13. Gráficos
+14. Análisis de imágenes y elementos visuales
+15. Observaciones y calidad de datos
+16. Matriz de hallazgos
+17. Conclusiones
+18. Recomendaciones
+19. Limitaciones del análisis
+20. Control final de calidad
 
 Utiliza tablas cuando faciliten la comprensión.
 
-El informe debe tener lenguaje profesional, técnico y operativo.
+Evita explicaciones innecesariamente largas.
 
-IMPORTANTE:
+El resultado debe parecer un **informe operativo profesional elaborado a partir del Reporte de Guardia**, no una descripción genérica del Excel.
 
-Antes de generar cualquier conclusión, analiza primero TODO el contenido disponible del Excel. No bases el informe únicamente en las primeras filas o en una sola hoja.
+**Comienza analizando el archivo completo antes de redactar el informe.**
 
-Si el archivo contiene varias hojas, analiza todas las hojas relevantes.
-
-No inventes información faltante.
-
-El resultado debe ser reproducible: cualquier cifra, porcentaje o conclusión cuantitativa debe poder verificarse a partir de los datos del documento.
