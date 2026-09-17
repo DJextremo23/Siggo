@@ -338,31 +338,42 @@ def _cierre(prs):
 
 
 def _evidencia_card(slide, x, y, w, evidencia, foto_bytes):
-    """Dibuja una evidencia: foto + tres compartimientos (Descripción, Hallazgos, Acción)."""
-    card_h = 2.5
+    """Dibuja una evidencia: subtítulo (tipo) + foto + descripción/hallazgos/acción."""
+    card_h = 4.6
     _rrect(slide, x, y, w, card_h, C_WHITE, C_SEP, radius=0.05)
 
-    partes = []
-    n = evidencia.get("n_evidencia", "")
-    partes.append(f"Evidencia {n}" if n != "" else "Evidencia")
-    item_ref = evidencia.get("item_ref", "")
-    if item_ref:
-        partes.append(f"Ítem Ref. {item_ref}")
-    pozo = evidencia.get("pozo_equipo", "")
-    if pozo:
-        partes.append(f"Pozo/Equipo: {pozo}")
-    responsable = evidencia.get("responsable", "")
-    if responsable:
-        partes.append(f"Responsable: {responsable}")
-    fecha = evidencia.get("fecha_hora", "")
-    if fecha:
-        partes.append(f"Fecha/Hora: {fecha}")
-    _text(slide, x + 0.25, y + 0.12, w - 0.5, 0.28, "  ·  ".join(partes), 10, C_MUTED, True)
+    # Subtítulo (categoría): Alerta de Seguridad / Incidente Ambiental / Sustracción
+    tipo = (evidencia.get("tipo") or "").strip()
+    if tipo:
+        _rect(slide, x + 0.3, y + 0.16, 0.06, 0.32, C_TEAL)
+        _text(slide, x + 0.5, y + 0.15, w - 0.9, 0.34, tipo.upper(), 15, C_TEAL, True)
 
-    foto_w = 2.6
-    foto_h = 1.85
-    foto_x = x + 0.25
-    foto_y = y + 0.5
+    # Metadatos
+    meta = []
+    n = evidencia.get("n_evidencia", "")
+    item_ref = evidencia.get("item_ref", "")
+    pozo = evidencia.get("pozo_equipo", "")
+    responsable = evidencia.get("responsable", "")
+    fecha = evidencia.get("fecha_hora", "")
+    if n != "":
+        meta.append(f"Evidencia {n}")
+    if item_ref:
+        meta.append(f"Ítem Ref. {item_ref}")
+    if pozo:
+        meta.append(f"Pozo/Equipo: {pozo}")
+    if responsable:
+        meta.append(f"Responsable: {responsable}")
+    if fecha:
+        meta.append(f"Fecha/Hora: {fecha}")
+    meta_line = "  ·  ".join(meta)
+    if meta_line:
+        _text(slide, x + 0.3, y + 0.6, w - 0.6, 0.28, meta_line, 10, C_MUTED)
+
+    # Foto
+    foto_w = 3.4
+    foto_h = 3.6
+    foto_x = x + 0.3
+    foto_y = y + 0.95
     if foto_bytes:
         try:
             _add_picture_fitted(slide, foto_bytes, foto_x, foto_y, foto_w, foto_h)
@@ -371,24 +382,24 @@ def _evidencia_card(slide, x, y, w, evidencia, foto_bytes):
     else:
         _rrect(slide, foto_x, foto_y, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
 
-    comp_x = foto_x + foto_w + 0.25
-    comp_gap = 0.18
-    comp_w = (x + w - 0.25 - comp_x - 2 * comp_gap) / 3
-    compartimientos = [
-        ("Descripción del Incidente", evidencia.get("descripcion", "")),
+    # Campos de texto (derecha)
+    tx = foto_x + foto_w + 0.3
+    tw = x + w - 0.3 - tx
+    campos = [
+        ("Descripción", evidencia.get("descripcion", "")),
         ("Hallazgos", evidencia.get("hallazgos", "")),
         ("Acción Tomada", evidencia.get("accion_tomada", "")),
     ]
-    for i, (lbl, val) in enumerate(compartimientos):
-        cx = comp_x + i * (comp_w + comp_gap)
-        _rrect(slide, cx, foto_y, comp_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
-        _text(slide, cx + 0.12, foto_y + 0.08, comp_w - 0.24, 0.25, lbl, 9, C_TEAL, True)
-        _text(slide, cx + 0.12, foto_y + 0.36, comp_w - 0.24, foto_h - 0.45, val if val else "", 9, C_TEXT, wrap=True)
+    cy = foto_y
+    for lbl, val in campos:
+        _text(slide, tx, cy, tw, 0.28, lbl, 11, C_TEAL, True)
+        _text(slide, tx, cy + 0.3, tw, 0.85, val if val else "", 11, C_TEXT, wrap=True)
+        cy += 1.25
     return card_h
 
 
 def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
-    """Construye las diapositivas 'Seguridad y Medio Ambiente' (foto + 3 compartimientos)."""
+    """Construye las diapositivas 'Seguridad y Medio Ambiente' (una evidencia por hoja)."""
     total = max(len(evidencias), len(imagenes_archivo))
     if total == 0:
         s = _nueva_contenido(prs, mes_ano, num)
@@ -396,18 +407,13 @@ def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
         _evidencia_card(s, 0.6, 1.4, 12.1, {}, None)
         return num + 1
 
-    s_actual = None
-    cursor_y = 0.0
     for i in range(total):
         ev = evidencias[i] if i < len(evidencias) else {}
         foto = imagenes_archivo[i].get("bytes") if i < len(imagenes_archivo) else None
-        if s_actual is None or cursor_y + 2.8 > 6.85:
-            s_actual = _nueva_contenido(prs, mes_ano, num)
-            _titulo_contenido(s_actual, "Seguridad y Medio Ambiente")
-            num += 1
-            cursor_y = 1.15
-        _evidencia_card(s_actual, 0.6, cursor_y, 12.1, ev, foto)
-        cursor_y += 2.8
+        s = _nueva_contenido(prs, mes_ano, num)
+        _titulo_contenido(s, "Seguridad y Medio Ambiente")
+        _evidencia_card(s, 0.6, 1.3, 12.1, ev, foto)
+        num += 1
     return num
 
 
