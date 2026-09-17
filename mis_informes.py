@@ -1884,22 +1884,13 @@ def generar_ppt_analisis(id_informe):
         lineas = [_fit(l.strip(), 11.5, 12, 1) for l in resumen.split("\n") if l.strip()]
         if not lineas:
             lineas = ["No se generó resumen."]
+        if len(lineas) > 11:
+            lineas = lineas[:11] + ["…"]
 
-        def _resumen_card(slide, chunk, y, h):
-            _rounded_rect(slide, 0.6, y, 12.1, h, C_CARD_BG, C_BORDER)
-            _rect(slide, 0.6, y, 0.06, h, C_ACCENT)
-            _text_box(slide, 0.9, y + 0.15, 1.8, 0.35, "RESUMEN", 11, C_ACCENT, True)
-            _multi_text(slide, 0.9, y + 0.55, 11.5, h - 0.7, chunk, 12, C_TEXT,
-                        line_spacing=1.12)
-
-        _resumen_card(s2, lineas[:11], 3.4, 3.8)
-        restante = lineas[11:]
-        while restante:
-            s2b = prs.slides.add_slide(prs.slide_layouts[6])
-            _set_bg(s2b, C_LIGHT_BG)
-            _add_header(s2b, "Resumen Ejecutivo de Guardia (cont.)", C_ACCENT, None, 1)
-            _resumen_card(s2b, restante[:17], 1.55, 5.7)
-            restante = restante[17:]
+        _rounded_rect(s2, 0.6, 3.4, 12.1, 3.8, C_CARD_BG, C_BORDER)
+        _rect(s2, 0.6, 3.4, 0.06, 3.8, C_ACCENT)
+        _text_box(s2, 0.9, 3.55, 1.8, 0.35, "RESUMEN", 11, C_ACCENT, True)
+        _multi_text(s2, 0.9, 3.95, 11.5, 3.1, lineas, 12, C_TEXT, line_spacing=1.12)
 
         # ═══════════════════════════════
         # S3 — MÓDULO 2: EFICACIA POR TALLER (tarjetas con barra de progreso)
@@ -2128,66 +2119,34 @@ def generar_ppt_analisis(id_informe):
                 _render_pendientes(s7b, pendientes[pg:pg + per_page], pg)
 
         # ═══════════════════════════════
-        # S8 — HALLAZGOS CLAVE (aspectos relevantes del análisis)
+        # S8 — HALLAZGOS Y RECOMENDACIONES (combinados en una diapositiva)
         # ═══════════════════════════════
         hallazgos = data.get("hallazgos") or []
-        if hallazgos:
+        recomendaciones = data.get("recomendaciones") or []
+        if hallazgos or recomendaciones:
             s8 = prs.slides.add_slide(prs.slide_layouts[6])
             _set_bg(s8, C_LIGHT_BG)
-            _add_header(s8, "Hallazgos Clave", C_GOLD, "Aspectos relevantes identificados en el análisis", 6)
+            _add_header(s8, "Hallazgos y Recomendaciones", C_GOLD, "Aspectos clave y acciones sugeridas", 6)
 
-            cy = 1.65
-            for i, h in enumerate(hallazgos[:6]):
-                card_h = 0.72
-                _rounded_rect(s8, 0.6, cy, 12.1, card_h, C_CARD_BG, C_BORDER)
-                _rect(s8, 0.6, cy + 0.06, 0.06, card_h - 0.12, C_GOLD)
+            def _col(slide, x, w, titulo, color, items):
+                _section_title(slide, x, 1.6, w, titulo, color, 13)
+                y = 2.1
+                for i, it in enumerate(items[:5]):
+                    _rounded_rect(slide, x, y, w, 0.86, C_CARD_BG, C_BORDER)
+                    _rect(slide, x, y + 0.06, 0.06, 0.74, color)
+                    _text_box(slide, x + 0.2, y + 0.06, 0.4, 0.74, str(i + 1), 14, color, True,
+                              PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+                    _text_box(slide, x + 0.7, y + 0.06, w - 0.9, 0.74, _fit(str(it), w - 0.9, 11, 3),
+                              11, C_TEXT, False, PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.05)
+                    y += 0.96
 
-                num = s8.shapes.add_shape(
-                    MSO_SHAPE.OVAL, Inches(0.95), Inches(cy + (card_h - 0.42) / 2), Inches(0.42), Inches(0.42)
-                )
-                num.fill.solid(); num.fill.fore_color.rgb = C_GOLD
-                _no_line(num); _no_shadow(num)
-                ntf = num.text_frame; ntf.word_wrap = False
-                ntf.vertical_anchor = MSO_ANCHOR.MIDDLE
-                ntf.margin_left = 0; ntf.margin_right = 0; ntf.margin_top = 0; ntf.margin_bottom = 0
-                ntf.paragraphs[0].alignment = PP_ALIGN.CENTER
-                nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
-                nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
-
-                _text_box(s8, 1.6, cy, 10.9, card_h, _fit(str(h), 10.9, 12, 2), 12, C_TEXT, False,
-                          PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.1)
-                cy += card_h + 0.16
-
-        # ═══════════════════════════════
-        # S9 — RECOMENDACIONES (acciones sugeridas)
-        # ═══════════════════════════════
-        recomendaciones = data.get("recomendaciones") or []
-        if recomendaciones:
-            s9 = prs.slides.add_slide(prs.slide_layouts[6])
-            _set_bg(s9, C_LIGHT_BG)
-            _add_header(s9, "Recomendaciones", C_GREEN, "Acciones sugeridas con base en los resultados", 7)
-
-            cy = 1.65
-            for i, rec in enumerate(recomendaciones[:6]):
-                card_h = 0.72
-                _rounded_rect(s9, 0.6, cy, 12.1, card_h, C_CARD_BG, C_BORDER)
-                _rect(s9, 0.6, cy + 0.06, 0.06, card_h - 0.12, C_GREEN)
-
-                num = s9.shapes.add_shape(
-                    MSO_SHAPE.OVAL, Inches(0.95), Inches(cy + (card_h - 0.42) / 2), Inches(0.42), Inches(0.42)
-                )
-                num.fill.solid(); num.fill.fore_color.rgb = C_GREEN
-                _no_line(num); _no_shadow(num)
-                ntf = num.text_frame; ntf.word_wrap = False
-                ntf.vertical_anchor = MSO_ANCHOR.MIDDLE
-                ntf.margin_left = 0; ntf.margin_right = 0; ntf.margin_top = 0; ntf.margin_bottom = 0
-                ntf.paragraphs[0].alignment = PP_ALIGN.CENTER
-                nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
-                nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
-
-                _text_box(s9, 1.6, cy, 10.9, card_h, _fit(str(rec), 10.9, 12, 2), 12, C_TEXT, False,
-                          PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.1)
-                cy += card_h + 0.16
+            if hallazgos and recomendaciones:
+                _col(s8, 0.6, 5.9, "HALLAZGOS", C_GOLD, hallazgos)
+                _col(s8, 6.85, 5.9, "RECOMENDACIONES", C_GREEN, recomendaciones)
+            elif hallazgos:
+                _col(s8, 0.6, 12.1, "HALLAZGOS", C_GOLD, hallazgos)
+            else:
+                _col(s8, 0.6, 12.1, "RECOMENDACIONES", C_GREEN, recomendaciones)
 
         # ═══════════════════════════════
         # S10 — ANÁLISIS DE IMÁGENES Y ELEMENTOS VISUALES (imágenes incrustadas)
@@ -2219,20 +2178,13 @@ def generar_ppt_analisis(id_informe):
 
             s_img = prs.slides.add_slide(prs.slide_layouts[6])
             _set_bg(s_img, C_LIGHT_BG)
-            _add_header(s_img, "Análisis de Imágenes y Elementos Visuales", C_ACCENT,
-                        "Fotografías y evidencias visuales contenidas en el documento", 8)
+            subtitulo_imgs = "Fotografías y evidencias visuales contenidas en el documento"
+            if total > 2:
+                subtitulo_imgs += f"  ·  {total} imágenes"
+            _add_header(s_img, "Análisis de Imágenes y Elementos Visuales", C_ACCENT, subtitulo_imgs, 7)
             _render_imagen(s_img, 0, 0.8, 1.6)
             if total > 1:
                 _render_imagen(s_img, 1, 7.0, 1.6)
-
-            for base in range(2, total, 2):
-                s_img2 = prs.slides.add_slide(prs.slide_layouts[6])
-                _set_bg(s_img2, C_LIGHT_BG)
-                _add_header(s_img2, "Análisis de Imágenes y Elementos Visuales (cont.)", C_ACCENT,
-                            None, 8)
-                _render_imagen(s_img2, base, 0.8, 1.6)
-                if base + 1 < total:
-                    _render_imagen(s_img2, base + 1, 7.0, 1.6)
 
         # ═══════════════════════════════
         # S9 — DIAPOSITIVA DE CIERRE
