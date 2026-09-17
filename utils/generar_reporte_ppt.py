@@ -337,82 +337,80 @@ def _cierre(prs):
     return s
 
 
-def _evidencia_card(slide, x, y, w, evidencia, foto_bytes):
-    """Dibuja una evidencia: subtítulo (tipo) + foto + descripción/hallazgos/acción."""
-    card_h = 4.6
+def _incidente(slide, x, y, w, evidencia, foto_bytes):
+    """Dibuja un incidente: foto + fecha, lugar, ¿qué pasó? y descripción."""
+    card_h = 2.3
     _rrect(slide, x, y, w, card_h, C_WHITE, C_SEP, radius=0.05)
 
-    # Subtítulo (categoría): Alerta de Seguridad / Incidente Ambiental / Sustracción
-    tipo = (evidencia.get("tipo") or "").strip()
-    if tipo:
-        _rect(slide, x + 0.3, y + 0.16, 0.06, 0.32, C_TEAL)
-        _text(slide, x + 0.5, y + 0.15, w - 0.9, 0.34, tipo.upper(), 15, C_TEAL, True)
-
-    # Metadatos
-    meta = []
-    n = evidencia.get("n_evidencia", "")
-    item_ref = evidencia.get("item_ref", "")
-    pozo = evidencia.get("pozo_equipo", "")
-    responsable = evidencia.get("responsable", "")
-    fecha = evidencia.get("fecha_hora", "")
-    if n != "":
-        meta.append(f"Evidencia {n}")
-    if item_ref:
-        meta.append(f"Ítem Ref. {item_ref}")
-    if pozo:
-        meta.append(f"Pozo/Equipo: {pozo}")
-    if responsable:
-        meta.append(f"Responsable: {responsable}")
-    if fecha:
-        meta.append(f"Fecha/Hora: {fecha}")
-    meta_line = "  ·  ".join(meta)
-    if meta_line:
-        _text(slide, x + 0.3, y + 0.6, w - 0.6, 0.28, meta_line, 10, C_MUTED)
-
-    # Foto
-    foto_w = 3.4
-    foto_h = 3.6
-    foto_x = x + 0.3
-    foto_y = y + 0.95
+    foto_w = 2.8
+    foto_h = 1.9
     if foto_bytes:
         try:
-            _add_picture_fitted(slide, foto_bytes, foto_x, foto_y, foto_w, foto_h)
+            _add_picture_fitted(slide, foto_bytes, x + 0.15, y + 0.2, foto_w, foto_h)
         except Exception:
-            _rrect(slide, foto_x, foto_y, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
+            _rrect(slide, x + 0.15, y + 0.2, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
     else:
-        _rrect(slide, foto_x, foto_y, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
+        _rrect(slide, x + 0.15, y + 0.2, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
 
-    # Campos de texto (derecha)
-    tx = foto_x + foto_w + 0.3
-    tw = x + w - 0.3 - tx
+    tx = x + 0.15 + foto_w + 0.25
+    tw = x + w - 0.15 - tx
     campos = [
-        ("Descripción", evidencia.get("descripcion", "")),
-        ("Hallazgos", evidencia.get("hallazgos", "")),
-        ("Acción Tomada", evidencia.get("accion_tomada", "")),
+        ("Fecha", evidencia.get("fecha", "")),
+        ("Lugar", evidencia.get("lugar", "")),
+        ("¿Qué pasó?", evidencia.get("que_paso", "")),
+        ("Descripción de lo sucedido", evidencia.get("descripcion", "")),
     ]
-    cy = foto_y
+    cy = y + 0.12
     for lbl, val in campos:
-        _text(slide, tx, cy, tw, 0.28, lbl, 11, C_TEAL, True)
-        _text(slide, tx, cy + 0.3, tw, 0.85, val if val else "", 11, C_TEXT, wrap=True)
-        cy += 1.25
+        _text(slide, tx, cy, 1.7, 0.25, lbl + ":", 9, C_TEAL, True)
+        _text(slide, tx + 1.7, cy, tw - 1.7, 0.45, val if val else "—", 9, C_TEXT, wrap=True)
+        cy += 0.5
     return card_h
 
 
 def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
-    """Construye las diapositivas 'Seguridad y Medio Ambiente' (una evidencia por hoja)."""
-    total = max(len(evidencias), len(imagenes_archivo))
-    if total == 0:
-        s = _nueva_contenido(prs, mes_ano, num)
-        _titulo_contenido(s, "Seguridad y Medio Ambiente")
-        _evidencia_card(s, 0.6, 1.4, 12.1, {}, None)
-        return num + 1
+    """Construye la hoja 'Seguridad y Medio Ambiente': tres subtítulos
+    (Alerta de Seguridad / Incidente Ambiental / Sustracción) y sus incidentes."""
+    TIPOS = ["Alerta de Seguridad", "Incidente Ambiental", "Sustracción"]
 
+    total = max(len(evidencias), len(imagenes_archivo))
+    entradas = []
     for i in range(total):
         ev = evidencias[i] if i < len(evidencias) else {}
         foto = imagenes_archivo[i].get("bytes") if i < len(imagenes_archivo) else None
+        entradas.append((ev, foto))
+
+    grupos = {t: [] for t in TIPOS}
+    for ev, foto in entradas:
+        tipo = (ev.get("tipo") or "").strip()
+        if tipo not in grupos:
+            tipo = TIPOS[0]
+        grupos[tipo].append((ev, foto))
+
+    s = None
+    cursor_y = 0.0
+    for tipo in TIPOS:
+        items = grupos[tipo]
+        need_subtitulo = 0.55 + (2.4 if items else 0.0)
+        if s is None or cursor_y + need_subtitulo > 6.85:
+            s = _nueva_contenido(prs, mes_ano, num)
+            _titulo_contenido(s, "Seguridad y Medio Ambiente")
+            num += 1
+            cursor_y = 1.15
+        _rrect(s, 0.6, cursor_y, 12.1, 0.4, C_NAVY, None, radius=0.06)
+        _text(s, 0.75, cursor_y + 0.05, 11.8, 0.3, tipo.upper(), 11, C_WHITE, True, anchor=MSO_ANCHOR.MIDDLE)
+        cursor_y += 0.55
+        for (ev, foto) in items:
+            if s is None or cursor_y + 2.4 > 6.85:
+                s = _nueva_contenido(prs, mes_ano, num)
+                _titulo_contenido(s, "Seguridad y Medio Ambiente")
+                num += 1
+                cursor_y = 1.15
+            _incidente(s, 0.6, cursor_y, 12.1, ev, foto)
+            cursor_y += 2.4
+    if s is None:
         s = _nueva_contenido(prs, mes_ano, num)
         _titulo_contenido(s, "Seguridad y Medio Ambiente")
-        _evidencia_card(s, 0.6, 1.3, 12.1, ev, foto)
         num += 1
     return num
 

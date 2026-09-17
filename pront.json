@@ -86,7 +86,7 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
       }
     ],
     "evidencias": [
-      {"n_evidencia": 1, "tipo": "Alerta de Seguridad", "item_ref": "", "pozo_equipo": "", "descripcion": "", "hallazgos": "", "accion_tomada": "", "responsable": "", "fecha_hora": "", "imagen": ""}
+      {"tipo": "Alerta de Seguridad", "fecha": "", "lugar": "", "que_paso": "", "descripcion": ""}
     ],
     "pendientes": [
       {
@@ -104,5 +104,11 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
 - Reemplaza **TODOS** los valores de ejemplo con los datos REALES extraídos del documento.
 - **"cabecera":** Producción OIL, Prod. Perdida imputada, Producción GAS y Producción recuperada. Usa "" si no aparecen.
 - **"talleres":** lista ORDENADA de secciones. Cada una con "filas" (solo filas con datos). Campos: item, pozo, bateria, produccion_bopd, requerimiento, estado, fecha_ejecucion, tipo, relevante, cuadrilla, actividad_ejecutada. Omite talleres inexistentes.
-- **"evidencias":** filas de IMÁGENES / SEGURIDAD Y MEDIO AMBIENTE. Campos: n_evidencia, tipo, item_ref, pozo_equipo, descripcion, hallazgos, accion_tomada, responsable, fecha_hora, imagen. "tipo" clasifica cada evidencia en una de estas tres categorías (según su descripción): "Alerta de Seguridad", "Incidente Ambiental" o "Sustracción". Devuelve [] si no hay.
+- **"evidencias":** filas de IMÁGENES / SEGURIDAD Y MEDIO AMBIENTE. Cada evidencia con:
+  * "tipo": categoría — "Alerta de Seguridad", "Incidente Ambiental" o "Sustracción".
+  * "fecha": fecha/hora del incidente.
+  * "lugar": lugar, pozo o equipo donde ocurrió.
+  * "que_paso": breve descripción de qué pasó (Descripción del Incidente).
+  * "descripcion": descripción detallada de lo sucedido (Hallazgos).
+  Devuelve [] si no hay.
 - **"pendientes":** secciones de TRABAJOS PENDIENTES con sus "filas" (item, pozo, bateria, produccion_bopd, requerimiento, estado, fecha_ejecucion, actividad_ejecutada).
