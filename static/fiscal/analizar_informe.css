@@ -348,6 +348,7 @@
         .result-header .header-icon.modulo3 { background: #fffbeb; color: #f59e0b; }
         .result-header .header-icon.modulo4 { background: #ecfdf5; color: #10b981; }
         .result-header .header-icon.modulo5 { background: #fef2f2; color: #ef4444; }
+        .result-header .header-icon.imagenes { background: #f5f3ff; color: #8b5cf6; }
         .result-header h2 {
             font-size: 17px;
             font-weight: 700;
@@ -361,8 +362,25 @@
         .resumen-texto {
             color: #334155;
             font-size: 14.5px;
-            line-height: 1.75;
-            white-space: pre-wrap;
+            line-height: 1.7;
+        }
+        .resumen-seccion {
+            font-weight: 700;
+            color: #4f46e5;
+            font-size: 12.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 18px 0 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #ede9fe;
+        }
+        .resumen-seccion:first-child {
+            margin-top: 0;
+        }
+        .resumen-linea {
+            margin: 4px 0;
+            padding-left: 12px;
+            border-left: 2px solid #e0e7ff;
         }
 
         /* ---- HALLAZGOS ---- */
@@ -441,6 +459,56 @@
             color: #14532d;
             line-height: 1.6;
             padding-top: 4px;
+        }
+
+        /* ---- IMÁGENES / ELEMENTOS VISUALES ---- */
+        .imagen-item {
+            display: flex;
+            gap: 14px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e0e7ff;
+            margin-bottom: 10px;
+        }
+        .imagen-item:last-child {
+            margin-bottom: 0;
+        }
+        .imagen-icono {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(99,102,241,.3);
+        }
+        .imagen-contenido {
+            flex: 1;
+        }
+        .imagen-referencia {
+            font-weight: 700;
+            color: #4f46e5;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .imagen-descripcion {
+            font-size: 14px;
+            color: #334155;
+            line-height: 1.6;
+        }
+        .imagen-thumb {
+            display: block;
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            border: 1px solid #e0e7ff;
+            margin: 10px 0;
+            object-fit: contain;
+            background: #fff;
         }
         .graficas-grid {
             display: grid;

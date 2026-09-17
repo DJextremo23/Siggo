@@ -1103,13 +1103,10 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
         response_mime_type="application/json",
     )
 
-    documento = f"""TÍTULO DEL DOCUMENTO: {titulo}
-DESCRIPCIÓN: {descripcion}
-
-CONTENIDO DEL DOCUMENTO:
-{texto[:30000]}"""
-
-    prompt = _cargar_pront().replace("<<<CONTENIDO>>>", documento)
+    prompt = (_cargar_pront()
+              .replace("<<<TITULO>>>", titulo or "")
+              .replace("<<<DESCRIPCION>>>", descripcion or "")
+              .replace("<<<CONTENIDO>>>", texto[:30000]))
 
     # Limitar la cantidad de imágenes enviadas para no exceder el tamaño/latencia.
     imagenes = imagenes[:8]
@@ -1372,6 +1369,56 @@ def analizar_informe_api(id_informe):
 
         return jsonify(resultado)
 
+    finally:
+        if cursor is not None: cursor.close()
+        if conn is not None: conn.close()
+
+
+@informe_bp.route("/analizar_informe/<int:id_informe>/imagen/<int:indice>")
+def analizar_informe_imagen(id_informe, indice):
+    """Sirve la imagen incrustada en el Excel en la posición indicada (1-based)."""
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
+    perfil = session.get("perfil_activo")
+    if perfil not in ("fiscalizador", "admin"):
+        return jsonify({"error": "Acceso no autorizado"}), 403
+
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+
+        if perfil == "admin":
+            cursor.execute("""
+                SELECT i.ruta_archivo, i.tipo_archivo
+                FROM informes i
+                WHERE i.id_informe = %s AND i.estado = 'activo'
+            """, (id_informe,))
+        else:
+            cursor.execute("""
+                SELECT i.ruta_archivo, i.tipo_archivo
+                FROM informes i
+                WHERE i.id_informe = %s AND i.id_usuario = %s AND i.estado = 'activo'
+            """, (id_informe, session["id_usuario"]))
+        informe = cursor.fetchone()
+        if not informe:
+            return jsonify({"error": "Informe no encontrado"}), 404
+
+        imagenes = _extraer_imagenes_archivo({
+            "extension": informe.get("tipo_archivo", ""),
+            "ruta_archivo": informe.get("ruta_archivo", ""),
+        })
+
+        idx = indice - 1
+        if idx < 0 or idx >= len(imagenes):
+            return jsonify({"error": "Imagen no encontrada"}), 404
+
+        img = imagenes[idx]
+        return send_file(
+            BytesIO(img["bytes"]),
+            mimetype=img.get("mime", "image/png"),
+        )
     finally:
         if cursor is not None: cursor.close()
         if conn is not None: conn.close()
@@ -1643,6 +1690,9 @@ def generar_ppt_analisis(id_informe):
                       anchor=MSO_ANCHOR.MIDDLE)
             if subtitle:
                 _text_box(slide, title_x, 0.78, 11.2, 0.35, subtitle, 11, C_SUBTLE)
+
+            # Línea de cierre inferior para dar consistencia visual
+            _rect(slide, 0, 7.44, 13.333, 0.06, accent_color)
 
         def _add_kpi(slide, x, y, w, value, label, color):
             _rounded_rect(slide, x, y, w, 1.4, C_CARD_BG, C_BORDER)

@@ -165,6 +165,56 @@
                 </div>
             </div>
 
+            <!-- Hallazgos Clave -->
+            <div class="result-card" id="hallazgos-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon hallazgos">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <h2>Hallazgos Clave</h2>
+                </div>
+                <div class="result-body">
+                    <div id="hallazgos-list"></div>
+                </div>
+            </div>
+
+            <!-- Recomendaciones -->
+            <div class="result-card" id="recomendaciones-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon recomendaciones">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <h2>Recomendaciones</h2>
+                </div>
+                <div class="result-body">
+                    <div id="recomendaciones-list"></div>
+                </div>
+            </div>
+
+            <!-- Análisis de Imágenes y Elementos Visuales -->
+            <div class="result-card" id="imagenes-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon imagenes">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </div>
+                    <h2>Análisis de Imágenes y Elementos Visuales</h2>
+                </div>
+                <div class="result-body">
+                    <div id="imagenes-list"></div>
+                </div>
+            </div>
+
             <!-- Graficas -->
             <div class="graficas-grid" id="graficas-grid"></div>
 
@@ -251,6 +301,30 @@ function destruirGraficas() {
     charts = [];
 }
 
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function renderResumen(texto) {
+    const lineas = String(texto || '').split('\n');
+    let html = '';
+    for (const l of lineas) {
+        const t = l.trim();
+        if (!t) continue;
+        const esSeccion = t === t.toUpperCase() && /^[A-ZÁÉÍÓÚÑ0-9\s\-_/:.()]{3,60}$/.test(t);
+        if (esSeccion) {
+            html += '<div class="resumen-seccion">' + escapeHtml(t) + '</div>';
+        } else {
+            html += '<div class="resumen-linea">' + escapeHtml(t) + '</div>';
+        }
+    }
+    return html;
+}
+
 function setPaso(stepNumber) {
     document.querySelectorAll('.progress-step').forEach(el => el.classList.remove('active', 'done'));
     document.querySelectorAll('.progress-connector').forEach(el => el.classList.remove('done'));
@@ -312,9 +386,65 @@ function mostrarResultados(data) {
         resumenCard.style.animation = 'none';
         resumenCard.offsetHeight;
         resumenCard.style.animation = 'card-enter .5s ease backwards';
-        document.getElementById('resumen-texto').textContent = data.resumen;
+        document.getElementById('resumen-texto').innerHTML = renderResumen(data.resumen);
     } else {
         resumenCard.style.display = 'none';
+    }
+
+    // Hallazgos Clave
+    const hallazgosCard = document.getElementById('hallazgos-card');
+    if (data.hallazgos && data.hallazgos.length > 0) {
+        hallazgosCard.style.display = 'block';
+        hallazgosCard.style.animation = 'none';
+        hallazgosCard.offsetHeight;
+        hallazgosCard.style.animation = 'card-enter .5s .1s ease backwards';
+        document.getElementById('hallazgos-list').innerHTML = data.hallazgos.map(function (h, i) {
+            return '<div class="hallazgo-item"><div class="hallazgo-numero">' + (i + 1) + '</div><div class="hallazgo-texto">' + escapeHtml(h) + '</div></div>';
+        }).join('');
+    } else {
+        hallazgosCard.style.display = 'none';
+    }
+
+    // Recomendaciones
+    const recomendacionesCard = document.getElementById('recomendaciones-card');
+    if (data.recomendaciones && data.recomendaciones.length > 0) {
+        recomendacionesCard.style.display = 'block';
+        recomendacionesCard.style.animation = 'none';
+        recomendacionesCard.offsetHeight;
+        recomendacionesCard.style.animation = 'card-enter .5s .15s ease backwards';
+        document.getElementById('recomendaciones-list').innerHTML = data.recomendaciones.map(function (r, i) {
+            return '<div class="recomendacion-item"><div class="recomendacion-numero">' + (i + 1) + '</div><div class="recomendacion-texto">' + escapeHtml(r) + '</div></div>';
+        }).join('');
+    } else {
+        recomendacionesCard.style.display = 'none';
+    }
+
+    // Análisis de imágenes y elementos visuales
+    const imagenesCard = document.getElementById('imagenes-card');
+    const imgs = data.analisis_imagenes || [];
+    if (imgs.length > 0) {
+        imagenesCard.style.display = 'block';
+        imagenesCard.style.animation = 'none';
+        imagenesCard.offsetHeight;
+        imagenesCard.style.animation = 'card-enter .5s .2s ease backwards';
+        document.getElementById('imagenes-list').innerHTML = imgs.map(function (im, i) {
+            let ref = '', desc = '';
+            if (typeof im === 'object' && im !== null) {
+                ref = im.referencia || ('Imagen ' + (i + 1));
+                desc = im.descripcion || '';
+            } else {
+                ref = 'Imagen ' + (i + 1);
+                desc = String(im);
+            }
+            return '<div class="imagen-item">'
+                + '<div class="imagen-contenido">'
+                + '<div class="imagen-referencia">' + escapeHtml(ref) + '</div>'
+                + '<img class="imagen-thumb" src="/analizar_informe/' + INFORME_ID + '/imagen/' + (i + 1) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'" />'
+                + (desc ? '<div class="imagen-descripcion">' + escapeHtml(desc) + '</div>' : '')
+                + '</div></div>';
+        }).join('');
+    } else {
+        imagenesCard.style.display = 'none';
     }
 
     // MODULO 2: Eficacia por Taller

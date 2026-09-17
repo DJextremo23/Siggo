@@ -1221,4 +1221,86 @@ El resultado final debe ser un:
 
 **REPORTE OPERATIVO PROFESIONAL, COMPLETO, REPRODUCIBLE, TRAZABLE Y VERIFICABLE.**
 
+---
+
+# DOCUMENTO A ANALIZAR
+
+TÍTULO DEL DOCUMENTO: <<<TITULO>>>
+DESCRIPCIÓN: <<<DESCRIPCION>>>
+
+CONTENIDO DEL DOCUMENTO:
+<<<CONTENIDO>>>
+
+---
+
+# SALIDA FINAL OBLIGATORIA (FORMATO JSON)
+
+La estructura de reporte descrita arriba es tu **metodología de análisis**. Sin embargo, tu **respuesta final** debe ser ÚNICAMENTE un JSON válido (sin markdown, sin texto adicional, sin comillas triples) con esta estructura exacta:
+
+{
+  "resumen": "Texto completo del RESUMEN EJECUTIVO en formato legible, incluyendo total de actividades, producción recuperada en BOPD, total de trabajos críticos y desglose por tipo y taller. Usa saltos de línea \n para separar secciones.",
+  "hallazgos": ["Hallazgo clave 1", "Hallazgo clave 2", "Hallazgo clave 3", "Hallazgo clave 4", "Hallazgo clave 5"],
+  "recomendaciones": ["Recomendación 1", "Recomendación 2", "Recomendación 3", "Recomendación 4", "Recomendación 5"],
+  "graficas": [
+    {
+      "tipo": "bar",
+      "titulo": "Actividades por Taller Unificado",
+      "labels": ["<TALLERES REALES UNIFICADOS DEL DOCUMENTO>"],
+      "datasets": [
+        {"label": "Ejecutadas", "data": [0]},
+        {"label": "Completadas", "data": [0]}
+      ]
+    },
+    {
+      "tipo": "pie",
+      "titulo": "Distribución de Trabajos por Tipo",
+      "labels": ["<TIPOS REALES DEL DOCUMENTO, ej. CNP, PV, SOP, SUS>"],
+      "datasets": [
+        {"label": "Cantidad", "data": [0], "backgroundColor": ["#22c55e", "#f59e0b", "#3b82f6", "#8b5cf6"]}
+      ]
+    },
+    {
+      "tipo": "bar",
+      "titulo": "Producción Recuperada CNP por Taller (BOPD)",
+      "labels": ["<TALLERES REALES CON CNP COMPLETADO>"],
+      "datasets": [
+        {"label": "BOPD Recuperados", "data": [0], "backgroundColor": ["#1e3a5f", "#2563eb", "#3b82f6", "#60a5fa"]}
+      ]
+    }
+  ],
+  "modulo1_resumen_ejecutivo": {
+    "total_actividades": 0,
+    "total_produccion_recuperada_bopd": 0,
+    "total_trabajos_criticos": 0,
+    "desglose_por_tipo": {},
+    "desglose_por_taller": {}
+  },
+  "modulo2_eficacia_taller": [
+    {"taller": "MONTAJE", "ejecutadas": 0, "completadas": 0, "eficacia": 0.0}
+  ],
+  "modulo3_trabajos_importantes": [
+    {"taller": "MONTAJE", "pozo": "XXX-001", "falla": "Descripción de la falla", "solucion": "Descripción de la solución"}
+  ],
+  "modulo4_resumen_operativo": {
+    "bopd_por_taller": {},
+    "trabajos_por_tipo": {}
+  },
+  "modulo5_pendientes": [
+    {"taller": "MONTAJE", "pozo": "XXX-001", "requerimiento": "Descripción de la tarea pendiente", "estado": "pendiente"}
+  ],
+  "analisis_imagenes": [
+    {"referencia": "Imagen 1 — Hoja 'Guardia 01' (celda C5)", "descripcion": "Qué muestra la imagen, a qué campo o registro está asociada (según su ubicación) y qué información aporta"}
+  ]
+}
+
+IMPORTANTE:
+- Responde SOLO con el JSON válido, sin explicaciones ni markdown.
+- Reemplaza TODOS los valores de ejemplo con los datos REALES extraídos del documento.
+- "analisis_imagenes": describe cada imagen enviada en el MISMO orden (Imagen 1, Imagen 2, ...). En "referencia" usa la ubicación indicada (hoja y celda) y en "descripcion" escribe qué muestra y, según su ubicación, a qué campo o registro está asociada. Devuelve [] si el documento no contiene imágenes.
+- VERIFICACIÓN FINAL OBLIGATORIA antes de responder:
+  a) modulo3_trabajos_importantes debe contener TODAS las filas marcadas "[CRITICO-AMARILLO]" (tras deduplicar por pozo+requerimiento) y NINGUNA actividad sin esa marca.
+  b) modulo5_pendientes SOLO debe contener tareas cuyo Estado FINAL (último día donde aparece la tarea) sea distinto de 1. Revisa tarea por tarea: si su última aparición tiene Estado = 1, elimínala de pendientes. Y toda tarea cuya última aparición tenga Estado 0, decimal o vacío DEBE estar en pendientes.
+  c) Recalcula cada suma: total_produccion_recuperada_bopd debe ser EXACTAMENTE igual a la suma de bopd_por_taller, y total_actividades igual a la suma de "ejecutadas" del desglose_por_taller. Corrige cualquier inconsistencia antes de responder.
+  d) bopd_por_taller debe incluir SOLO talleres cuya suma de CNP completados sea mayor que 0 (omite talleres con 0).
+
 
