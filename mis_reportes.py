@@ -89,6 +89,7 @@ def _dias_pendientes_acumulados(cursor, id_usuario):
         SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
         FROM vacaciones v
         WHERE v.id_usuario = %s
+          AND v.fecha_inicio <= CURDATE()
     """, (id_usuario,))
     result = cursor.fetchone()
     total_tomados = result["total"] if result else 0
@@ -124,6 +125,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
             WHERE v.id_usuario = %s
+              AND v.fecha_inicio <= CURDATE()
         """, (id_usuario,))
         result = cursor.fetchone()
         dias_tomados_total = result["total"] if result else 0
@@ -348,6 +350,7 @@ def mis_reportes():
                 FROM vacaciones v
                 JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
+                  AND v.fecha_inicio <= CURDATE()
             """, (id_usuario,))
             result = cursor.fetchone()
             dias_tomados_total = result["total"] if result else 0
