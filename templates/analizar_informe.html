@@ -316,8 +316,11 @@ function renderResumen(texto) {
         const t = l.trim();
         if (!t) continue;
         const esSeccion = t === t.toUpperCase() && /^[A-ZÁÉÍÓÚÑ0-9\s\-_/:.()]{3,60}$/.test(t);
+        const esVineta = /^[-•*·]\s+/.test(t);
         if (esSeccion) {
             html += '<div class="resumen-seccion">' + escapeHtml(t) + '</div>';
+        } else if (esVineta) {
+            html += '<div class="resumen-linea resumen-vineta">' + escapeHtml(t) + '</div>';
         } else {
             html += '<div class="resumen-linea">' + escapeHtml(t) + '</div>';
         }
@@ -456,10 +459,22 @@ function mostrarResultados(data) {
         modulo2Card.style.animation = 'card-enter .5s .2s ease backwards';
         let html2 = '<table class="data-table"><thead><tr><th>Taller Unificado</th><th>Ejecutadas</th><th>Completadas 100%</th><th>Eficacia %</th></tr></thead><tbody>';
         data.modulo2_eficacia_taller.forEach(row => {
-            const eficacia = row.eficacia != null ? Number(row.eficacia).toFixed(1) + '%' : 'N/A';
-            html2 += `<tr><td><strong>${row.taller || ''}</strong></td><td>${row.ejecutadas ?? '-'}</td><td>${row.completadas ?? '-'}</td><td><span class="badge-efficiency">${eficacia}</span></td></tr>`;
+            const ef = row.eficacia != null ? Number(row.eficacia) : null;
+            const eficacia = ef != null ? ef.toFixed(1) + '%' : 'N/A';
+            let clase = '';
+            if (ef != null) {
+                if (ef >= 80) clase = 'ef-alta';
+                else if (ef >= 50) clase = 'ef-media';
+                else clase = 'ef-baja';
+            }
+            html2 += `<tr><td><strong>${escapeHtml(row.taller || '')}</strong></td><td>${row.ejecutadas ?? '-'}</td><td>${row.completadas ?? '-'}</td><td><span class="badge-efficiency ${clase}">${eficacia}</span></td></tr>`;
         });
         html2 += '</tbody></table>';
+        html2 += '<div class="leyenda-eficacia">'
+            + '<span class="leyenda-item"><span class="leyenda-dot" style="background:#16a34a"></span> ≥ 80% Eficiente</span>'
+            + '<span class="leyenda-item"><span class="leyenda-dot" style="background:#f59e0b"></span> 50–79% Regular</span>'
+            + '<span class="leyenda-item"><span class="leyenda-dot" style="background:#ef4444"></span> &lt; 50% Baja</span>'
+            + '</div>';
         document.getElementById('modulo2-tabla').innerHTML = html2;
     } else {
         modulo2Card.style.display = 'none';
@@ -631,7 +646,18 @@ function mostrarResultados(data) {
                             anchor: 'center',
                             clamp: true
                         } : {
-                            display: false
+                            color: '#334155',
+                            font: { size: 11, weight: '700', family: "'Inter','Segoe UI',sans-serif" },
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 3,
+                            formatter: function(value) {
+                                return value;
+                            },
+                            display: function(context) {
+                                const v = context.dataset.data[context.dataIndex];
+                                return v != null && v !== 0;
+                            }
                         },
                         legend: {
                             position: 'bottom',
