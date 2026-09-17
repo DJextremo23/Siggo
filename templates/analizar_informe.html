@@ -8,9 +8,7 @@
     <title>Analisis con IA</title>
     <meta name="csrf-token" content="{{ csrf_token }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/mis_informes.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='fiscal/analizar_informe.css') }}">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/analizar_informe.css') }}">
 </head>
 
 <body>
@@ -20,8 +18,6 @@
 
 <div class="content">
     <div class="analisis-container">
-
-        <!-- Página: Análisis IA de Informe — Gemini analiza el documento y genera gráficas automáticamente -->
 
         <!-- Cabecera de la página y botones de navegación -->
         <div class="page-header">
@@ -65,7 +61,7 @@
             </button>
         </div>
 
-        <!-- Información del documento analizado: título, archivo, tipo y fecha de guardia -->
+        <!-- Información del documento analizado -->
         <div class="doc-info-card">
             <div class="card-header">
                 <div class="icon-circle">
@@ -96,7 +92,7 @@
             </div>
         </div>
 
-        <!-- Pantalla de carga: partículas animadas, barra de progreso (3 pasos) y mensajes de estado -->
+        <!-- Pantalla de carga -->
         <div class="loading-stage active" id="loading-stage">
             <div class="loading-particles" id="particles"></div>
             <div class="ai-orb">
@@ -124,17 +120,12 @@
                     <span class="step-dot">2</span>
                     <span>Analizando con IA</span>
                 </div>
-                <div class="progress-connector" id="conn-2"></div>
-                <div class="progress-step" id="step-charts">
-                    <span class="step-dot">3</span>
-                    <span>Generando graficas</span>
-                </div>
             </div>
             <p class="loading-message typing-dots" id="loading-message">Preparando analisis</p>
             <p class="loading-sub" id="loading-sub">Conectando con Gemini AI...</p>
         </div>
 
-        <!-- Tarjeta de error: se muestra si falla el análisis (con reintentos automáticos por cuota) -->
+        <!-- Tarjeta de error -->
         <div class="error-card" id="error-card">
             <div class="error-icon">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -145,9 +136,8 @@
             <strong id="error-message"></strong>
         </div>
 
-        <!-- Resultados del análisis: resumen ejecutivo, gráficas generadas y módulos 2 al 5 -->
+        <!-- Resultados: Registro de Guardia (según formato_guardia_mtto.md) -->
         <div class="resultados-wrapper" id="resultados-wrapper">
-            <!-- Registro de Guardia (extraído conforme a formato_guardia_mtto.md) -->
             <div class="result-card" id="registro-card" style="display:none;">
                 <div class="result-header">
                     <div class="header-icon registro">
@@ -164,144 +154,16 @@
                     <div id="registro-content"></div>
                 </div>
             </div>
-
-            <!-- Resumen -->
-            <div class="result-card" id="resumen-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon resumen">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
-                    </div>
-                    <h2>Resumen Ejecutivo</h2>
-                </div>
-                <div class="result-body">
-                    <div class="resumen-texto" id="resumen-texto"></div>
-                </div>
-            </div>
-
-            <!-- Hallazgos Clave -->
-            <div class="result-card" id="hallazgos-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon hallazgos">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                    </div>
-                    <h2>Hallazgos Clave</h2>
-                </div>
-                <div class="result-body">
-                    <div id="hallazgos-list"></div>
-                </div>
-            </div>
-
-            <!-- Análisis de Imágenes y Elementos Visuales -->
-            <div class="result-card" id="imagenes-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon imagenes">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="21 15 16 10 5 21"/>
-                        </svg>
-                    </div>
-                    <h2>Análisis de Imágenes y Elementos Visuales</h2>
-                </div>
-                <div class="result-body">
-                    <div id="imagenes-list"></div>
-                </div>
-            </div>
-
-            <!-- Graficas -->
-            <div class="graficas-grid" id="graficas-grid"></div>
-
-            <!-- MODULO 2: Eficacia por Taller -->
-            <div class="result-card" id="modulo2-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon modulo2">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <line x1="3" y1="9" x2="21" y2="9"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
-                        </svg>
-                    </div>
-                    <h2>MODULO 2: Control de Actividades y Eficacia por Taller</h2>
-                </div>
-                <div class="result-body">
-                    <div class="table-responsive" id="modulo2-tabla"></div>
-                </div>
-            </div>
-
-            <!-- MODULO 3: Trabajos Importantes -->
-            <div class="result-card" id="modulo3-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon modulo3">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
-                    </div>
-                    <h2>MODULO 3: Matriz de Trabajos Importantes (Celdas Amarillas)</h2>
-                </div>
-                <div class="result-body">
-                    <div id="modulo3-resumen-num"></div>
-                    <div class="table-responsive" id="modulo3-tabla"></div>
-                </div>
-            </div>
-
-            <!-- MODULO 4: Resumen Operativo Adicional -->
-            <div class="result-card" id="modulo4-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon modulo4">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                        </svg>
-                    </div>
-                    <h2>MODULO 4: Resumen Operativo Adicional</h2>
-                </div>
-                <div class="result-body">
-                    <div class="modulo4-grid" id="modulo4-bopd"></div>
-                    <div class="modulo4-grid" id="modulo4-tipos"></div>
-                </div>
-            </div>
-
-            <!-- MODULO 5: Pendientes -->
-            <div class="result-card" id="modulo5-card" style="display:none;">
-                <div class="result-header">
-                    <div class="header-icon modulo5">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
-                    <h2>MODULO 5: Reporte de Actividades Pendientes</h2>
-                </div>
-                <div class="result-body">
-                    <div class="table-responsive" id="modulo5-tabla"></div>
-                </div>
-            </div>
-
         </div>
     </div>
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-Chart.register(ChartDataLabels);
 
 const INFORME_ID = {{ informe.id_informe }};
-let charts = [];
 let analisisData = null;
 let intentosAutoRetry = 0;
 let maxIntentosAutoRetry = 3;
-
-function destruirGraficas() {
-    charts.forEach(c => c.destroy());
-    charts = [];
-}
 
 function escapeHtml(str) {
     return String(str == null ? '' : str)
@@ -309,25 +171,6 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-}
-
-function renderResumen(texto) {
-    const lineas = String(texto || '').split('\n');
-    let html = '';
-    for (const l of lineas) {
-        const t = l.trim();
-        if (!t) continue;
-        const esSeccion = t === t.toUpperCase() && /^[A-ZÁÉÍÓÚÑ0-9\s\-_/:.()]{3,60}$/.test(t);
-        const esVineta = /^[-•*·]\s+/.test(t);
-        if (esSeccion) {
-            html += '<div class="resumen-seccion">' + escapeHtml(t) + '</div>';
-        } else if (esVineta) {
-            html += '<div class="resumen-linea resumen-vineta">' + escapeHtml(t) + '</div>';
-        } else {
-            html += '<div class="resumen-linea">' + escapeHtml(t) + '</div>';
-        }
-    }
-    return html;
 }
 
 function filaTabla(campos, fila) {
@@ -439,8 +282,8 @@ function setPaso(stepNumber) {
     document.querySelectorAll('.progress-step').forEach(el => el.classList.remove('active', 'done'));
     document.querySelectorAll('.progress-connector').forEach(el => el.classList.remove('done'));
 
-    const steps = ['step-extract', 'step-ai', 'step-charts'];
-    const conns = ['conn-1', 'conn-2'];
+    const steps = ['step-extract', 'step-ai'];
+    const conns = ['conn-1'];
 
     steps.forEach((id, i) => {
         const el = document.getElementById(id);
@@ -487,375 +330,7 @@ function mostrarResultados(data) {
 
     analisisData = data;
 
-    destruirGraficas();
-
-    // Registro de Guardia (formato_guardia_mtto.md)
     renderRegistroGuardia(data);
-
-    // Resumen
-    const resumenCard = document.getElementById('resumen-card');
-    if (data.resumen) {
-        resumenCard.style.display = 'block';
-        resumenCard.style.animation = 'none';
-        resumenCard.offsetHeight;
-        resumenCard.style.animation = 'card-enter .5s ease backwards';
-        document.getElementById('resumen-texto').innerHTML = renderResumen(data.resumen);
-    } else {
-        resumenCard.style.display = 'none';
-    }
-
-    // Hallazgos Clave
-    const hallazgosCard = document.getElementById('hallazgos-card');
-    if (data.hallazgos && data.hallazgos.length > 0) {
-        hallazgosCard.style.display = 'block';
-        hallazgosCard.style.animation = 'none';
-        hallazgosCard.offsetHeight;
-        hallazgosCard.style.animation = 'card-enter .5s .1s ease backwards';
-        document.getElementById('hallazgos-list').innerHTML = data.hallazgos.map(function (h, i) {
-            return '<div class="hallazgo-item"><div class="hallazgo-numero">' + (i + 1) + '</div><div class="hallazgo-texto">' + escapeHtml(h) + '</div></div>';
-        }).join('');
-    } else {
-        hallazgosCard.style.display = 'none';
-    }
-
-    // Análisis de imágenes y elementos visuales
-    const imagenesCard = document.getElementById('imagenes-card');
-    const imgs = data.analisis_imagenes || [];
-    if (imgs.length > 0) {
-        imagenesCard.style.display = 'block';
-        imagenesCard.style.animation = 'none';
-        imagenesCard.offsetHeight;
-        imagenesCard.style.animation = 'card-enter .5s .2s ease backwards';
-        document.getElementById('imagenes-list').innerHTML = imgs.map(function (im, i) {
-            let ref = '', desc = '';
-            if (typeof im === 'object' && im !== null) {
-                ref = im.referencia || ('Imagen ' + (i + 1));
-                desc = im.descripcion || '';
-            } else {
-                ref = 'Imagen ' + (i + 1);
-                desc = String(im);
-            }
-            return '<div class="imagen-item">'
-                + '<div class="imagen-contenido">'
-                + '<div class="imagen-referencia">' + escapeHtml(ref) + '</div>'
-                + '<img class="imagen-thumb" src="/analizar_informe/' + INFORME_ID + '/imagen/' + (i + 1) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'" />'
-                + (desc ? '<div class="imagen-descripcion">' + escapeHtml(desc) + '</div>' : '')
-                + '</div></div>';
-        }).join('');
-    } else {
-        imagenesCard.style.display = 'none';
-    }
-
-    // MODULO 2: Eficacia por Taller
-    const modulo2Card = document.getElementById('modulo2-card');
-    if (data.modulo2_eficacia_taller && data.modulo2_eficacia_taller.length > 0) {
-        modulo2Card.style.display = 'block';
-        modulo2Card.style.animation = 'none';
-        modulo2Card.offsetHeight;
-        modulo2Card.style.animation = 'card-enter .5s .2s ease backwards';
-        let html2 = '<table class="data-table"><thead><tr><th>Taller Unificado</th><th>Ejecutadas</th><th>Completadas 100%</th><th>Eficacia %</th></tr></thead><tbody>';
-        data.modulo2_eficacia_taller.forEach(row => {
-            const ef = row.eficacia != null ? Number(row.eficacia) : null;
-            const eficacia = ef != null ? ef.toFixed(1) + '%' : 'N/A';
-            let clase = '';
-            if (ef != null) {
-                if (ef >= 80) clase = 'ef-alta';
-                else if (ef >= 50) clase = 'ef-media';
-                else clase = 'ef-baja';
-            }
-            html2 += `<tr><td><strong>${escapeHtml(row.taller || '')}</strong></td><td>${row.ejecutadas ?? '-'}</td><td>${row.completadas ?? '-'}</td><td><span class="badge-efficiency ${clase}">${eficacia}</span></td></tr>`;
-        });
-        html2 += '</tbody></table>';
-        html2 += '<div class="leyenda-eficacia">'
-            + '<span class="leyenda-item"><span class="leyenda-dot" style="background:#16a34a"></span> ≥ 80% Eficiente</span>'
-            + '<span class="leyenda-item"><span class="leyenda-dot" style="background:#f59e0b"></span> 50–79% Regular</span>'
-            + '<span class="leyenda-item"><span class="leyenda-dot" style="background:#ef4444"></span> &lt; 50% Baja</span>'
-            + '</div>';
-        document.getElementById('modulo2-tabla').innerHTML = html2;
-    } else {
-        modulo2Card.style.display = 'none';
-    }
-
-    // MODULO 3: Trabajos Importantes
-    const modulo3Card = document.getElementById('modulo3-card');
-    if (data.modulo3_trabajos_importantes && data.modulo3_trabajos_importantes.length > 0) {
-        modulo3Card.style.display = 'block';
-        modulo3Card.style.animation = 'none';
-        modulo3Card.offsetHeight;
-        modulo3Card.style.animation = 'card-enter .5s .3s ease backwards';
-        const totalCriticos = data.modulo3_trabajos_importantes.length;
-        document.getElementById('modulo3-resumen-num').innerHTML = `<p class="resumen-criticos"><strong>Total de trabajos importantes/críticos identificados: ${totalCriticos}</strong></p>`;
-        let html3 = '<table class="data-table"><thead><tr><th>Taller</th><th>Pozo (Celda Amarilla)</th><th>Falla Detectada</th><th>Solución Operativa</th></tr></thead><tbody>';
-        data.modulo3_trabajos_importantes.forEach(row => {
-            html3 += `<tr><td><strong>${row.taller || ''}</strong></td><td>${row.pozo || ''}</td><td>${row.falla || ''}</td><td>${row.solucion || ''}</td></tr>`;
-        });
-        html3 += '</tbody></table>';
-        document.getElementById('modulo3-tabla').innerHTML = html3;
-    } else {
-        modulo3Card.style.display = 'none';
-    }
-
-    // MODULO 4: Resumen Operativo Adicional
-    const modulo4Card = document.getElementById('modulo4-card');
-    if (data.modulo4_resumen_operativo && (Object.keys(data.modulo4_resumen_operativo.bopd_por_taller || {}).length > 0 || Object.keys(data.modulo4_resumen_operativo.trabajos_por_tipo || {}).length > 0)) {
-        modulo4Card.style.display = 'block';
-        modulo4Card.style.animation = 'none';
-        modulo4Card.offsetHeight;
-        modulo4Card.style.animation = 'card-enter .5s .35s ease backwards';
-        let htmlBopd = '<h4 class="sub-title">Volumen CNP Recuperado por Taller (BOPD)</h4><table class="data-table"><thead><tr><th>Taller</th><th>BOPD Recuperados</th></tr></thead><tbody>';
-        const bopd = data.modulo4_resumen_operativo.bopd_por_taller || {};
-        let totalBopd = 0;
-        Object.entries(bopd).forEach(([taller, valor]) => {
-            htmlBopd += `<tr><td><strong>${taller}</strong></td><td>${valor}</td></tr>`;
-            totalBopd += Number(valor) || 0;
-        });
-        htmlBopd += `<tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${totalBopd}</strong></td></tr></tbody></table>`;
-        document.getElementById('modulo4-bopd').innerHTML = htmlBopd;
-
-        let htmlTipos = '<h4 class="sub-title">Cantidad de Trabajos por Tipo</h4><table class="data-table"><thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead><tbody>';
-        const tipos = data.modulo4_resumen_operativo.trabajos_por_tipo || {};
-        Object.entries(tipos).forEach(([tipo, cantidad]) => {
-            htmlTipos += `<tr><td><strong>${tipo}</strong></td><td>${cantidad}</td></tr>`;
-        });
-        htmlTipos += '</tbody></table>';
-        document.getElementById('modulo4-tipos').innerHTML = htmlTipos;
-    } else {
-        modulo4Card.style.display = 'none';
-    }
-
-    // MODULO 5: Pendientes
-    const modulo5Card = document.getElementById('modulo5-card');
-    if (data.modulo5_pendientes && data.modulo5_pendientes.length > 0) {
-        modulo5Card.style.display = 'block';
-        modulo5Card.style.animation = 'none';
-        modulo5Card.offsetHeight;
-        modulo5Card.style.animation = 'card-enter .5s .4s ease backwards';
-        let html5 = '<table class="data-table"><thead><tr><th>Taller</th><th>Pozo</th><th>Requerimiento</th><th>Estado</th></tr></thead><tbody>';
-        data.modulo5_pendientes.forEach(row => {
-            html5 += `<tr><td><strong>${row.taller || ''}</strong></td><td>${row.pozo || ''}</td><td>${row.requerimiento || ''}</td><td><span class="badge-pending">${row.estado || 'Pendiente'}</span></td></tr>`;
-        });
-        html5 += '</tbody></table>';
-        document.getElementById('modulo5-tabla').innerHTML = html5;
-    } else {
-        modulo5Card.style.display = 'none';
-    }
-
-    // Graficas
-    const grid = document.getElementById('graficas-grid');
-    grid.innerHTML = '';
-
-    if (data.graficas && data.graficas.length > 0) {
-        data.graficas.forEach((g, idx) => {
-            const card = document.createElement('div');
-            card.className = 'grafica-card';
-            card.style.animation = `card-enter .6s ${0.3 + idx * 0.15}s ease backwards`;
-
-            const titulo = document.createElement('h3');
-            titulo.textContent = g.titulo || 'Grafica ' + (idx + 1);
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'grafica-wrapper';
-
-            const canvas = document.createElement('canvas');
-            canvas.id = 'grafica-' + idx;
-
-            wrapper.appendChild(canvas);
-            card.appendChild(titulo);
-            card.appendChild(wrapper);
-            grid.appendChild(card);
-
-            const ctx = canvas.getContext('2d');
-            const tipo = g.tipo || 'bar';
-            const labels = g.labels || [];
-            const isPieLike = tipo === 'pie' || tipo === 'doughnut' || tipo === 'polarArea';
-            const isRadarLinear = tipo === 'radar' || tipo === 'line';
-
-            // Paleta profesional por dataset
-            const paletas = [
-                ['#1e3a5f', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'],
-                ['#14532d', '#16a34a', '#22c55e', '#4ade80', '#86efac'],
-                ['#7c2d12', '#ea580c', '#f97316', '#fb923c', '#fdba74'],
-                ['#4a1d96', '#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd'],
-                ['#831843', '#db2777', '#ec4899', '#f472b6', '#f9a8d4'],
-                ['#164e63', '#0891b2', '#06b6d4', '#22d3ee', '#67e8f9'],
-                ['#1e293b', '#475569', '#64748b', '#94a3b8', '#cbd5e1']
-            ];
-
-            const datasets = (g.datasets || []).map((ds, dsIdx) => {
-                const paleta = ds.backgroundColor || paletas[dsIdx % paletas.length];
-                const esSolo = (g.datasets || []).length === 1;
-                // Para dataset único, usa la paleta de colores como backgroundColor multicolor
-                const bg = (esSolo && !ds.backgroundColor)
-                    ? labels.map((_, i) => paleta[i % paleta.length])
-                    : paleta;
-                return {
-                    label: ds.label || 'Serie',
-                    data: ds.data || [],
-                    backgroundColor: bg,
-                    borderColor: esSolo ? 'transparent' : (Array.isArray(paleta) ? paleta[0] : paleta),
-                    borderWidth: tipo === 'bar' ? 0 : 1.5,
-                    borderRadius: tipo === 'bar' ? 6 : undefined,
-                    borderSkipped: false,
-                    barPercentage: 0.75,
-                    categoryPercentage: 0.7,
-                    tension: isRadarLinear ? 0.35 : undefined,
-                    fill: tipo === 'line' ? { target: 'origin', above: 'rgba(37,99,235,0.08)' } : undefined,
-                    pointBackgroundColor: tipo === 'line' ? (Array.isArray(paleta) ? paleta[0] : paleta) : undefined,
-                    pointBorderColor: tipo === 'line' ? '#fff' : undefined,
-                    pointBorderWidth: tipo === 'line' ? 2 : undefined,
-                    pointRadius: tipo === 'line' ? 4.5 : undefined,
-                    pointHoverRadius: tipo === 'line' ? 7 : undefined,
-                    hoverBorderWidth: 3
-                };
-            });
-
-            const chart = new Chart(ctx, {
-                type: tipo,
-                data: { labels, datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    devicePixelRatio: 2,
-                    animation: {
-                        duration: 1200,
-                        easing: 'easeOutCubic'
-                    },
-                    layout: {
-                        padding: { top: 10, bottom: 5 }
-                    },
-                    plugins: {
-                        datalabels: isPieLike ? {
-                            color: '#fff',
-                            font: { size: 12, weight: '700', family: "'Inter','Segoe UI',sans-serif" },
-                            formatter: function(value, context) {
-                                const dataset = context.chart.data.datasets[context.datasetIndex];
-                                const total = dataset.data.reduce((a, b) => a + b, 0);
-                                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-                                return pct + '%';
-                            },
-                            display: function(context) {
-                                const dataset = context.chart.data.datasets[context.datasetIndex];
-                                const total = dataset.data.reduce((a, b) => a + b, 0);
-                                const pct = total > 0 ? Math.round((context.dataset.data[context.dataIndex] / total) * 100) : 0;
-                                return pct >= 4;
-                            },
-                            anchor: 'center',
-                            clamp: true
-                        } : {
-                            color: '#334155',
-                            font: { size: 11, weight: '700', family: "'Inter','Segoe UI',sans-serif" },
-                            anchor: 'end',
-                            align: 'top',
-                            offset: 3,
-                            formatter: function(value) {
-                                return value;
-                            },
-                            display: function(context) {
-                                const v = context.dataset.data[context.dataIndex];
-                                return v != null && v !== 0;
-                            }
-                        },
-                        legend: {
-                            position: 'bottom',
-                            align: 'center',
-                            labels: {
-                                padding: 28,
-                                usePointStyle: true,
-                                pointStyle: 'rectRounded',
-                                pointStyleWidth: 10,
-                                pointStyleHeight: 10,
-                                borderRadius: 3,
-                                font: { size: 12, family: "'Inter', 'Segoe UI', system-ui, sans-serif", weight: '500' },
-                                color: '#475569',
-                                boxWidth: 12,
-                                boxHeight: 12,
-                                generateLabels: function(chart) {
-                                    const data = chart.data;
-                                    return data.datasets.map((ds, i) => ({
-                                        text: ds.label,
-                                        fillStyle: Array.isArray(ds.backgroundColor)
-                                            ? ds.backgroundColor[0]
-                                            : ds.backgroundColor,
-                                        strokeStyle: ds.borderColor,
-                                        lineWidth: 0,
-                                        hidden: !chart.isDatasetVisible(i),
-                                        index: i,
-                                        borderRadius: 3,
-                                        pointStyle: 'rectRounded'
-                                    }));
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(15,23,42,0.92)',
-                            titleFont: { size: 13, weight: '700', family: "'Inter','Segoe UI',sans-serif" },
-                            bodyFont: { size: 12, weight: '500', family: "'Inter','Segoe UI',sans-serif" },
-                            padding: 14,
-                            cornerRadius: 10,
-                            displayColors: true,
-                            usePointStyle: true,
-                            boxPadding: 4,
-                            titleMarginBottom: 8,
-                            bodySpacing: 5,
-                            borderColor: 'rgba(255,255,255,0.08)',
-                            borderWidth: 1,
-                            callbacks: isPieLike ? {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed;
-                                    const dataset = context.dataset;
-                                    const total = dataset.data.reduce((a, b) => a + b, 0);
-                                    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-                                    return ' ' + label + ': ' + value + ' (' + pct + '%)';
-                                }
-                            } : undefined
-                        }
-                    },
-                    scales: isPieLike ? {} : {
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: { size: 11, family: "'Inter','Segoe UI',sans-serif", weight: '500' },
-                                color: '#64748b',
-                                padding: 8
-                            },
-                            border: { display: false }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(148,163,184,0.12)',
-                                drawBorder: false,
-                                lineWidth: 0.5
-                            },
-                            ticks: {
-                                font: { size: 11, family: "'Inter','Segoe UI',sans-serif", weight: '500' },
-                                color: '#64748b',
-                                padding: 10,
-                                callback: function(v) {
-                                    return v >= 1000 ? (v/1000).toFixed(v%1000===0?0:1) + 'k' : v;
-                                }
-                            },
-                            border: { display: false }
-                        }
-                    },
-                    elements: {
-                        arc: {
-                            borderWidth: 2,
-                            borderColor: '#ffffff',
-                            hoverBorderColor: '#ffffff',
-                            hoverBorderWidth: 3,
-                            spacing: 3,
-                            borderRadius: 4
-                        }
-                    }
-                }
-            });
-            charts.push(chart);
-        });
-    }
 }
 
 // Particulas flotantes en el loading
@@ -878,8 +353,6 @@ function crearParticulas() {
 }
 
 async function iniciarAnalisis(forzar = false) {
-    destruirGraficas();
-
     document.getElementById('loading-stage').classList.add('active');
     document.getElementById('error-card').classList.remove('active');
     document.getElementById('resultados-wrapper').classList.remove('active');
@@ -914,12 +387,6 @@ async function iniciarAnalisis(forzar = false) {
         document.getElementById('loading-sub').textContent = 'Gemini esta procesando el contenido...';
 
         const data = await response.json();
-
-        // Paso 3: Generando graficas
-        setPaso(3);
-        document.getElementById('loading-message').textContent = 'Generando graficas';
-        document.getElementById('loading-sub').textContent = 'Preparando visualizaciones...';
-        await new Promise(r => setTimeout(r, 700));
 
         if (data.error) {
             mostrarError(data.error);

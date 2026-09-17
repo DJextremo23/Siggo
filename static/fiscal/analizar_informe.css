@@ -340,14 +340,7 @@
             justify-content: center;
             flex-shrink: 0;
         }
-        .result-header .header-icon.resumen { background: #eff6ff; color: #3b82f6; }
-        .result-header .header-icon.hallazgos { background: #fffbeb; color: #f59e0b; }
-        .result-header .header-icon.graficas { background: #f0fdf4; color: #22c55e; }
-        .result-header .header-icon.modulo2 { background: #eff6ff; color: #2563eb; }
-        .result-header .header-icon.modulo3 { background: #fffbeb; color: #f59e0b; }
-        .result-header .header-icon.modulo4 { background: #ecfdf5; color: #10b981; }
-        .result-header .header-icon.modulo5 { background: #fef2f2; color: #ef4444; }
-        .result-header .header-icon.imagenes { background: #f5f3ff; color: #8b5cf6; }
+        .result-header .header-icon.registro { background: #eef2ff; color: #4f46e5; }
         .result-header h2 {
             font-size: 17px;
             font-weight: 700;
@@ -356,179 +349,6 @@
 
         .result-body {
             padding: 20px 24px 24px;
-        }
-
-        .resumen-texto {
-            color: #334155;
-            font-size: 14.5px;
-            line-height: 1.7;
-        }
-        .resumen-seccion {
-            font-weight: 700;
-            color: #4f46e5;
-            font-size: 12.5px;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            margin: 18px 0 6px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #ede9fe;
-        }
-        .resumen-seccion:first-child {
-            margin-top: 0;
-        }
-        .resumen-linea {
-            margin: 4px 0;
-            padding-left: 12px;
-            border-left: 2px solid #e0e7ff;
-        }
-        .resumen-vineta {
-            padding-left: 20px;
-            border-left: none;
-            position: relative;
-        }
-        .resumen-vineta::before {
-            content: '•';
-            position: absolute;
-            left: 4px;
-            color: #8b5cf6;
-            font-weight: 700;
-        }
-
-        /* ---- HALLAZGOS ---- */
-        .hallazgo-item {
-            display: flex;
-            gap: 14px;
-            padding: 16px;
-            border-radius: 12px;
-            background: #fffbeb;
-            margin-bottom: 10px;
-            transition: .2s;
-            border: 1px solid #fef3c7;
-        }
-        .hallazgo-item:last-child {
-            margin-bottom: 0;
-        }
-        .hallazgo-item:hover {
-            transform: translateX(4px);
-            box-shadow: 0 2px 8px rgba(245,158,11,.12);
-        }
-        .hallazgo-numero {
-            flex-shrink: 0;
-            width: 30px;
-            height: 30px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 13px;
-            box-shadow: 0 2px 8px rgba(245,158,11,.3);
-        }
-        .hallazgo-texto {
-            font-size: 14px;
-            color: #78350f;
-            line-height: 1.6;
-            padding-top: 4px;
-        }
-
-        /* ---- IMÁGENES / ELEMENTOS VISUALES ---- */
-        .imagen-item {
-            display: flex;
-            gap: 14px;
-            padding: 16px;
-            border-radius: 12px;
-            background: #f8fafc;
-            border: 1px solid #e0e7ff;
-            margin-bottom: 10px;
-        }
-        .imagen-item:last-child {
-            margin-bottom: 0;
-        }
-        .imagen-icono {
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(99,102,241,.3);
-        }
-        .imagen-contenido {
-            flex: 1;
-        }
-        .imagen-referencia {
-            font-weight: 700;
-            color: #4f46e5;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-        .imagen-descripcion {
-            font-size: 14px;
-            color: #334155;
-            line-height: 1.6;
-        }
-        .imagen-thumb {
-            display: block;
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
-            border: 1px solid #e0e7ff;
-            margin: 10px 0;
-            object-fit: contain;
-            background: #fff;
-        }
-        .graficas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 24px;
-        }
-        .grafica-card {
-            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 20px;
-            box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
-            border: 1px solid #e8ecf1;
-            padding: 28px;
-            animation: card-enter .6s ease backwards;
-            transition: all .35s cubic-bezier(.25,.8,.25,1);
-        }
-        .grafica-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,.06), 0 12px 40px rgba(0,0,0,.08);
-            transform: translateY(-3px);
-            border-color: #d1d7e0;
-        }
-        .grafica-card h3 {
-            font-size: 15px;
-            font-weight: 700;
-            margin: 0 0 22px 0;
-            color: #0f172a;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            letter-spacing: -0.2px;
-        }
-        .grafica-card h3::before {
-            content: '';
-            width: 10px;
-            height: 10px;
-            border-radius: 3px;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(59,130,246,.35);
-        }
-        .grafica-wrapper {
-            position: relative;
-            width: 100%;
-            max-height: 400px;
-        }
-        .grafica-wrapper canvas {
-            max-height: 400px;
         }
 
         /* ---- BOTONES ---- */
@@ -614,12 +434,6 @@
                 height: 16px;
                 align-self: center;
             }
-            .graficas-grid {
-                grid-template-columns: 1fr;
-            }
-            .modulo4-grid {
-                grid-template-columns: 1fr;
-            }
             .data-table {
                 font-size: 11px;
             }
@@ -675,83 +489,7 @@
             background: #f8fafc;
         }
 
-        /* ===== BADGES ===== */
-        .badge-efficiency {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 12px;
-            background: #dcfce7;
-            color: #166534;
-            white-space: nowrap;
-        }
-        .badge-efficiency.ef-alta { background: #dcfce7; color: #166534; }
-        .badge-efficiency.ef-media { background: #fef3c7; color: #92400e; }
-        .badge-efficiency.ef-baja { background: #fee2e2; color: #991b1b; }
-        .leyenda-eficacia {
-            display: flex;
-            gap: 18px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-            font-size: 12px;
-            color: #64748b;
-        }
-        .leyenda-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-        .leyenda-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 3px;
-            display: inline-block;
-            flex-shrink: 0;
-        }
-        .badge-pending {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 12px;
-            background: #fef3c7;
-            color: #92400e;
-            white-space: nowrap;
-        }
-
-        /* ===== MODULO 4 GRID ===== */
-        .modulo4-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
-        }
-        .modulo4-grid + .modulo4-grid {
-            margin-top: 24px;
-        }
-        .sub-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0 0 14px 0;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e8ecf1;
-        }
-
-        /* ===== RESUMEN CRITICOS ===== */
-        .resumen-criticos {
-            font-size: 14px;
-            color: #92400e;
-            background: #fffbeb;
-            padding: 12px 16px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            border: 1px solid #fde68a;
-        }
-
         /* ===== REGISTRO DE GUARDIA (formato_guardia_mtto.md) ===== */
-        .result-header .header-icon.registro { background: #eef2ff; color: #4f46e5; }
-
         .cabecera-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

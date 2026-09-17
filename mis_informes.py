@@ -16,11 +16,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import landscape, letter
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.enum.shapes import MSO_SHAPE
 import os
 import json
 import re
@@ -966,62 +961,6 @@ def _extraer_imagenes_archivo(archivo_obj):
     return imagenes
 
 
-def _validar_coherencia_analisis(resultado):
-    """Corrige de forma determinista las inconsistencias aritméticas del análisis:
-    los totales del módulo 1 deben coincidir con los desgloses y los módulos 2, 3 y 4."""
-
-    # Ajustar conteos: trabajos críticos, producción recuperada y total de actividades
-    try:
-        m1 = resultado.get("modulo1_resumen_ejecutivo")
-        if not isinstance(m1, dict):
-            return resultado
-
-        # Trabajos críticos = cantidad real de filas en modulo3
-        criticos = resultado.get("modulo3_trabajos_importantes")
-        if isinstance(criticos, list):
-            m1["total_trabajos_criticos"] = len(criticos)
-
-        # Producción recuperada = suma exacta de bopd_por_taller
-        m4 = resultado.get("modulo4_resumen_operativo")
-        if isinstance(m4, dict):
-            bopd = m4.get("bopd_por_taller")
-            if isinstance(bopd, dict) and bopd:
-                valores = [v for v in bopd.values() if isinstance(v, (int, float))]
-                m1["total_produccion_recuperada_bopd"] = round(sum(valores), 2)
-            tipos = m4.get("trabajos_por_tipo")
-            if isinstance(tipos, dict) and tipos:
-                m1["desglose_por_tipo"] = tipos
-
-        # Total de actividades = suma de ejecutadas del desglose por taller
-        desglose = m1.get("desglose_por_taller")
-        if isinstance(desglose, dict) and desglose:
-            total_ej = 0
-            valido = True
-            for v in desglose.values():
-                if isinstance(v, dict) and isinstance(v.get("ejecutadas"), (int, float)):
-                    total_ej += v["ejecutadas"]
-                elif isinstance(v, (int, float)):
-                    total_ej += v
-                else:
-                    valido = False
-                    break
-            if valido and total_ej > 0:
-                m1["total_actividades"] = int(total_ej)
-
-        # Eficacia por taller recalculada exactamente
-        m2 = resultado.get("modulo2_eficacia_taller")
-        if isinstance(m2, list):
-            for fila in m2:
-                if isinstance(fila, dict):
-                    ej = fila.get("ejecutadas")
-                    comp = fila.get("completadas")
-                    if isinstance(ej, (int, float)) and isinstance(comp, (int, float)) and ej > 0:
-                        fila["eficacia"] = round(comp * 100.0 / ej, 2)
-    except Exception:
-        pass
-    return resultado
-
-
 def _cargar_pront():
     """Carga el prompt de análisis desde pront.json (única fuente del prompt de IA)."""
     ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pront.json")
@@ -1038,6 +977,18 @@ def _cargar_formato():
             return f.read()
     except Exception as e:
         print(f"[FORMATO] No se pudo cargar formato_guardia_mtto.md: {e}")
+        return ""
+
+
+def _cargar_formato_reporte():
+    """Carga la descripción del formato del Reporte (PPT) desde
+    formato_reporte_ppt.md (estructura de salida del reporte)."""
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "formato_reporte_ppt.md")
+    try:
+        with open(ruta, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        print(f"[FORMATO] No se pudo cargar formato_reporte_ppt.md: {e}")
         return ""
 
 
@@ -1118,6 +1069,7 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
               .replace("<<<TITULO>>>", titulo or "")
               .replace("<<<DESCRIPCION>>>", descripcion or "")
               .replace("<<<FORMATO>>>", _cargar_formato())
+              .replace("<<<FORMATO_REPORTE>>>", _cargar_formato_reporte())
               .replace("<<<CONTENIDO>>>", texto[:30000]))
 
     # Limitar la cantidad de imágenes enviadas para no exceder el tamaño/latencia.
@@ -1163,7 +1115,7 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                         continue
                     break
 
-                return _validar_coherencia_analisis(resultado)
+                return resultado
 
             except json.JSONDecodeError as e:
                 print(f"[IA] Error al interpretar la respuesta de Gemini: {e}")
@@ -1215,9 +1167,7 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                 # Error desconocido: devolver inmediatamente
                 print(f"[IA] Error al conectar con Gemini: {error_str}")
                 return {
-                    "error": f"Error de Gemini: {error_str}",
-                    "hallazgos": [],
-                    "graficas": []
+                    "error": f"Error de Gemini: {error_str}"
                 }
 
     # Todos los modelos gratuitos fallaron por cuota.
@@ -1233,16 +1183,14 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
             )
             resultado = _extraer_json_respuesta((respuesta.text or "").strip())
             if resultado is not None:
-                return _validar_coherencia_analisis(resultado)
+                return resultado
         except Exception:
             pass
 
     print("[IA] Cuota de Gemini agotada o servicio no disponible en este momento")
     detalle = ultimo_error or "servicio no disponible"
     return {
-        "error": f"El análisis no está disponible en este momento. Detalle: {detalle}",
-        "hallazgos": [],
-        "graficas": []
+        "error": f"El análisis no está disponible en este momento. Detalle: {detalle}"
     }
 
 

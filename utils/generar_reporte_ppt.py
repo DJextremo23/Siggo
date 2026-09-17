@@ -20,14 +20,16 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.oxml.ns import qn
 
-# ── Recursos gráficos (logos corporativos OIG) ──────────────────────────────
+# ── Recursos gráficos (logos corporativos OIG y diseño de fondo) ────────────
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _ASSETS = os.path.join(_BASE, "static", "ppt")
+FONDO = os.path.join(_ASSETS, "fondo.png")
 LOGO_PORTADA = os.path.join(_ASSETS, "logo.png")
 LOGO_CONTENIDO = os.path.join(_ASSETS, "logo_small.jpg")
 
 # ── Paleta y tipografía del formato rv0 ─────────────────────────────────────
 C_NAVY = RGBColor(0x10, 0x2A, 0x43)   # 102A43 fondo oscuro
+C_CONTENIDO_BG = RGBColor(0xF7, 0xFA, 0xFC)  # F7FAFC fondo de páginas de contenido
 C_TEAL = RGBColor(0x00, 0xA6, 0xA6)   # 00A6A6 barra superior / acentos
 C_GREEN = RGBColor(0x5D, 0xD3, 0x9E)  # 5DD39E acento verde
 C_WHITE = RGBColor(0xFF, 0xFF, 0xFF)
@@ -44,6 +46,11 @@ FONT_BODY = "Aptos"
 
 _MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
           "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+
+# Lista fija de talleres supervisados (igual a la del formato del PPT).
+TALLERES_SUPERVISADOS = ("Compresión · Generación · Movimiento de suelos / Remoción · "
+                         "Gasfitería, ductos y tanques · Energía / Montaje / Flota / "
+                         "Mecánica / Instrumentación")
 
 
 def _fmt_fecha(fecha):
@@ -147,6 +154,31 @@ def _line_opacity(shape, opacity_pct):
         pass
 
 
+def _picture_opacity(picture, opacity_pct):
+    """Aplica opacidad (0-100) a una imagen (alphaModFix sobre el blip)."""
+    try:
+        blip = picture._element.find(qn('p:blipFill')).find(qn('a:blip'))
+        amf = blip.makeelement(qn('a:alphaModFix'), {'amt': str(int(opacity_pct * 1000))})
+        blip.append(amf)
+    except Exception:
+        pass
+
+
+def _autofit_norm(tf, lnspc_reduction=10000):
+    """Aplica autoajuste 'normal' (normAutofit) al marco de texto, como el formato."""
+    try:
+        bodyPr = tf._txBody.find(qn('a:bodyPr'))
+        if bodyPr is None:
+            return
+        for tag in ('a:spAutoFit', 'a:normAutofit', 'a:noAutofit'):
+            for el in bodyPr.findall(qn(tag)):
+                bodyPr.remove(el)
+        norm = bodyPr.makeelement(qn('a:normAutofit'), {'lnSpcReduction': str(lnspc_reduction)})
+        bodyPr.append(norm)
+    except Exception:
+        pass
+
+
 def _text(slide, x, y, w, h, text, size=13, color=C_TEXT, bold=False,
           align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, font=FONT_BODY,
           wrap=True, spacing=1.0):
@@ -242,10 +274,11 @@ def _add_table(slide, x, y, w, headers, rows, col_ratios, font_size=8, row_h=0.3
 
 
 # ── Bloques de diapositivas ─────────────────────────────────────────────────
-def _portada(prs, informe, talleres_nombres):
+def _portada(prs, informe):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _set_bg(s, C_NAVY)
 
+    _pic(s, FONDO, 1.37, 0.0, 11.96, 7.5)
     _pic(s, LOGO_PORTADA, 0.56, 0.49, 1.89, 0.41)
 
     supervisor = (informe.get("fiscalizador") or "").strip().upper()
@@ -261,11 +294,11 @@ def _portada(prs, informe, talleres_nombres):
     _fill_opacity(card, 88)
     _line_opacity(card, 65)
 
-    _text(s, 1.00, 4.45, 4.0, 0.25, "Talleres supervisados", 11, C_GREEN, True)
+    _text(s, 1.00, 4.45, 4.0, 0.25, "Talleres supervisados", 11, C_GREEN, True, anchor=MSO_ANCHOR.MIDDLE)
 
-    talleres_txt = " · ".join(talleres_nombres) if talleres_nombres else \
-        "Compresión · Generación · Movimiento de suelos / Remoción · Gasfitería, ductos y tanques · Energía / Montaje / Flota / Mecánica / Instrumentación"
-    _text(s, 1.00, 4.85, 7.65, 0.55, talleres_txt, 14, C_WHITE)
+    tb_tall, tf_tall = _text(s, 1.00, 4.85, 7.65, 0.55, TALLERES_SUPERVISADOS, 14, C_WHITE,
+                             anchor=MSO_ANCHOR.MIDDLE)
+    _autofit_norm(tf_tall)
 
     _text(s, 0.70, 6.86, 1.50, 0.23, "oigperu.com", 10.5, C_LIGHT)
     return s
@@ -283,7 +316,7 @@ def _encabezado_contenido(s, mes_ano, num_pagina):
 
 def _nueva_contenido(prs, mes_ano, num_pagina):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s, C_WHITE)
+    _set_bg(s, C_CONTENIDO_BG)
     _encabezado_contenido(s, mes_ano, num_pagina)
     return s
 
@@ -296,6 +329,9 @@ def _titulo_contenido(s, texto):
 def _cierre(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _set_bg(s, C_NAVY)
+    pic = _pic(s, FONDO, 5.53, 0.0, 7.80, 5.20)
+    if pic is not None:
+        _picture_opacity(pic, 85)
     _text(s, 0.70, 3.42, 5.5, 0.5, "Muchas Gracias", 30, C_WHITE, True, font=FONT_TITLE)
     _text(s, 0.72, 6.92, 1.5, 0.22, "oigperu.com", 10, C_LIGHT)
     return s
@@ -317,58 +353,31 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     evidencias = reg.get("evidencias") or []
     pendientes_reg = reg.get("pendientes") or []
 
-    mod1 = data.get("modulo1_resumen_ejecutivo") or {}
-    resumen = (data.get("resumen") or "").strip()
-
     mes_ano = _fmt_mes_ano(informe.get("fecha_guardia"))
 
     # 1) Portada
-    talleres_nombres = [t.get("taller", "") for t in talleres if t.get("taller")]
-    _portada(prs, informe, talleres_nombres)
+    _portada(prs, informe)
 
-    # 2) Página de resumen (KPIs + cabecera de producción)
+    # 2) Producción (resumen del formato)
     num = 2
-    s = _nueva_contenido(prs, mes_ano, num)
-    _titulo_contenido(s, "Resumen de la Guardia")
-
-    # KPIs principales
-    kpis = [
-        ("Total Actividades", mod1.get("total_actividades", "—")),
-        ("Producción Recuperada (BOPD)", mod1.get("total_produccion_recuperada_bopd", "—")),
-        ("Trabajos Críticos", mod1.get("total_trabajos_criticos", "—")),
-    ]
-    kx = 0.6
-    kw = 3.9
-    for i, (lbl, val) in enumerate(kpis):
-        _rrect(s, kx, 1.15, kw, 1.1, C_NAVY, None, radius=0.08)
-        _text(s, kx + 0.2, 1.28, kw - 0.4, 0.45, str(val), 24, C_WHITE, True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
-        _text(s, kx + 0.2, 1.78, kw - 0.4, 0.4, lbl, 10, C_LIGHT, False, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
-        kx += kw + 0.25
-
-    # Cabecera de producción (producción OIL / GAS / pérdida / recuperada)
     cabecera_items = [
         ("Producción OIL (BPD)", cabecera.get("produccion_oil_bpd")),
-        ("Producción GAS (MPC)", cabecera.get("produccion_gas_mpc")),
         ("Prod. Perdida imputada", cabecera.get("prod_perdida_imputada")),
+        ("Producción GAS (MPC)", cabecera.get("produccion_gas_mpc")),
         ("Producción recuperada", cabecera.get("produccion_recuperada")),
     ]
-    hay_cabecera = any(v not in (None, "") for _, v in cabecera_items)
-    if hay_cabecera:
-        _text(s, 0.6, 2.55, 6.0, 0.3, "PRODUCCIÓN", 11, C_TEAL, True)
-        cx = 0.6
-        cw = 2.95
+    if any(v not in (None, "") for _, v in cabecera_items):
+        s = _nueva_contenido(prs, mes_ano, num)
+        _titulo_contenido(s, "Producción")
+        num += 1
         for i, (lbl, val) in enumerate(cabecera_items):
-            _rrect(s, cx, 2.95, cw, 0.85, C_ZEBRA, C_SEP, radius=0.06)
-            _text(s, cx + 0.15, 3.05, cw - 0.3, 0.3, lbl, 9, C_MUTED, True)
-            _text(s, cx + 0.15, 3.38, cw - 0.3, 0.32, str(val if val not in (None, "") else "—"), 14, C_NAVY, True)
-            cx += cw + 0.1
-
-    # Resumen textual breve
-    if resumen:
-        _text(s, 0.6, 4.1, 12.1, 0.3, "RESUMEN", 11, C_TEAL, True)
-        _text(s, 0.6, 4.5, 12.1, 2.3, resumen[:700], 12, C_TEXT, wrap=True, spacing=1.15)
-
-    num += 1
+            col = i % 2
+            fila = i // 2
+            x = 0.6 + col * 6.2
+            y = 1.6 + fila * 1.7
+            _rrect(s, x, y, 5.9, 1.25, C_ZEBRA, C_SEP, radius=0.08)
+            _text(s, x + 0.2, y + 0.2, 5.5, 0.3, lbl, 10, C_MUTED, True)
+            _text(s, x + 0.2, y + 0.55, 5.5, 0.4, str(val if val not in (None, "") else "—"), 18, C_NAVY, True)
 
     # 3) Talleres (tablas)
     COLS_TALLER = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado",
@@ -433,7 +442,6 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
 
     # 5b) Fotografías del Excel (solo si el archivo contiene imágenes)
     if imagenes_archivo:
-        descs = data.get("analisis_imagenes") or []
         per_page = 6
         s_foto = None
         for idx, im in enumerate(imagenes_archivo):
@@ -447,18 +455,9 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
             x = 0.7 + col * 6.1
             y = 1.2 + fila * 1.9
             try:
-                _add_picture_fitted(s_foto, im.get("bytes"), x, y, 5.6, 1.5)
+                _add_picture_fitted(s_foto, im.get("bytes"), x, y, 5.6, 1.7)
             except Exception:
-                _rrect(s_foto, x, y, 5.6, 1.5, C_ZEBRA, C_SEP, radius=0.06)
-            cap = ""
-            if idx < len(descs):
-                d = descs[idx]
-                if isinstance(d, dict):
-                    cap = d.get("descripcion") or d.get("referencia") or ""
-                else:
-                    cap = str(d)
-            if cap:
-                _text(s_foto, x, y + 1.55, 5.6, 0.3, str(cap)[:120], 9, C_MUTED, wrap=True)
+                _rrect(s_foto, x, y, 5.6, 1.7, C_ZEBRA, C_SEP, radius=0.06)
 
     # 6) Cierre
     _cierre(prs)
