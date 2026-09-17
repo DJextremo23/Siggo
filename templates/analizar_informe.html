@@ -147,6 +147,24 @@
 
         <!-- Resultados del análisis: resumen ejecutivo, gráficas generadas y módulos 2 al 5 -->
         <div class="resultados-wrapper" id="resultados-wrapper">
+            <!-- Registro de Guardia (extraído conforme a formato_guardia_mtto.md) -->
+            <div class="result-card" id="registro-card" style="display:none;">
+                <div class="result-header">
+                    <div class="header-icon registro">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="17" rx="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="8" y1="13" x2="16" y2="13"/>
+                            <line x1="8" y1="17" x2="13" y2="17"/>
+                        </svg>
+                    </div>
+                    <h2>Registro de Guardia</h2>
+                </div>
+                <div class="result-body">
+                    <div id="registro-content"></div>
+                </div>
+            </div>
+
             <!-- Resumen -->
             <div class="result-card" id="resumen-card" style="display:none;">
                 <div class="result-header">
@@ -312,6 +330,111 @@ function renderResumen(texto) {
     return html;
 }
 
+function filaTabla(campos, fila) {
+    let html = '<tr>';
+    campos.forEach(function (c) {
+        const v = (fila && fila[c[0]] != null) ? String(fila[c[0]]) : '';
+        html += '<td>' + escapeHtml(v) + '</td>';
+    });
+    return html + '</tr>';
+}
+
+function encabezadoTabla(campos) {
+    let html = '<thead><tr>';
+    campos.forEach(function (c) {
+        html += '<th>' + escapeHtml(c[1]) + '</th>';
+    });
+    return html + '</tr></thead><tbody>';
+}
+
+function renderRegistroGuardia(data) {
+    const reg = data.registro_guardia;
+    const card = document.getElementById('registro-card');
+    if (!reg) { card.style.display = 'none'; return; }
+
+    const cabecera = reg.cabecera || {};
+    const talleres = reg.talleres || [];
+    const evidencias = reg.evidencias || [];
+    const pendientes = reg.pendientes || [];
+
+    const tieneContenido = talleres.length > 0 || evidencias.length > 0 || pendientes.length > 0
+        || Object.values(cabecera).some(function (v) { return v !== null && v !== undefined && v !== ''; });
+    if (!tieneContenido) { card.style.display = 'none'; return; }
+
+    let html = '';
+
+    // Cabecera (producción)
+    const itemsCabecera = [
+        ['Producción OIL (BPD)', cabecera.produccion_oil_bpd],
+        ['Prod. Perdida imputada', cabecera.prod_perdida_imputada],
+        ['Producción GAS (MPC)', cabecera.produccion_gas_mpc],
+        ['Producción recuperada', cabecera.produccion_recuperada]
+    ];
+    const hayCabecera = itemsCabecera.some(function (it) { return it[1] !== null && it[1] !== undefined && it[1] !== ''; });
+    if (hayCabecera) {
+        html += '<div class="cabecera-grid">';
+        itemsCabecera.forEach(function (it) {
+            html += '<div class="cabecera-item"><span class="cabecera-label">' + escapeHtml(it[0]) + '</span>'
+                + '<span class="cabecera-valor">' + escapeHtml((it[1] !== null && it[1] !== undefined && it[1] !== '') ? it[1] : '—') + '</span></div>';
+        });
+        html += '</div>';
+    }
+
+    // Talleres
+    const COLS_TALLER = [
+        ['item', 'Ítem'], ['pozo', 'Pozo'], ['bateria', 'Batería'], ['produccion_bopd', 'Producción (bopd)'],
+        ['requerimiento', 'Requerimiento'], ['estado', 'Estado'], ['fecha_ejecucion', 'Fecha de Ejecución'],
+        ['tipo', 'Tipo'], ['relevante', 'Relevante'], ['cuadrilla', 'Cuadrilla'], ['actividad_ejecutada', 'Actividad Ejecutada']
+    ];
+    talleres.forEach(function (t) {
+        const filas = t.filas || [];
+        if (!filas.length) return;
+        html += '<h3 class="registro-taller">' + escapeHtml(t.taller || '') + '</h3>';
+        html += '<div class="table-responsive"><table class="data-table">'
+            + encabezadoTabla(COLS_TALLER);
+        filas.forEach(function (f) { html += filaTabla(COLS_TALLER, f); });
+        html += '</tbody></table></div>';
+    });
+
+    // Evidencias
+    if (evidencias.length) {
+        const COLS_EVID = [
+            ['n_evidencia', 'N Evid.'], ['item_ref', 'Ítem Ref.'], ['pozo_equipo', 'Pozo / Equipo'],
+            ['descripcion', 'Descripción del Incidente'], ['hallazgos', 'Hallazgos'], ['accion_tomada', 'Acción Tomada'],
+            ['responsable', 'Responsable'], ['fecha_hora', 'Fecha / Hora'], ['imagen', 'Imagen']
+        ];
+        html += '<h3 class="registro-taller">IMÁGENES / SEGURIDAD Y MEDIO AMBIENTE</h3>';
+        html += '<div class="table-responsive"><table class="data-table">'
+            + encabezadoTabla(COLS_EVID);
+        evidencias.forEach(function (f) { html += filaTabla(COLS_EVID, f); });
+        html += '</tbody></table></div>';
+    }
+
+    // Pendientes
+    if (pendientes.length) {
+        const COLS_PEND = [
+            ['item', 'Ítem'], ['pozo', 'Pozo'], ['bateria', 'Batería'], ['produccion_bopd', 'Producción (bopd)'],
+            ['requerimiento', 'Requerimiento'], ['estado', 'Estado'], ['fecha_ejecucion', 'Fecha de Ejecución'], ['actividad_ejecutada', 'Actividad Ejecutada']
+        ];
+        html += '<h3 class="registro-taller registro-pendientes-title">TRABAJOS PENDIENTES</h3>';
+        pendientes.forEach(function (p) {
+            const filas = p.filas || [];
+            if (!filas.length) return;
+            html += '<h4 class="registro-subtaller">' + escapeHtml(p.taller || '') + '</h4>';
+            html += '<div class="table-responsive"><table class="data-table">'
+                + encabezadoTabla(COLS_PEND);
+            filas.forEach(function (f) { html += filaTabla(COLS_PEND, f); });
+            html += '</tbody></table></div>';
+        });
+    }
+
+    document.getElementById('registro-content').innerHTML = html;
+    card.style.display = 'block';
+    card.style.animation = 'none';
+    card.offsetHeight;
+    card.style.animation = 'card-enter .5s ease backwards';
+}
+
 function setPaso(stepNumber) {
     document.querySelectorAll('.progress-step').forEach(el => el.classList.remove('active', 'done'));
     document.querySelectorAll('.progress-connector').forEach(el => el.classList.remove('done'));
@@ -365,6 +488,9 @@ function mostrarResultados(data) {
     analisisData = data;
 
     destruirGraficas();
+
+    // Registro de Guardia (formato_guardia_mtto.md)
+    renderRegistroGuardia(data);
 
     // Resumen
     const resumenCard = document.getElementById('resumen-card');

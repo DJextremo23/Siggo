@@ -99,6 +99,16 @@ No rellenes campos faltantes utilizando información inventada.
 
 ---
 
+# 2.1. FORMATO ESPECÍFICO DEL REPORTE DE GUARDIA
+
+A continuación se describe la **estructura real del Reporte de Guardia de mantenimiento** que debes reconocer (secciones, talleres, columnas y encabezados):
+
+<<<FORMATO>>>
+
+Interpreta esta estructura como la referencia de secciones (talleres), columnas y campos del documento. Los nombres pueden variar ligeramente, pero debes reconocer las tablas y campos descritos en el documento real.
+
+---
+
 # 3. EXPLORACIÓN OBLIGATORIA ANTES DEL ANÁLISIS
 
 Antes de generar conclusiones debes revisar completamente el archivo.
@@ -1272,13 +1282,45 @@ La estructura de reporte descrita arriba es tu **metodología de análisis**. Si
   ],
   "analisis_imagenes": [
     {"referencia": "Imagen 1 — Hoja 'Guardia 01' (celda C5)", "descripcion": "Qué muestra la imagen, a qué campo o registro está asociada (según su ubicación) y qué información aporta"}
-  ]
+  ],
+  "registro_guardia": {
+    "cabecera": {
+      "produccion_oil_bpd": "",
+      "prod_perdida_imputada": "",
+      "produccion_gas_mpc": "",
+      "produccion_recuperada": ""
+    },
+    "talleres": [
+      {
+        "taller": "MONTAJE",
+        "filas": [
+          {"item": 1, "pozo": "", "bateria": "", "produccion_bopd": "", "requerimiento": "", "estado": "", "fecha_ejecucion": "", "tipo": "", "relevante": "", "cuadrilla": "", "actividad_ejecutada": ""}
+        ]
+      }
+    ],
+    "evidencias": [
+      {"n_evidencia": 1, "item_ref": "", "pozo_equipo": "", "descripcion": "", "hallazgos": "", "accion_tomada": "", "responsable": "", "fecha_hora": "", "imagen": ""}
+    ],
+    "pendientes": [
+      {
+        "taller": "ENERGÍA",
+        "filas": [
+          {"item": 1, "pozo": "", "bateria": "", "produccion_bopd": "", "requerimiento": "", "estado": "", "fecha_ejecucion": "", "actividad_ejecutada": ""}
+        ]
+      }
+    ]
+  }
 }
 
 IMPORTANTE:
 - Responde SOLO con el JSON válido, sin explicaciones ni markdown.
 - Reemplaza TODOS los valores de ejemplo con los datos REALES extraídos del documento.
 - "analisis_imagenes": describe cada imagen enviada en el MISMO orden (Imagen 1, Imagen 2, ...). En "referencia" usa la ubicación indicada (hoja y celda) y en "descripcion" escribe qué muestra y, según su ubicación, a qué campo o registro está asociada. Devuelve [] si el documento no contiene imágenes.
+- "registro_guardia": reproduce EXACTAMENTE la estructura del Reporte de Guardia, extrayendo CADA fila con datos del documento (transcripción fiel, no inventes valores):
+  * "cabecera": Producción OIL (produccion_oil_bpd), Prod. Perdida imputada (prod_perdida_imputada), Producción GAS (produccion_gas_mpc) y Producción recuperada (produccion_recuperada). Usa "" si no aparecen.
+  * "talleres": lista ORDENADA de secciones (MONTAJE, MECÁNICOS, ENERGÍA, ENERGÍA ADICIONAL, INSTRUMENTACIÓN, COMPRESIÓN DE GAS, GASFITERÍA Y SOLDADURA, GASFITERÍA Y SOLDADURA - ADICIONAL, MOVIMIENTO DE SUELOS, MOVIMIENTO DE SUELOS - ADICIONAL). Cada taller tiene "filas" con SOLO las filas que contengan datos (omite filas vacías). Campos por fila: item, pozo, bateria, produccion_bopd, requerimiento, estado, fecha_ejecucion, tipo, relevante, cuadrilla, actividad_ejecutada. Omite cualquier taller que no exista en el documento.
+  * "evidencias": filas de la sección IMÁGENES / SEGURIDAD Y MEDIO AMBIENTE con campos n_evidencia, item_ref, pozo_equipo, descripcion, hallazgos, accion_tomada, responsable, fecha_hora, imagen. Devuelve [] si no hay.
+  * "pendientes": secciones de TRABAJOS PENDIENTES (ENERGÍA, INSTRUMENTACIÓN, GASFITERÍA Y SOLDADURA), cada una con "filas" (campos: item, pozo, bateria, produccion_bopd, requerimiento, estado, fecha_ejecucion, actividad_ejecutada). Solo filas con datos.
 - VERIFICACIÓN FINAL OBLIGATORIA antes de responder:
   a) modulo3_trabajos_importantes debe contener TODAS las filas marcadas "[CRITICO-AMARILLO]" (tras deduplicar por pozo+requerimiento) y NINGUNA actividad sin esa marca.
   b) modulo5_pendientes SOLO debe contener tareas cuyo Estado FINAL (último día donde aparece la tarea) sea distinto de 1. Revisa tarea por tarea: si su última aparición tiene Estado = 1, elimínala de pendientes. Y toda tarea cuya última aparición tenga Estado 0, decimal o vacío DEBE estar en pendientes.
