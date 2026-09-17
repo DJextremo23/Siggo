@@ -1103,84 +1103,13 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
         response_mime_type="application/json",
     )
 
-    prompt = _cargar_pront() + f"""
-
-TÍTULO DEL DOCUMENTO: {titulo}
+    documento = f"""TÍTULO DEL DOCUMENTO: {titulo}
 DESCRIPCIÓN: {descripcion}
 
 CONTENIDO DEL DOCUMENTO:
-{texto[:30000]}
+{texto[:30000]}"""
 
-6. ESTRUCTURA DE SALIDA REQUERIDA
-Devuelve ÚNICAMENTE un JSON válido (sin markdown, sin comillas triples) con esta estructura exacta:
-
-{{
-  "resumen": "Pega aquí el texto completo del MÓDULO 1 (Resumen Ejecutivo) en formato legible, incluyendo total de actividades, producción recuperada en BOPD, total de trabajos críticos y desglose por tipo y taller.",
-  "hallazgos": ["Hallazgo clave 1", "Hallazgo clave 2", "Hallazgo clave 3", "Hallazgo clave 4", "Hallazgo clave 5"],
-  "recomendaciones": ["Recomendación 1", "Recomendación 2", "Recomendación 3", "Recomendación 4", "Recomendación 5"],
-  "graficas": [
-    {{
-      "tipo": "bar",
-      "titulo": "Actividades por Taller Unificado",
-      "labels": ["<TALLERES REALES UNIFICADOS DEL DOCUMENTO>"],
-      "datasets": [
-        {{"label": "Ejecutadas", "data": [0]}},
-        {{"label": "Completadas", "data": [0]}}
-      ]
-    }},
-    {{
-      "tipo": "pie",
-      "titulo": "Distribución de Trabajos por Tipo",
-      "labels": ["<TIPOS REALES DEL DOCUMENTO, ej. CNP, PV, SOP, SUS>"],
-      "datasets": [
-        {{"label": "Cantidad", "data": [0], "backgroundColor": ["#22c55e", "#f59e0b", "#3b82f6", "#8b5cf6"]}}
-      ]
-    }},
-    {{
-      "tipo": "bar",
-      "titulo": "Producción Recuperada CNP por Taller (BOPD)",
-      "labels": ["<TALLERES REALES CON CNP COMPLETADO>"],
-      "datasets": [
-        {{"label": "BOPD Recuperados", "data": [0], "backgroundColor": ["#1e3a5f", "#2563eb", "#3b82f6", "#60a5fa"]}}
-      ]
-    }}
-  ],
-  "modulo1_resumen_ejecutivo": {{
-    "total_actividades": 0,
-    "total_produccion_recuperada_bopd": 0,
-    "total_trabajos_criticos": 0,
-    "desglose_por_tipo": {{}},
-    "desglose_por_taller": {{}}
-  }},
-  "modulo2_eficacia_taller": [
-    {{"taller": "MONTAJE", "ejecutadas": 0, "completadas": 0, "eficacia": 0.0}}
-  ],
-  "modulo3_trabajos_importantes": [
-    {{"taller": "MONTAJE", "pozo": "XXX-001", "falla": "Descripción de la falla", "solucion": "Descripción de la solución"}}
-  ],
-  "modulo4_resumen_operativo": {{
-    "bopd_por_taller": {{}},
-    "trabajos_por_tipo": {{}}
-  }},
-  "modulo5_pendientes": [
-    {{"taller": "MONTAJE", "pozo": "XXX-001", "requerimiento": "Descripción de la tarea pendiente", "estado": "pendiente"}}
-  ],
-  "analisis_imagenes": [
-    {{"referencia": "Imagen 1 — Hoja 'Guardia 01' (celda C5)", "descripcion": "Descripción de lo que muestra la imagen y qué información aporta"}}
-  ]
-}}
-
-IMPORTANTE: 
-- Responde SOLO con el JSON válido, sin explicaciones ni markdown.
-- Reemplaza TODOS los valores de ejemplo con los datos REALES extraídos del documento.
-- Llena TODOS los arrays y objetos con los datos correctos según tu análisis.
-- El campo "resumen" debe contener el texto completo del MÓDULO 1: RESUMEN EJECUTIVO DE GUARDIA con formato legible (usa saltos de línea \\n para separar secciones).
-- "analisis_imagenes": describe cada imagen enviada en el MISMO orden (Imagen 1, Imagen 2, ...). En "referencia" usa la ubicación indicada (hoja y celda) y en "descripcion" escribe qué muestra la imagen y qué información aporta. Devuelve [] si el documento no contiene imágenes.
-- VERIFICACIÓN FINAL OBLIGATORIA antes de responder:
-  a) modulo3_trabajos_importantes debe contener TODAS las filas marcadas "[CRITICO-AMARILLO]" (tras deduplicar por pozo+requerimiento) y NINGUNA actividad sin esa marca.
-  b) modulo5_pendientes SOLO debe contener tareas cuyo Estado FINAL (último día donde aparece la tarea) sea distinto de 1. Revisa tarea por tarea: si su última aparición tiene Estado = 1, elimínala de pendientes (ej. una tarea con Estado 1 en todas sus apariciones NUNCA es pendiente). Y toda tarea cuya última aparición tenga Estado 0, decimal o vacío DEBE estar en pendientes, aunque aparezca un solo día.
-  c) Recalcula cada suma: total_produccion_recuperada_bopd debe ser EXACTAMENTE igual a la suma de bopd_por_taller, y total_actividades igual a la suma de "ejecutadas" del desglose_por_taller. Corrige cualquier inconsistencia antes de responder.
-  d) bopd_por_taller debe incluir SOLO talleres cuya suma de CNP completados sea mayor que 0 (omite talleres con 0)."""
+    prompt = _cargar_pront().replace("<<<CONTENIDO>>>", documento)
 
     # Limitar la cantidad de imágenes enviadas para no exceder el tamaño/latencia.
     imagenes = imagenes[:8]
@@ -1545,6 +1474,18 @@ def generar_ppt_analisis(id_informe):
             except Exception:
                 pass
 
+        def _fit(texto, w, size, max_lineas=1):
+            """Recorta texto para que no desborde su caja (estimación conservadora
+            de caracteres por línea) añadiendo puntos suspensivos si excede."""
+            texto = str(texto or "")
+            if not texto:
+                return texto
+            cpl = max(8, int(0.82 * (144.0 / size) * w))
+            limite = cpl * max_lineas
+            if len(texto) <= limite:
+                return texto
+            return texto[:max(1, limite - 1)].rstrip() + "…"
+
         def _rounded_rect(slide, x, y, w, h, fill_color=C_CARD_BG, border_color=None, radius=0.12):
             shape = slide.shapes.add_shape(
                 MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h)
@@ -1718,7 +1659,7 @@ def generar_ppt_analisis(id_informe):
                 ef_num = 0.0
             _rounded_rect(slide, x, y, w, 1.5, C_CARD_BG, C_BORDER)
             _rect(slide, x, y + 0.08, 0.06, 1.34, color)
-            _text_box(slide, x + 0.25, y + 0.12, w - 0.5, 0.4, taller, 14, C_TEXT, True,
+            _text_box(slide, x + 0.25, y + 0.12, w - 0.5, 0.4, _fit(taller, w - 0.5, 14, 1), 14, C_TEXT, True,
                       anchor=MSO_ANCHOR.MIDDLE)
             _text_box(slide, x + 0.25, y + 0.55, w - 0.5, 0.3,
                       f"{ejecutadas} ejecutadas  ·  {completadas} completadas", 10, C_SUBTLE)
@@ -1727,7 +1668,8 @@ def generar_ppt_analisis(id_informe):
                       10, color, True, PP_ALIGN.RIGHT, MSO_ANCHOR.MIDDLE)
 
         def _section_title(slide, x, y, w, text, color=C_PRIMARY, size=14):
-            _text_box(slide, x, y, w, 0.35, text, size, color, True, anchor=MSO_ANCHOR.MIDDLE)
+            _text_box(slide, x, y, w, 0.35, _fit(text, w, size, 1), size, color, True,
+                      anchor=MSO_ANCHOR.MIDDLE)
 
         def _rich_text(slide, x, y, w, h, runs, size=11, align=PP_ALIGN.LEFT,
                        anchor=MSO_ANCHOR.TOP, line_spacing=1.05):
@@ -1839,16 +1781,16 @@ def generar_ppt_analisis(id_informe):
         lr.font.size = Pt(24); lr.font.color.rgb = C_WHITE; lr.font.bold = True; lr.font.name = FONT
 
         _text_box(s1, 2.0, 2.15, 9.3, 0.4, "REPORTE DE ANÁLISIS DE GUARDIA", 14, C_ACCENT, True)
-        _text_box(s1, 2.0, 2.55, 9.3, 0.9, informe["titulo"] or "Informe sin título", 30, C_WHITE, True,
-                  anchor=MSO_ANCHOR.MIDDLE)
+        _text_box(s1, 2.0, 2.55, 9.3, 0.9, _fit(informe["titulo"] or "Informe sin título", 9.3, 30, 2),
+                  30, C_WHITE, True, anchor=MSO_ANCHOR.MIDDLE)
         _rect(s1, 2.0, 3.55, 2.2, 0.04, C_ACCENT)
 
         fecha = informe.get("fecha_guardia")
         fecha_str = fecha.strftime("%d/%m/%Y") if fecha else "N/A"
         meta_lines = [
             ("Fecha de Guardia", fecha_str),
-            ("Fiscalizador", informe.get("fiscalizador") or "N/A"),
-            ("Documento", f"{informe.get('nombre_archivo', '')}  ({str(informe.get('tipo_archivo', '')).upper()})"),
+            ("Fiscalizador", _fit(informe.get("fiscalizador") or "N/A", 7.0, 13, 1)),
+            ("Documento", _fit(f"{informe.get('nombre_archivo', '')}  ({str(informe.get('tipo_archivo', '')).upper()})", 7.0, 13, 1)),
         ]
         my = 3.85
         for lbl, val in meta_lines:
@@ -1889,11 +1831,25 @@ def generar_ppt_analisis(id_informe):
 
         resumen = (data.get("resumen") or "No se generó resumen.").strip()
         resumen = re.sub(r"[ \t]*\n{3,}", "\n\n", resumen)
-        _rounded_rect(s2, 0.6, 3.4, 12.1, 3.8, C_CARD_BG, C_BORDER)
-        _rect(s2, 0.6, 3.4, 0.06, 3.8, C_ACCENT)
-        _text_box(s2, 0.9, 3.55, 1.6, 0.35, "RESUMEN", 11, C_ACCENT, True)
-        _text_box(s2, 0.9, 3.95, 11.5, 3.1, resumen[:1400], 12, C_TEXT, False,
-                  PP_ALIGN.LEFT, MSO_ANCHOR.TOP, True, 1.15)
+        lineas = [_fit(l.strip(), 11.5, 12, 1) for l in resumen.split("\n") if l.strip()]
+        if not lineas:
+            lineas = ["No se generó resumen."]
+
+        def _resumen_card(slide, chunk, y, h):
+            _rounded_rect(slide, 0.6, y, 12.1, h, C_CARD_BG, C_BORDER)
+            _rect(slide, 0.6, y, 0.06, h, C_ACCENT)
+            _text_box(slide, 0.9, y + 0.15, 1.8, 0.35, "RESUMEN", 11, C_ACCENT, True)
+            _multi_text(slide, 0.9, y + 0.55, 11.5, h - 0.7, chunk, 12, C_TEXT,
+                        line_spacing=1.12)
+
+        _resumen_card(s2, lineas[:11], 3.4, 3.8)
+        restante = lineas[11:]
+        while restante:
+            s2b = prs.slides.add_slide(prs.slide_layouts[6])
+            _set_bg(s2b, C_LIGHT_BG)
+            _add_header(s2b, "Resumen Ejecutivo de Guardia (cont.)", C_ACCENT, None, 1)
+            _resumen_card(s2b, restante[:17], 1.55, 5.7)
+            restante = restante[17:]
 
         # ═══════════════════════════════
         # S3 — MÓDULO 2: EFICACIA POR TALLER (tarjetas con barra de progreso)
@@ -1960,12 +1916,12 @@ def generar_ppt_analisis(id_informe):
                     nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
 
                     enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
-                    _text_box(slide, 1.6, cy + 0.08, 11.0, 0.32, enc, 14, C_GOLD, True,
+                    _text_box(slide, 1.6, cy + 0.08, 11.0, 0.32, _fit(enc, 11.0, 14, 1), 14, C_GOLD, True,
                               anchor=MSO_ANCHOR.MIDDLE)
                     _rich_text(slide, 1.6, cy + 0.42, 11.0, 0.32,
-                               [("Falla:  ", True, C_SUBTLE), (falla[:100], False, C_TEXT)])
+                               [("Falla:  ", True, C_SUBTLE), (_fit(falla, 10.0, 11, 1), False, C_TEXT)])
                     _rich_text(slide, 1.6, cy + 0.76, 11.0, 0.32,
-                               [("Solución:  ", True, C_GREEN), (solucion[:100], False, C_TEXT)])
+                               [("Solución:  ", True, C_GREEN), (_fit(solucion, 10.0, 11, 1), False, C_TEXT)])
                     cy += card_h + 0.12
 
             s4 = prs.slides.add_slide(prs.slide_layouts[6])
@@ -2096,9 +2052,9 @@ def generar_ppt_analisis(id_informe):
                     dot.fill.solid(); dot.fill.fore_color.rgb = dot_color
                     _no_line(dot); _no_shadow(dot)
                     enc = taller + (f"  ·  Pozo {pozo}" if pozo else "")
-                    _text_box(slide, 1.35, cy + 0.04, 2.7, 0.28, enc, 11, C_TEXT, True,
+                    _text_box(slide, 1.35, cy + 0.04, 2.7, 0.28, _fit(enc, 2.7, 11, 1), 11, C_TEXT, True,
                               anchor=MSO_ANCHOR.MIDDLE)
-                    _text_box(slide, 4.1, cy + 0.04, 6.3, 0.55, req[:120], 10, C_SUBTLE, False,
+                    _text_box(slide, 4.1, cy + 0.04, 6.3, 0.55, _fit(req, 6.3, 10, 2), 10, C_SUBTLE, False,
                               anchor=MSO_ANCHOR.MIDDLE)
                     _text_box(slide, 10.5, cy + 0.04, 2.0, 0.55, estado.upper(), 11, dot_color, True,
                               PP_ALIGN.RIGHT, MSO_ANCHOR.MIDDLE)
@@ -2148,7 +2104,7 @@ def generar_ppt_analisis(id_informe):
                 nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
                 nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
 
-                _text_box(s8, 1.6, cy, 10.9, card_h, str(h)[:280], 12, C_TEXT, False,
+                _text_box(s8, 1.6, cy, 10.9, card_h, _fit(str(h), 10.9, 12, 2), 12, C_TEXT, False,
                           PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.1)
                 cy += card_h + 0.16
 
@@ -2179,7 +2135,7 @@ def generar_ppt_analisis(id_informe):
                 nr = ntf.paragraphs[0].add_run(); nr.text = str(i + 1)
                 nr.font.size = Pt(12); nr.font.color.rgb = C_WHITE; nr.font.bold = True; nr.font.name = FONT
 
-                _text_box(s9, 1.6, cy, 10.9, card_h, str(rec)[:280], 12, C_TEXT, False,
+                _text_box(s9, 1.6, cy, 10.9, card_h, _fit(str(rec), 10.9, 12, 2), 12, C_TEXT, False,
                           PP_ALIGN.LEFT, MSO_ANCHOR.MIDDLE, True, 1.1)
                 cy += card_h + 0.16
 
@@ -2199,7 +2155,7 @@ def generar_ppt_analisis(id_informe):
                 d = desc_list[idx] if idx < len(desc_list) else {}
                 referencia = d.get("referencia", "") or f"Imagen {idx + 1}"
                 descripcion = d.get("descripcion", "") or ""
-                _text_box(slide, x, y, 5.6, 0.32, str(referencia), 12, C_ACCENT, True,
+                _text_box(slide, x, y, 5.6, 0.32, _fit(str(referencia), 5.6, 12, 1), 12, C_ACCENT, True,
                           anchor=MSO_ANCHOR.MIDDLE)
                 if idx < len(imagenes_archivo):
                     try:
@@ -2208,7 +2164,7 @@ def generar_ppt_analisis(id_informe):
                         _rounded_rect(slide, x, y + 0.4, 5.6, 3.9, C_LIGHT_BG, C_BORDER)
                 else:
                     _rounded_rect(slide, x, y + 0.4, 5.6, 3.9, C_LIGHT_BG, C_BORDER)
-                _text_box(slide, x, y + 4.4, 5.6, 1.2, str(descripcion)[:280], 11, C_TEXT, False,
+                _text_box(slide, x, y + 4.4, 5.6, 1.2, _fit(str(descripcion), 5.6, 11, 4), 11, C_TEXT, False,
                           anchor=MSO_ANCHOR.TOP, line_spacing=1.05)
 
             s_img = prs.slides.add_slide(prs.slide_layouts[6])
