@@ -1064,13 +1064,13 @@ def vacaciones():
         params_vac = []
 
         if anio_vac:
-            filtro_vac += " AND YEAR(v.fecha_inicio) = %s"
-            params_vac.append(int(anio_vac))
+            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+            params_vac.extend([int(anio_vac), int(anio_vac)])
         if desde_vac:
-            filtro_vac += " AND v.fecha_inicio >= %s"
+            filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(desde_vac)
         if hasta_vac:
-            filtro_vac += " AND v.fecha_fin <= %s"
+            filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(hasta_vac)
         if fiscalizador_vac:
             filtro_vac += " AND v.id_usuario = %s"
@@ -1125,11 +1125,11 @@ def vacaciones():
             filtro_alerta += " AND u.id_usuario = %s"
             params_alerta.append(int(fiscalizador_alerta))
         if estado_alerta == "LISTO":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 30"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 0"
         elif estado_alerta == "PRÓXIMO":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) BETWEEN 31 AND 90"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) BETWEEN 1 AND 15"
         elif estado_alerta == "NORMAL":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) > 90"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) > 15"
 
         cursor.execute(f"""
             SELECT 
@@ -1169,11 +1169,57 @@ def vacaciones():
                 (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
             )
 
+        # =========================
+        # CONTADORES (totales del año actual, independientes de los filtros)
+        # =========================
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM vacaciones
+            WHERE YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE())
+        """)
+        total_registros = cursor.fetchone()["total"]
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM vacaciones
+            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE()))
+              AND CURDATE() > fecha_fin
+        """)
+        total_finalizadas = cursor.fetchone()["total"]
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) BETWEEN 1 AND 15
+        """)
+        total_proximas = cursor.fetchone()["total"]
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 0
+        """)
+        total_disponibles = cursor.fetchone()["total"]
+
         return render_template(
             "vacaciones.html",
             vacaciones=vacaciones,
             usuarios=usuarios,
-            alertas=alertas
+            alertas=alertas,
+            total_registros=total_registros,
+            total_finalizadas=total_finalizadas,
+            total_proximas=total_proximas,
+            total_disponibles=total_disponibles
         )
     except Exception as e:
         print("ERROR vacaciones:", e)
@@ -2445,6 +2491,9 @@ def asistencia():
         sql += " AND fecha_guardia <= %s "
         params.append(fecha_hasta)
 
+    if not fecha_desde and not fecha_hasta:
+        sql += " AND YEAR(fecha_guardia) = YEAR(CURDATE()) "
+
     if asistencia:
         if asistencia == "pendiente":
             sql += " AND (asistencia IS NULL OR asistencia = '' OR asistencia = 'pendiente' OR asistencia NOT IN ('asistio','falta','justificado')) "
@@ -3075,15 +3124,16 @@ def mis_vacaciones():
         params = [session["id_usuario"]]
 
         if anio:
-            conditions.append("YEAR(v.fecha_inicio) = %s")
+            conditions.append("(YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)")
+            params.append(int(anio))
             params.append(int(anio))
 
         if fecha_desde:
-            conditions.append("v.fecha_inicio >= %s")
+            conditions.append("v.fecha_fin >= %s")
             params.append(fecha_desde)
 
         if fecha_hasta:
-            conditions.append("v.fecha_fin <= %s")
+            conditions.append("v.fecha_inicio <= %s")
             params.append(fecha_hasta)
 
         if estado == "pendiente":

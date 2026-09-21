@@ -210,17 +210,17 @@ def reporte():
         params_vac = []
 
         if fecha_desde:
-            filtro_vac += " AND v.fecha_inicio >= %s"
+            filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(fecha_desde)
 
         if fecha_hasta:
-            filtro_vac += " AND v.fecha_fin <= %s"
+            filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(fecha_hasta)
 
         if not fecha_desde and not fecha_hasta:
             if anio:
-                filtro_vac += " AND YEAR(v.fecha_inicio) = %s"
-                params_vac.append(int(anio))
+                filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+                params_vac.extend([int(anio), int(anio)])
             if mes:
                 filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
                 params_vac.append(int(mes))
@@ -738,17 +738,17 @@ def exportar_vacaciones_pdf():
         params_vac = []
 
         if fecha_desde:
-            filtro_vac += " AND v.fecha_inicio >= %s"
+            filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(fecha_desde)
 
         if fecha_hasta:
-            filtro_vac += " AND v.fecha_fin <= %s"
+            filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(fecha_hasta)
 
         if not fecha_desde and not fecha_hasta:
             if anio:
-                filtro_vac += " AND YEAR(v.fecha_inicio) = %s"
-                params_vac.append(int(anio))
+                filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+                params_vac.extend([int(anio), int(anio)])
             if mes:
                 filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
                 params_vac.append(int(mes))
@@ -846,17 +846,17 @@ def exportar_vacaciones_excel():
         params_vac = []
 
         if fecha_desde:
-            filtro_vac += " AND v.fecha_inicio >= %s"
+            filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(fecha_desde)
 
         if fecha_hasta:
-            filtro_vac += " AND v.fecha_fin <= %s"
+            filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(fecha_hasta)
 
         if not fecha_desde and not fecha_hasta:
             if anio:
-                filtro_vac += " AND YEAR(v.fecha_inicio) = %s"
-                params_vac.append(int(anio))
+                filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+                params_vac.extend([int(anio), int(anio)])
             if mes:
                 filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
                 params_vac.append(int(mes))
