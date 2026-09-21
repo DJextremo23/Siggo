@@ -250,9 +250,11 @@ def actualizar_vacacion(id):
         flash("Fecha inválida: inicio mayor que fin", "error")
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
+
         cursor.execute("""
             SELECT id_usuario, fecha_inicio AS fecha_inicio_ant, fecha_fin AS fecha_fin_ant,
                    (SELECT CONCAT(nombre,' ',apellidos) FROM usuarios WHERE id_usuario = vacaciones.id_usuario) AS nombre_completo
@@ -318,12 +320,16 @@ def actualizar_vacacion(id):
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR actualizar_vacacion:", e)
         return error_interno()
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # ADMIN — Guardar nueva vacación (validando antigüedad, cruces y guardias)
@@ -355,9 +361,10 @@ def guardar_vacacion():
         flash("Fecha inválida: inicio mayor que fin", "error")
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         # =========================
         # OBTENER USUARIO
@@ -464,7 +471,10 @@ def guardar_vacacion():
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
     except mysql.connector.errors.OperationalError as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         if e.errno == 1205:
             flash("La base de datos está ocupada, intente nuevamente en unos segundos", "error")
         else:
@@ -472,13 +482,17 @@ def guardar_vacacion():
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR guardar_vacacion:", e)
         flash("Ocurrió un error al registrar las vacaciones. Intente nuevamente.", "error")
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # ADMIN — Eliminar vacación (con notificación al usuario)
@@ -491,9 +505,11 @@ def eliminar_vacacion(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
+
         # Obtener datos antes de eliminar
         cursor.execute("""
             SELECT v.id_usuario, v.fecha_inicio, v.fecha_fin,
@@ -526,12 +542,16 @@ def eliminar_vacacion(id):
         return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR eliminar_vacacion:", e)
         return error_interno()
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @vacaciones_bp.route("/eliminar_vacaciones", methods=["POST"])
@@ -555,9 +575,11 @@ def eliminar_vacaciones():
         except (TypeError, ValueError):
             return datos_invalidos("Identificador de vacación inválido")
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
+
         placeholders = ",".join(["%s"] * len(ids_int))
         cursor.execute(f"""
             SELECT v.id_usuario, v.fecha_inicio, v.fecha_fin,
@@ -586,11 +608,15 @@ def eliminar_vacaciones():
         conexion.commit()
         flash(f"Se eliminaron {len(vacaciones_data)} vacaciones correctamente", "success")
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR VACACIONES:", e)
         flash("Ocurrió un error al eliminar las vacaciones", "error")
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
     return redirigir_con_filtros("vacaciones.vacaciones", "filtro_vacaciones")
 
@@ -611,11 +637,10 @@ def mis_vacaciones():
     if session.get("perfil_activo") != "fiscalizador":
         return acceso_no_autorizado()
 
-    # conexion YA ES OBJETO (NO SE USA ())
-    conn = conexion
-    cursor = conn.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         # =========================
         # FILTROS
@@ -720,6 +745,9 @@ def mis_vacaciones():
             dias_pendientes_anteriores=dias_pendientes_anteriores
         )
 
+    except Exception as e:
+        print("ERROR mis_vacaciones:", e)
+        return error_interno()
     finally:
-        cursor.close()
-        # NOTA: NO cerrar 'conexion' — es el singleton compartido por toda la app
+        if cursor is not None:
+            cursor.close()

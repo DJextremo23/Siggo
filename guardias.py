@@ -70,77 +70,85 @@ def ver_guardias():
 
     guardar_filtros("filtro_guardias")
 
-    cursor = conexion.cursor(dictionary=True)
-
     id_usuario = request.args.get("id_usuario", "").strip()
     fecha_desde = request.args.get("fecha_desde", "").strip()
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     asistencia = request.args.get("asistencia", "").strip()
 
-    # =========================
-    # 1. GUARDIAS
-    # =========================
-    sql = "SELECT rg.*, u.foto FROM resumen_guardias rg LEFT JOIN usuarios u ON rg.id_usuario = u.id_usuario WHERE 1=1 "
-    params = []
+    cursor = None
 
-    if id_usuario:
-        sql += " AND rg.id_usuario = %s "
-        params.append(id_usuario)
+    try:
+        cursor = conexion.cursor(dictionary=True)
 
-    if fecha_desde:
-        sql += " AND rg.fecha_guardia >= %s "
-        params.append(fecha_desde)
+        # =========================
+        # 1. GUARDIAS
+        # =========================
+        sql = "SELECT rg.*, u.foto FROM resumen_guardias rg LEFT JOIN usuarios u ON rg.id_usuario = u.id_usuario WHERE 1=1 "
+        params = []
 
-    if fecha_hasta:
-        sql += " AND rg.fecha_guardia <= %s "
-        params.append(fecha_hasta)
+        if id_usuario:
+            sql += " AND rg.id_usuario = %s "
+            params.append(id_usuario)
 
-    if asistencia:
-        if asistencia == "pendiente":
-            sql += " AND (rg.asistencia IS NULL OR rg.asistencia = '' OR rg.asistencia = 'pendiente' OR rg.asistencia NOT IN ('asistio','falta','justificado')) "
-        else:
-            sql += " AND rg.asistencia = %s "
-            params.append(asistencia)
+        if fecha_desde:
+            sql += " AND rg.fecha_guardia >= %s "
+            params.append(fecha_desde)
 
-    sql += " ORDER BY rg.fecha_guardia DESC"
+        if fecha_hasta:
+            sql += " AND rg.fecha_guardia <= %s "
+            params.append(fecha_hasta)
 
-    cursor.execute(sql, tuple(params))
-    guardias = cursor.fetchall()
+        if asistencia:
+            if asistencia == "pendiente":
+                sql += " AND (rg.asistencia IS NULL OR rg.asistencia = '' OR rg.asistencia = 'pendiente' OR rg.asistencia NOT IN ('asistio','falta','justificado')) "
+            else:
+                sql += " AND rg.asistencia = %s "
+                params.append(asistencia)
 
-    for g in guardias:
-        fecha = g.get('fecha_guardia')
-        if isinstance(fecha, date):
-            g['dia_semana'] = DIAS_ES[fecha.weekday()]
-        else:
-            g['dia_semana'] = str(fecha) if fecha else '—'
+        sql += " ORDER BY rg.fecha_guardia DESC"
 
-    # =========================
-    # 2. FISCALIZADORES
-    # =========================
-    cursor.execute("""
-        SELECT DISTINCT
-            u.id_usuario,
-            u.nombre,
-            u.apellidos
-        FROM usuarios u
-        INNER JOIN usuarios_roles ur
-            ON u.id_usuario = ur.id_usuario
-        INNER JOIN roles r
-            ON ur.id_rol = r.id_rol
-        WHERE r.nombre_rol = 'fiscalizador'
-          AND u.estado = 'activo'
-        ORDER BY u.nombre
-    """)
+        cursor.execute(sql, tuple(params))
+        guardias = cursor.fetchall()
 
-    fiscalizadores = cursor.fetchall()
+        for g in guardias:
+            fecha = g.get('fecha_guardia')
+            if isinstance(fecha, date):
+                g['dia_semana'] = DIAS_ES[fecha.weekday()]
+            else:
+                g['dia_semana'] = str(fecha) if fecha else '—'
 
-    cursor.close()
+        # =========================
+        # 2. FISCALIZADORES
+        # =========================
+        cursor.execute("""
+            SELECT DISTINCT
+                u.id_usuario,
+                u.nombre,
+                u.apellidos
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur
+                ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r
+                ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            ORDER BY u.nombre
+        """)
 
-    return render_template(
-        "guardias.html",
-        guardias=guardias,
-        fiscalizadores=fiscalizadores
-    )
+        fiscalizadores = cursor.fetchall()
+
+        return render_template(
+            "guardias.html",
+            guardias=guardias,
+            fiscalizadores=fiscalizadores
+        )
+
+    except Exception as e:
+        print("ERROR ver_guardias:", e)
+        return error_interno()
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # ADMIN — Agregar nueva guardia (con verificación de duplicados)
@@ -166,9 +174,11 @@ def agregar_guardia():
         flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
         return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         cursor.execute("SELECT estado FROM usuarios WHERE id_usuario = %s", (id_usuario,))
         usuario = cursor.fetchone()
         if not usuario:
@@ -209,7 +219,10 @@ def agregar_guardia():
         return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
     except mysql.connector.errors.IntegrityError as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         if e.errno == 1062:
             flash("Este fiscalizador ya tiene una guardia asignada en esa fecha", "error")
         else:
@@ -217,7 +230,10 @@ def agregar_guardia():
         return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
     except mysql.connector.errors.OperationalError as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         if e.errno == 1205:
             flash("La base de datos está ocupada, intente nuevamente en unos segundos", "error")
         else:
@@ -225,13 +241,17 @@ def agregar_guardia():
         return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR agregar_guardia:", e)
         flash("Ocurrió un error al registrar la guardia. Intente nuevamente.", "error")
         return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # ADMIN — Editar guardia (GET muestra formulario, POST guarda cambios)
@@ -244,9 +264,10 @@ def editar_guardia(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         # ======================
         # GUARDAR CAMBIOS
@@ -310,17 +331,15 @@ def editar_guardia(id):
                 return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
             except mysql.connector.errors.IntegrityError as e:
-                conexion.rollback()
+                try:
+                    conexion.rollback()
+                except Exception:
+                    pass
                 if e.errno == 1062:
                     flash("Este fiscalizador ya tiene una guardia asignada en esa fecha", "error")
                 else:
                     flash("No se pudo actualizar la guardia: datos duplicados o inválidos", "error")
                 return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
-
-            except Exception as e:
-                conexion.rollback()
-                print("ERROR editar_guardia:", e)
-                return error_interno()
 
         # ======================
         # CARGAR DATOS
@@ -357,8 +376,16 @@ def editar_guardia(id):
             fiscalizadores=fiscalizadores
         )
 
+    except Exception as e:
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        print("ERROR editar_guardia:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @guardias_bp.route("/eliminar_guardia/<int:id>", methods=["POST"])
@@ -370,9 +397,11 @@ def eliminar_guardia(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         _eliminar_guardias_con_archivos(cursor, [id])
 
         conexion.commit()
@@ -381,16 +410,16 @@ def eliminar_guardia(id):
         return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
     except Exception as e:
-
-        conexion.rollback()
-
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR GUARDIA:", e)
-
         return error_interno()
 
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @guardias_bp.route("/eliminar_guardias", methods=["POST"])
@@ -414,18 +443,24 @@ def eliminar_guardias():
         except (TypeError, ValueError):
             return datos_invalidos("Identificador de guardia inválido")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         _eliminar_guardias_con_archivos(cursor, ids_int)
         conexion.commit()
         flash(f"Se eliminaron {cursor.rowcount} guardias correctamente", "success")
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR GUARDIAS:", e)
         flash("Ocurrió un error al eliminar las guardias", "error")
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
     return redirigir_con_filtros("guardias.ver_guardias", "filtro_guardias")
 
@@ -446,9 +481,11 @@ def registrar_asistencia(id_guardia, estado):
     if estado not in ["asistio", "falta", "justificado"]:
         return datos_invalidos("Estado inválido")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         cursor.execute("""
             SELECT id_asistencia
             FROM asistencia
@@ -490,8 +527,16 @@ def registrar_asistencia(id_guardia, estado):
         flash(mensajes.get(estado, "Asistencia actualizada"), "success")
         return redirigir_con_filtros("guardias.asistencia_admin", "filtro_asistencias")
 
+    except Exception as e:
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        print("ERROR registrar_asistencia:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # ADMIN — Listado de asistencias con filtros por usuario, fecha y estado
@@ -506,14 +551,16 @@ def asistencia_admin():
 
     guardar_filtros("filtro_asistencias")
 
-    cursor = conexion.cursor(dictionary=True)
-
     id_usuario = request.args.get("id_usuario", "").strip()
     fecha_desde = request.args.get("fecha_desde", "").strip()
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     asistencia = request.args.get("asistencia", "").strip()
 
+    cursor = None
+
     try:
+        cursor = conexion.cursor(dictionary=True)
+
         # =========================
         # 1. GUARDIAS CON FILTROS
         # =========================
@@ -577,8 +624,12 @@ def asistencia_admin():
             fiscalizadores=fiscalizadores
         )
 
+    except Exception as e:
+        print("ERROR asistencia_admin:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # ==========================
@@ -598,42 +649,52 @@ def asistencia():
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     asistencia = request.args.get("asistencia", "").strip()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
-    sql = "SELECT * FROM resumen_guardias WHERE id_usuario = %s "
-    params = [session["id_usuario"]]
+    try:
+        cursor = conexion.cursor(dictionary=True)
 
-    if fecha_desde:
-        sql += " AND fecha_guardia >= %s "
-        params.append(fecha_desde)
+        sql = "SELECT * FROM resumen_guardias WHERE id_usuario = %s "
+        params = [session["id_usuario"]]
 
-    if fecha_hasta:
-        sql += " AND fecha_guardia <= %s "
-        params.append(fecha_hasta)
+        if fecha_desde:
+            sql += " AND fecha_guardia >= %s "
+            params.append(fecha_desde)
 
-    if asistencia:
-        if asistencia == "pendiente":
-            sql += " AND (asistencia IS NULL OR asistencia = '' OR asistencia = 'pendiente' OR asistencia NOT IN ('asistio','falta','justificado')) "
-        else:
-            sql += " AND asistencia = %s "
-            params.append(asistencia)
+        if fecha_hasta:
+            sql += " AND fecha_guardia <= %s "
+            params.append(fecha_hasta)
 
-    sql += " ORDER BY fecha_guardia DESC"
+        if asistencia:
+            if asistencia == "pendiente":
+                sql += " AND (asistencia IS NULL OR asistencia = '' OR asistencia = 'pendiente' OR asistencia NOT IN ('asistio','falta','justificado')) "
+            else:
+                sql += " AND asistencia = %s "
+                params.append(asistencia)
 
-    cursor.execute(sql, params)
-    datos = cursor.fetchall()
+        sql += " ORDER BY fecha_guardia DESC"
 
-    for d in datos:
-        fecha = d.get('fecha_guardia')
-        if isinstance(fecha, date):
-            d['dia_semana'] = DIAS_ES[fecha.weekday()]
-        else:
-            d['dia_semana'] = str(fecha) if fecha else '—'
+        cursor.execute(sql, params)
+        datos = cursor.fetchall()
 
-    return render_template(
-        "asistencia.html",
-        datos=datos
-    )
+        for d in datos:
+            fecha = d.get('fecha_guardia')
+            if isinstance(fecha, date):
+                d['dia_semana'] = DIAS_ES[fecha.weekday()]
+            else:
+                d['dia_semana'] = str(fecha) if fecha else '—'
+
+        return render_template(
+            "asistencia.html",
+            datos=datos
+        )
+
+    except Exception as e:
+        print("ERROR asistencia:", e)
+        return error_interno()
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # ==========================
@@ -649,52 +710,60 @@ def mi_asistencia():
     if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
-    cursor.execute("""
-        SELECT 
-            id_guardia,
-            fecha_guardia,
-            tipo_dia,
-            asistencia
-        FROM resumen_guardias
-        WHERE id_usuario = %s
-        ORDER BY fecha_guardia DESC
-    """, (session["id_usuario"],))
+    try:
+        cursor = conexion.cursor(dictionary=True)
 
-    datos = cursor.fetchall()
+        cursor.execute("""
+            SELECT 
+                id_guardia,
+                fecha_guardia,
+                tipo_dia,
+                asistencia
+            FROM resumen_guardias
+            WHERE id_usuario = %s
+            ORDER BY fecha_guardia DESC
+        """, (session["id_usuario"],))
 
-    hoy = date.today()
-    limite = hoy - timedelta(days=1)  # ventana de 48 horas: permite hoy o ayer
+        datos = cursor.fetchall()
 
-    for d in datos:
+        hoy = date.today()
+        limite = hoy - timedelta(days=1)  # ventana de 48 horas: permite hoy o ayer
 
-        fecha = d["fecha_guardia"]
+        for d in datos:
 
-        if isinstance(fecha, date):
-            d['dia_semana'] = DIAS_ES[fecha.weekday()]
-        else:
-            d['dia_semana'] = str(fecha) if fecha else '—'
+            fecha = d["fecha_guardia"]
 
-        # 1. YA REGISTRADO
-        if d["asistencia"] != "sin registro":
-            d["estado_accion"] = "registrado"
+            if isinstance(fecha, date):
+                d['dia_semana'] = DIAS_ES[fecha.weekday()]
+            else:
+                d['dia_semana'] = str(fecha) if fecha else '—'
 
-        # 2. FUTURO
-        elif fecha > hoy:
-            d["estado_accion"] = "futuro"
+            # 1. YA REGISTRADO
+            if d["asistencia"] != "sin registro":
+                d["estado_accion"] = "registrado"
 
-        # 3. DENTRO DE 48 HORAS (HOY O AYER) — ACTIVO
-        elif fecha >= limite:
-            d["estado_accion"] = "hoy"
+            # 2. FUTURO
+            elif fecha > hoy:
+                d["estado_accion"] = "futuro"
 
-        # 4. PASADO SIN REGISTRO (fuera de las 48 horas)
-        else:
-            d["estado_accion"] = "cerrado"
+            # 3. DENTRO DE 48 HORAS (HOY O AYER) — ACTIVO
+            elif fecha >= limite:
+                d["estado_accion"] = "hoy"
 
-    cursor.close()
+            # 4. PASADO SIN REGISTRO (fuera de las 48 horas)
+            else:
+                d["estado_accion"] = "cerrado"
 
-    return render_template("asistencia_fiscalizadores.html", datos=datos)
+        return render_template("asistencia_fiscalizadores.html", datos=datos)
+
+    except Exception as e:
+        print("ERROR mi_asistencia:", e)
+        return error_interno()
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # FISCALIZADOR — Registrar asistencia vía POST (autoservicio)
@@ -713,9 +782,10 @@ def marcar_asistencia():
     if not id_guardia or not id_usuario:
         return datos_invalidos("Datos inválidos")
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         # VERIFICAR QUE LA GUARDIA PERTENECE AL FISCALIZADOR Y ES DE HOY
         cursor.execute("""
@@ -760,12 +830,16 @@ def marcar_asistencia():
         return redirect(url_for("guardias.mi_asistencia"))
 
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR marcar_asistencia:", e)
         return error_interno()
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # ==========================
@@ -788,9 +862,10 @@ def mis_guardias():
     asistencia = request.args.get("asistencia")
     estado_guardia = request.args.get("estado_guardia")
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         sql = """
             SELECT
@@ -886,5 +961,9 @@ def mis_guardias():
             guardias=guardias
         )
 
+    except Exception as e:
+        print("ERROR mis_guardias:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()

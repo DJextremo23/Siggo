@@ -1455,7 +1455,8 @@ def generar_ppt_analisis(id_informe):
         )
 
     except Exception as e:
-        return jsonify({"error": f"Error al generar PPT: {str(e)}"}), 500
+        print("ERROR generar PPT:", e)
+        return jsonify({"error": "Error interno al generar el PPT."}), 500
 
     finally:
         if cursor is not None: cursor.close()

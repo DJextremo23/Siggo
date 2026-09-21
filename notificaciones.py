@@ -1,4 +1,4 @@
-from flask import Blueprint, request, session
+from flask import Blueprint, session
 from datetime import datetime, date
 from db import conexion
 
@@ -16,8 +16,9 @@ def marcar_notificacion_leida(id_notificacion):
     if "usuario" not in session:
         return {"ok": False, "error": "No autorizado"}, 401
 
-    cursor = conexion.cursor()
+    cursor = None
     try:
+        cursor = conexion.cursor()
         cursor.execute("""
             UPDATE notificaciones
             SET leida = TRUE
@@ -29,10 +30,15 @@ def marcar_notificacion_leida(id_notificacion):
         conexion.commit()
         return {"ok": True}
     except Exception as e:
-        conexion.rollback()
-        return {"ok": False, "error": str(e)}, 500
+        print("ERROR marcar_notificacion_leida:", e)
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        return {"ok": False, "error": "Error interno del servidor"}, 500
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # Marca todas las notificaciones del usuario como leídas
@@ -41,8 +47,9 @@ def marcar_todas_leidas():
     if "usuario" not in session:
         return {"ok": False, "error": "No autorizado"}, 401
 
-    cursor = conexion.cursor()
+    cursor = None
     try:
+        cursor = conexion.cursor()
         cursor.execute("""
             UPDATE notificaciones
             SET leida = TRUE
@@ -54,10 +61,15 @@ def marcar_todas_leidas():
         conexion.commit()
         return {"ok": True}
     except Exception as e:
-        conexion.rollback()
-        return {"ok": False, "error": str(e)}, 500
+        print("ERROR marcar_todas_leidas:", e)
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        return {"ok": False, "error": "Error interno del servidor"}, 500
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # Devuelve las notificaciones no leídas más recientes
@@ -66,8 +78,9 @@ def notificaciones_nuevas():
     if "usuario" not in session:
         return {"ok": False, "error": "No autorizado"}, 401
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
     try:
+        cursor = conexion.cursor(dictionary=True)
         cursor.execute("""
             SELECT id_notificacion, titulo, mensaje, fecha_creacion, leida
             FROM notificaciones
@@ -91,6 +104,8 @@ def notificaciones_nuevas():
 
         return {"ok": True, "notificaciones": notifs}
     except Exception as e:
-        return {"ok": False, "error": str(e)}, 500
+        print("ERROR notificaciones_nuevas:", e)
+        return {"ok": False, "error": "Error interno del servidor"}, 500
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()

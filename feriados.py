@@ -39,9 +39,10 @@ def feriados():
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     descripcion = request.args.get("descripcion", "").strip()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         sql = "SELECT id_feriado, fecha, descripcion FROM feriados WHERE 1=1 "
         params = []
@@ -80,9 +81,12 @@ def feriados():
             feriados=data
         )
 
+    except Exception as e:
+        print("ERROR feriados:", e)
+        return error_interno()
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @feriados_bp.route("/guardar_feriado", methods=["POST"])
@@ -107,9 +111,10 @@ def guardar_feriado():
         flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
 
         cursor.execute("""
             INSERT INTO feriados (
@@ -136,7 +141,10 @@ def guardar_feriado():
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     except mysql.connector.errors.IntegrityError as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         if e.errno == 1062:
             flash("Ya existe un feriado registrado en esa fecha", "error")
         else:
@@ -144,7 +152,10 @@ def guardar_feriado():
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     except mysql.connector.errors.OperationalError as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         if e.errno == 1205:
             flash("La base de datos está ocupada, intente nuevamente en unos segundos", "error")
         else:
@@ -152,17 +163,17 @@ def guardar_feriado():
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     except Exception as e:
-
-        conexion.rollback()
-
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR GUARDAR FERIADO:", e)
-
         flash("Ocurrió un error al registrar el feriado. Intente nuevamente.", "error")
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @feriados_bp.route("/editar_feriado/<int:id>")
@@ -174,9 +185,10 @@ def editar_feriado(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         cursor.execute("""
             SELECT id_feriado, fecha, descripcion
@@ -194,9 +206,12 @@ def editar_feriado(id):
             data=data
         )
 
+    except Exception as e:
+        print("ERROR editar_feriado:", e)
+        return error_interno()
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @feriados_bp.route("/actualizar_feriado/<int:id>", methods=["POST"])
@@ -221,9 +236,11 @@ def actualizar_feriado(id):
         flash("Formato de fecha inválido. Use YYYY-MM-DD", "error")
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         cursor.execute("""
             UPDATE feriados
             SET fecha = %s, descripcion = %s
@@ -248,7 +265,10 @@ def actualizar_feriado(id):
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     except mysql.connector.errors.IntegrityError as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         if e.errno == 1062:
             flash("Ya existe un feriado registrado en esa fecha", "error")
         else:
@@ -256,12 +276,16 @@ def actualizar_feriado(id):
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ACTUALIZAR FERIADO:", e)
         return error_interno()
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @feriados_bp.route("/eliminar_feriado/<int:id>", methods=["POST"])
@@ -273,9 +297,10 @@ def eliminar_feriado(id):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
 
         cursor.execute("""
             DELETE FROM feriados
@@ -288,16 +313,16 @@ def eliminar_feriado(id):
         return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
     except Exception as e:
-
-        conexion.rollback()
-
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR FERIADO:", e)
-
         return error_interno()
 
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @feriados_bp.route("/eliminar_feriados", methods=["POST"])
@@ -321,9 +346,10 @@ def eliminar_feriados():
         except (TypeError, ValueError):
             return datos_invalidos("Identificador de feriado inválido")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
         placeholders = ",".join(["%s"] * len(ids_int))
         cursor.execute(
             f"DELETE FROM feriados WHERE id_feriado IN ({placeholders})",
@@ -332,11 +358,15 @@ def eliminar_feriados():
         conexion.commit()
         flash(f"Se eliminaron {cursor.rowcount} feriados correctamente", "success")
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR FERIADOS:", e)
         flash("Ocurrió un error al eliminar los feriados", "error")
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
     return redirigir_con_filtros("feriados.feriados", "filtro_feriados")
 
@@ -359,9 +389,10 @@ def mis_feriados():
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     descripcion = request.args.get("descripcion", "").strip()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         sql = """
             SELECT DISTINCT f.id_feriado, f.fecha, f.descripcion
@@ -406,6 +437,9 @@ def mis_feriados():
             feriados=feriados
         )
 
+    except Exception as e:
+        print("ERROR mis_feriados:", e)
+        return error_interno()
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()

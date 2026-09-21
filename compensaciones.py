@@ -147,9 +147,10 @@ def editar_compensacion(id_guardia):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
 
         cursor.execute("""
             SELECT
@@ -197,8 +198,12 @@ def editar_compensacion(id_guardia):
             data=data
         )
 
+    except Exception as e:
+        print("ERROR editar_compensacion:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @compensaciones_bp.route("/editar_compensacion/<int:id_guardia>", methods=["POST"])
@@ -213,9 +218,10 @@ def guardar_edicion_compensacion(id_guardia):
     fecha = request.form["fecha_compensacion"]
     observacion = request.form.get("observacion", "").strip()
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
 
         # Verificar asistencia
         cursor.execute("""
@@ -278,16 +284,16 @@ def guardar_edicion_compensacion(id_guardia):
         return redirigir_con_filtros("compensaciones.compensaciones_admin", "filtro_compensaciones")
 
     except Exception as e:
-
-        conexion.rollback()
-
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR EDITAR COMPENSACIÓN:", e)
-
         return error_interno()
 
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @compensaciones_bp.route("/eliminar_compensacion/<int:id_guardia>", methods=["POST"])
@@ -299,9 +305,10 @@ def eliminar_compensacion(id_guardia):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
 
         cursor.execute("""
             DELETE FROM compensaciones
@@ -314,16 +321,16 @@ def eliminar_compensacion(id_guardia):
         return redirigir_con_filtros("compensaciones.compensaciones_admin", "filtro_compensaciones")
 
     except Exception as e:
-
-        conexion.rollback()
-
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR COMPENSACIÓN:", e)
-
         return error_interno()
 
     finally:
-
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 @compensaciones_bp.route("/eliminar_compensaciones", methods=["POST"])
@@ -347,9 +354,10 @@ def eliminar_compensaciones():
         except (TypeError, ValueError):
             return datos_invalidos("Identificador de compensación inválido")
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
         placeholders = ",".join(["%s"] * len(ids_int))
         cursor.execute(
             f"DELETE FROM compensaciones WHERE id_guardia IN ({placeholders})",
@@ -358,11 +366,15 @@ def eliminar_compensaciones():
         conexion.commit()
         flash(f"Se eliminaron {cursor.rowcount} compensaciones correctamente", "success")
     except Exception as e:
-        conexion.rollback()
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
         print("ERROR ELIMINAR COMPENSACIONES:", e)
         flash("Ocurrió un error al eliminar las compensaciones", "error")
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
     return redirigir_con_filtros("compensaciones.compensaciones_admin", "filtro_compensaciones")
 
@@ -388,66 +400,73 @@ def mis_compensaciones():
     hasta = request.args.get("hasta", "").strip()
     estado = request.args.get("estado", "")
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
-    query = """
-        SELECT
-            c.id_compensacion,
-            g.fecha_guardia,
-            c.fecha_compensacion,
-            c.observacion,
-            g.id_usuario,
-            u.nombre,
-            u.apellidos
-        FROM compensaciones c
-        INNER JOIN guardias g
-            ON c.id_guardia = g.id_guardia
-        INNER JOIN usuarios u
-            ON g.id_usuario = u.id_usuario
-        WHERE g.id_usuario = %s
-    """
+    try:
+        cursor = conexion.cursor(dictionary=True)
 
-    parametros = [session["id_usuario"]]
+        query = """
+            SELECT
+                c.id_compensacion,
+                g.fecha_guardia,
+                c.fecha_compensacion,
+                c.observacion,
+                g.id_usuario,
+                u.nombre,
+                u.apellidos
+            FROM compensaciones c
+            INNER JOIN guardias g
+                ON c.id_guardia = g.id_guardia
+            INNER JOIN usuarios u
+                ON g.id_usuario = u.id_usuario
+            WHERE g.id_usuario = %s
+        """
 
-    if anio:
-        query += " AND YEAR(g.fecha_guardia) = %s"
-        parametros.append(int(anio))
+        parametros = [session["id_usuario"]]
 
-    if desde:
-        query += " AND g.fecha_guardia >= %s"
-        parametros.append(desde)
+        if anio:
+            query += " AND YEAR(g.fecha_guardia) = %s"
+            parametros.append(int(anio))
 
-    if hasta:
-        query += " AND g.fecha_guardia <= %s"
-        parametros.append(hasta)
+        if desde:
+            query += " AND g.fecha_guardia >= %s"
+            parametros.append(desde)
 
-    # FILTRO POR FECHA
-    if fecha_guardia:
-        query += " AND g.fecha_guardia = %s"
-        parametros.append(fecha_guardia)
+        if hasta:
+            query += " AND g.fecha_guardia <= %s"
+            parametros.append(hasta)
 
-    query += " ORDER BY g.fecha_guardia DESC"
+        # FILTRO POR FECHA
+        if fecha_guardia:
+            query += " AND g.fecha_guardia = %s"
+            parametros.append(fecha_guardia)
 
-    cursor.execute(query, tuple(parametros))
+        query += " ORDER BY g.fecha_guardia DESC"
 
-    datos = cursor.fetchall()
+        cursor.execute(query, tuple(parametros))
 
-    cursor.close()
+        datos = cursor.fetchall()
 
-    hoy = date.today()
-    for c in datos:
-        if c['fecha_compensacion'] and c['fecha_compensacion'] <= hoy:
-            c['estado'] = 'usado'
-        else:
-            c['estado'] = 'pendiente'
+        hoy = date.today()
+        for c in datos:
+            if c['fecha_compensacion'] and c['fecha_compensacion'] <= hoy:
+                c['estado'] = 'usado'
+            else:
+                c['estado'] = 'pendiente'
 
-    if estado:
-        datos = [c for c in datos if c['estado'] == estado]
+        if estado:
+            datos = [c for c in datos if c['estado'] == estado]
 
-    return render_template(
-        "mi_compensaciones.html",
-        compensaciones=datos
-    )
+        return render_template(
+            "mi_compensaciones.html",
+            compensaciones=datos
+        )
+    except Exception as e:
+        print("ERROR mis_compensaciones:", e)
+        return error_interno()
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # FISCALIZADOR — Editar compensación (GET)
@@ -460,9 +479,11 @@ def editar_mi_compensacion(id_compensacion):
     if (session.get("perfil_activo") or "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor(dictionary=True)
+    cursor = None
 
     try:
+        cursor = conexion.cursor(dictionary=True)
+
         cursor.execute("""
             SELECT
                 c.id_compensacion,
@@ -487,8 +508,12 @@ def editar_mi_compensacion(id_compensacion):
         return render_template("editar_mi_compensacion.html",
                                compensacion=compensacion)
 
+    except Exception as e:
+        print("ERROR editar_mi_compensacion:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # FISCALIZADOR — Actualizar compensación propia (POST)
@@ -501,9 +526,11 @@ def actualizar_mi_compensacion(id_compensacion):
     if (session.get("perfil_activo") or "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         fecha = request.form.get("fecha_compensacion")
         obs = request.form.get("observacion")
 
@@ -563,8 +590,16 @@ def actualizar_mi_compensacion(id_compensacion):
         flash("Compensación actualizada correctamente", "success")
         return redirigir_con_filtros("compensaciones.mis_compensaciones", "filtro_mis_compensaciones")
 
+    except Exception as e:
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        print("ERROR actualizar_mi_compensacion:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
 # FISCALIZADOR — Eliminar compensación propia (POST)
@@ -577,9 +612,11 @@ def eliminar_mi_compensacion(id_compensacion):
     if (session.get("perfil_activo") or "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
-    cursor = conexion.cursor()
+    cursor = None
 
     try:
+        cursor = conexion.cursor()
+
         cursor.execute("""
             SELECT g.id_usuario FROM compensaciones c
             INNER JOIN guardias g ON c.id_guardia = g.id_guardia
@@ -601,5 +638,13 @@ def eliminar_mi_compensacion(id_compensacion):
         flash("Compensación eliminada correctamente", "success")
         return redirigir_con_filtros("compensaciones.mis_compensaciones", "filtro_mis_compensaciones")
 
+    except Exception as e:
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        print("ERROR eliminar_mi_compensacion:", e)
+        return error_interno()
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
