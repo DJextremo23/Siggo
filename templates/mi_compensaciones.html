@@ -60,7 +60,7 @@
 
     <!-- FILTROS - Filtrado por año, fechas y estado -->
     <div class="filtros-card">
-        <form method="GET" action="{{ url_for('compensaciones.mis_compensaciones') }}" class="filtro-form">
+        <form method="GET" action="{{ url_for('mis_compensaciones') }}" class="filtro-form">
 
             <div class="filtro-field">
                 <label for="anio" class="filtro-label">Año</label>
@@ -127,7 +127,7 @@
                     Buscar
                 </button>
 
-                <a href="{{ url_for('compensaciones.mis_compensaciones') }}" class="btn-limpiar">
+                <a href="{{ url_for('mis_compensaciones') }}" class="btn-limpiar">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
                         <line x1="15" y1="9" x2="9" y2="15"/>
@@ -211,7 +211,7 @@
                     <td data-label="Acciones" class="acciones">
                         <div class="acciones-btns">
                             <a class="btn-accion btn-edit"
-                               href="{{ url_for('compensaciones.editar_mi_compensacion', id_compensacion=c.id_compensacion) }}"
+                               href="{{ url_for('editar_mi_compensacion', id_compensacion=c.id_compensacion) }}"
                                title="Editar">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -219,7 +219,7 @@
                                 </svg>
                             </a>
                             <form method="POST"
-                                  action="{{ url_for('compensaciones.eliminar_mi_compensacion', id_compensacion=c.id_compensacion) }}"
+                                  action="{{ url_for('eliminar_mi_compensacion', id_compensacion=c.id_compensacion) }}"
                                   class="form-eliminar"
                                   data-confirm="¿Eliminar esta compensación?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

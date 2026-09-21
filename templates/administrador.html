@@ -226,7 +226,7 @@
                 <p>Gestión de fiscalizadores y personal</p>
             </a>
 
-            <a href="{{ url_for('guardias.asistencia_admin') }}" class="module-card module-card--asistencia">
+            <a href="{{ url_for('asistencia_admin') }}" class="module-card module-card--asistencia">
                 <div class="module-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
@@ -236,7 +236,7 @@
                 <p>Control y registro de asistencia</p>
             </a>
 
-            <a href="{{ url_for('guardias.ver_guardias') }}" class="module-card module-card--guardias">
+            <a href="{{ url_for('ver_guardias') }}" class="module-card module-card--guardias">
                 <div class="module-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -249,7 +249,7 @@
                 <p>Programación de turnos y guardias</p>
             </a>
 
-            <a href="{{ url_for('feriados.feriados') }}" class="module-card module-card--feriados">
+            <a href="{{ url_for('feriados') }}" class="module-card module-card--feriados">
                 <div class="module-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <circle cx="12" cy="12" r="10"/>
@@ -260,7 +260,7 @@
                 <p>Calendario oficial de feriados</p>
             </a>
 
-            <a href="{{ url_for('vacaciones.vacaciones') }}" class="module-card module-card--vacaciones">
+            <a href="{{ url_for('vacaciones') }}" class="module-card module-card--vacaciones">
                 <div class="module-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -271,7 +271,7 @@
                 <p>Gestión de licencias del personal</p>
             </a>
 
-            <a href="{{ url_for('compensaciones.compensaciones_admin') }}" class="module-card module-card--compensaciones">
+            <a href="{{ url_for('compensaciones_admin') }}" class="module-card module-card--compensaciones">
                 <div class="module-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -479,7 +479,7 @@
             {% endif %}
 
             <div class="resumen-acciones">
-                <a href="{{ url_for('guardias.ver_guardias') }}" class="ver-todas-btn">
+                <a href="{{ url_for('ver_guardias') }}" class="ver-todas-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="5" y1="12" x2="19" y2="12"/>
                         <polyline points="12 5 19 12 12 19"/>

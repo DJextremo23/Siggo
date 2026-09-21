@@ -36,7 +36,7 @@
 
     <!-- FILTROS DE BÚSQUEDA (año, fechas, asistencia, estado) -->
     <div class="filtros-card">
-        <form method="GET" action="{{ url_for('guardias.mis_guardias') }}" class="filtro-form">
+        <form method="GET" action="{{ url_for('mis_guardias') }}" class="filtro-form">
 
             <div class="filtro-field">
                 <label for="anio" class="filtro-label">Año</label>
@@ -122,7 +122,7 @@
                     Buscar
                 </button>
 
-                <a href="{{ url_for('guardias.mis_guardias') }}" class="btn-limpiar">
+                <a href="{{ url_for('mis_guardias') }}" class="btn-limpiar">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
                         <line x1="15" y1="9" x2="9" y2="15"/>

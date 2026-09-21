@@ -12,7 +12,7 @@ actualizar, eliminar, toggle activo/inactivo.
 
 fiscalizadores_bp = Blueprint("fiscalizadores", __name__)
 
-FOTOS_FOLDER = os.path.join("static", "fotos")
+FOTOS_FOLDER = os.getenv("FOTOS_FOLDER", os.path.join("static", "fotos"))
 ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "jfif", "gif", "webp"}
 MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5 MB
 

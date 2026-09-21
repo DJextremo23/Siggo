@@ -27,7 +27,7 @@
     <!-- FORMULARIO - Campos para modificar fechas de inicio y fin -->
     <div class="card">
 
-        <form method="POST" action="{{ url_for('vacaciones.actualizar_vacacion', id=data.id_vacacion) }}">
+        <form method="POST" action="{{ url_for('actualizar_vacacion', id=data.id_vacacion) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div class="field">
@@ -57,7 +57,7 @@
             </div>
 
             <div class="form-actions">
-                <a href="{{ url_for('vacaciones.vacaciones') }}" class="btn btn-cancel">
+                <a href="{{ url_for('vacaciones') }}" class="btn btn-cancel">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>

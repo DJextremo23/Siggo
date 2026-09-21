@@ -186,7 +186,7 @@
 
                         {% elif d.estado_accion == 'hoy' %}
 
-                            <form method="POST" action="{{ url_for('guardias.marcar_asistencia') }}">
+                            <form method="POST" action="{{ url_for('marcar_asistencia') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="id_guardia" value="{{ d.id_guardia }}">
                                 <button type="submit" class="btn-asistencia">

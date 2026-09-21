@@ -13,7 +13,7 @@ Blueprint admin para gestión de informes: listar, registrar, editar, descargar,
 informes_bp = Blueprint("informes", __name__)
 
 # Carpeta donde se almacenan los archivos subidos
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # ── Punto de entrada principal: listado de informes con filtros ──

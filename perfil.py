@@ -9,7 +9,7 @@ from datetime import datetime
 perfil_bp = Blueprint("perfil", __name__)
 
 # Carpeta donde se almacenan las fotos de perfil
-FOTOS_FOLDER = os.path.join("static", "fotos")
+FOTOS_FOLDER = os.getenv("FOTOS_FOLDER", os.path.join("static", "fotos"))
 # Extensiones de imagen permitidas para la foto de perfil
 ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "jfif", "gif", "webp"}
 # Tamaño máximo de foto: 5 MB
@@ -53,7 +53,7 @@ def editar_mi_perfil():
         usuario = cursor.fetchone()
 
         if not usuario:
-            return redirect(url_for("dashboard.inicio"))
+            return redirect(url_for("inicio"))
 
         return render_template(
             "editar_mi_perfil.html",
@@ -64,7 +64,7 @@ def editar_mi_perfil():
 
         print("ERROR EDITAR MI PERFIL:", e)
 
-        return redirect(url_for("dashboard.inicio"))
+        return redirect(url_for("inicio"))
 
     finally:
 
@@ -211,7 +211,7 @@ def actualizar_mi_perfil():
 
         flash("Perfil actualizado correctamente", "success")
 
-        return redirect(url_for("dashboard.inicio"))
+        return redirect(url_for("inicio"))
 
     except Exception as e:
 

@@ -29,7 +29,7 @@ load_dotenv()
 informe_bp = Blueprint("informe", __name__)
 
 # Configuración de subida de archivos
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # Crear carpeta de subidas si no existe
@@ -1455,8 +1455,7 @@ def generar_ppt_analisis(id_informe):
         )
 
     except Exception as e:
-        print("ERROR generar PPT:", e)
-        return jsonify({"error": "Error interno al generar el PPT."}), 500
+        return jsonify({"error": f"Error al generar PPT: {str(e)}"}), 500
 
     finally:
         if cursor is not None: cursor.close()

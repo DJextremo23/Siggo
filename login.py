@@ -111,7 +111,7 @@ def _limpiar_bloqueo(identificador):
 
 # Nombre de la cookie y días de validez para dispositivos confiables
 NOMBRE_COOKIE_DISPOSITIVO = "ds_confiable"
-DIAS_VALIDEZ_DISPOSITIVO = 30
+DIAS_VALIDEZ_DISPOSITIVO = 7
 
 # Genera hash SHA-256 del token para almacenarlo de forma segura
 def _hash_token(token):
@@ -125,17 +125,20 @@ def _verificar_dispositivo_confiable(id_usuario):
         return None
 
     token_hash = _hash_token(token)
+    # Vincula la cookie al navegador: si el User-Agent actual no coincide
+    # con el registrado, se rechaza y se vuelve a exigir 2FA.
+    dispositivo_actual = request.headers.get("User-Agent", "")[:500]
     conn = None
     cursor = None
     try:
         conn = conexion()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id FROM dispositivos_confiables WHERE id_usuario = %s AND token_hash = %s",
+            "SELECT dispositivo_info FROM dispositivos_confiables WHERE id_usuario = %s AND token_hash = %s",
             (id_usuario, token_hash)
         )
         row = cursor.fetchone()
-        if row:
+        if row and row[0] == dispositivo_actual:
             return token
         return None
     except Exception:
@@ -331,7 +334,7 @@ def login():
 
             if len(roles) == 1:
                 session["perfil_activo"] = roles[0]
-                return redirect(url_for("dashboard.inicio"))
+                return redirect(url_for("inicio"))
 
             return redirect(url_for("login.seleccionar_perfil"))
 
@@ -376,7 +379,7 @@ def activar_perfil(rol):
 
     session["perfil_activo"] = rol
 
-    return redirect(url_for("dashboard.inicio"))
+    return redirect(url_for("inicio"))
 
 
 # ==========================
@@ -431,7 +434,7 @@ def verificar_2fa():
 
         if len(pendiente["roles"]) == 1:
             session["perfil_activo"] = pendiente["roles"][0]
-            respuesta = redirect(url_for("dashboard.inicio"))
+            respuesta = redirect(url_for("inicio"))
         else:
             respuesta = redirect(url_for("login.seleccionar_perfil"))
 

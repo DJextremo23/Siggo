@@ -92,7 +92,7 @@
             </div>
 
             <form method="POST"
-                  action="{{ url_for('feriados.guardar_feriado') }}"
+                  action="{{ url_for('guardar_feriado') }}"
                   class="form-pro">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
@@ -161,7 +161,7 @@
 
             <!-- FILTROS -->
             <div class="filtros-card">
-                <form method="GET" action="{{ url_for('feriados.feriados') }}" class="filtro-form" autocomplete="off">
+                <form method="GET" action="{{ url_for('feriados') }}" class="filtro-form" autocomplete="off">
 
                     <div class="filtro-field">
                         <label for="anio" class="filtro-label">Año</label>
@@ -244,7 +244,7 @@
                             Buscar
                         </button>
 
-                        <a href="{{ url_for('feriados.feriados') }}" class="btn-limpiar">
+                        <a href="{{ url_for('feriados') }}" class="btn-limpiar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
                                 <line x1="15" y1="9" x2="9" y2="15"/>
@@ -330,7 +330,7 @@
 
                             <td data-label="Acciones">
                                 <div class="acciones-tabla">
-                                    <a href="{{ url_for('feriados.editar_feriado', id=f.id_feriado) }}"
+                                    <a href="{{ url_for('editar_feriado', id=f.id_feriado) }}"
                                        class="btn-editar"
                                        title="Editar feriado">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -409,7 +409,7 @@
 
     function confirmarEliminar(id){
         document.getElementById('confirm-message').textContent = "¿Eliminar este feriado?";
-        pendingUrl = '{{ url_for("feriados.eliminar_feriado", id=0) }}'.replace('/0', '/' + id);
+        pendingUrl = '{{ url_for("eliminar_feriado", id=0) }}'.replace('/0', '/' + id);
         document.getElementById('confirm-overlay').classList.add('show');
     }
 
@@ -501,7 +501,7 @@
         checks.forEach(function(cb) { pendingIds.push(cb.value); });
         document.getElementById('confirm-message').textContent =
             '¿Eliminar ' + pendingIds.length + ' feriados seleccionados?';
-        pendingUrl = '{{ url_for("feriados.eliminar_feriados") }}';
+        pendingUrl = '{{ url_for("eliminar_feriados") }}';
         document.getElementById('confirm-overlay').classList.add('show');
     }
 

@@ -28,14 +28,9 @@ mock_db.commit.return_value = None
 mock_db.rollback.return_value = None
 
 import main
-import db
-import dashboard, compensaciones, feriados, vacaciones, guardias, notificaciones
 
-# Reemplazar la conexión real por el mock (singleton y módulos que lo importan)
-db.conexion = mock_db
+# Reemplazar la conexión real por el mock
 main.conexion = mock_db
-for mod in (dashboard, compensaciones, feriados, vacaciones, guardias, notificaciones):
-    mod.conexion = mock_db
 
 
 import pytest
