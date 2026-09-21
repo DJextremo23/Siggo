@@ -474,6 +474,17 @@ def _generar_qr_svg(secret, usuario):
     return buffer.getvalue().decode("utf-8")
 
 
+# Devuelve el secreto temporal si existe y no expiró; si no, lo limpia y devuelve None
+def _temp_secret_2fa_valido():
+    secret = session.get("_2fa_temp_secret")
+    expira = session.get("_2fa_temp_secret_expira", 0)
+    if secret and datetime.now().timestamp() < expira:
+        return secret
+    session.pop("_2fa_temp_secret", None)
+    session.pop("_2fa_temp_secret_expira", None)
+    return None
+
+
 @login_bp.route("/configurar_2fa", methods=["GET", "POST"])
 def configurar_2fa():
     if "usuario" not in session:
@@ -507,6 +518,7 @@ def configurar_2fa():
 
                 secret = pyotp.random_base32()
                 session["_2fa_temp_secret"] = secret
+                session["_2fa_temp_secret_expira"] = (datetime.now() + timedelta(minutes=10)).timestamp()
                 qr_svg = _generar_qr_svg(secret, session.get("usuario", "usuario"))
 
                 return render_template(
@@ -517,7 +529,7 @@ def configurar_2fa():
                 )
 
             # PASO 2: verificar el código TOTP y activar el 2FA
-            secret_temporal = session.get("_2fa_temp_secret")
+            secret_temporal = _temp_secret_2fa_valido()
             if not secret_temporal:
                 return render_template(
                     "configurar_2fa.html",
@@ -549,6 +561,7 @@ def configurar_2fa():
 
             conn.commit()
             session.pop("_2fa_temp_secret", None)
+            session.pop("_2fa_temp_secret_expira", None)
 
             return render_template(
                 "configurar_2fa.html",
@@ -557,7 +570,7 @@ def configurar_2fa():
             )
 
         # GET: si ya se confirmó la contraseña, muestra el QR; si no, pide la contraseña
-        secret_temporal = session.get("_2fa_temp_secret")
+        secret_temporal = _temp_secret_2fa_valido()
         if secret_temporal:
             qr_svg = _generar_qr_svg(secret_temporal, session.get("usuario", "usuario"))
             return render_template(
@@ -583,6 +596,14 @@ def configurar_2fa():
             cursor.close()
         if conn is not None:
             conn.close()
+
+
+# Cancela la configuración de 2FA en curso y vuelve al perfil
+@login_bp.route("/cancelar_configurar_2fa")
+def cancelar_configurar_2fa():
+    session.pop("_2fa_temp_secret", None)
+    session.pop("_2fa_temp_secret_expira", None)
+    return redirect(url_for("perfil.editar_mi_perfil"))
 
 
 # ==========================
