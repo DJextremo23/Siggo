@@ -230,7 +230,7 @@ def administrador():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            pendientes_este_anio = max(0, 30 - a["dias_tomados"])
+            pendientes_este_anio = max(0, min(30, a["total_acumulado"]) - a["dias_tomados"])
             a["dias_pendientes_este_anio"] = pendientes_este_anio
             a["dias_pendientes_anteriores"] = max(
                 0,
@@ -1162,7 +1162,8 @@ def vacaciones():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            pendientes_este_anio = max(0, 30 - a["dias_tomados_anio"])
+            pendientes_este_anio = max(0, min(30, a["total_acumulado"]) - a["dias_tomados_anio"])
+            a["dias_pendientes_este_anio"] = pendientes_este_anio
             a["dias_pendientes_anteriores"] = max(
                 0,
                 (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
@@ -1284,6 +1285,35 @@ def actualizar_vacacion(id):
 
         if cursor.fetchone():
             flash("Ya tiene vacaciones registradas en ese rango de fechas", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+        # =========================
+        # VALIDAR LÍMITE DE 30 DÍAS POR AÑO + PENDIENTES ACUMULADOS
+        # =========================
+        cursor.execute("""
+            SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_acumulado
+            FROM usuarios
+            WHERE id_usuario = %s
+        """, (id_usuario,))
+        total_acumulado = cursor.fetchone()["total_acumulado"] or 0
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(DATEDIFF(fecha_fin, fecha_inicio) + 1), 0) AS total_tomados
+            FROM vacaciones
+            WHERE id_usuario = %s AND id_vacacion != %s
+              AND fecha_inicio <= CURDATE()
+        """, (id_usuario, id))
+        dias_tomados_total = cursor.fetchone()["total_tomados"] or 0
+
+        dias_nuevos = (fin_dt - inicio_dt).days + 1
+        dias_disponibles = total_acumulado - dias_tomados_total
+
+        if dias_nuevos > dias_disponibles:
+            flash(
+                f"Excede los días disponibles: tiene {dias_disponibles} días de vacaciones "
+                f"(30 días por año de servicio + pendientes de años anteriores).",
+                "error"
+            )
             return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         cursor.execute("""
@@ -1413,6 +1443,35 @@ def guardar_vacacion():
 
         if cursor.fetchone():
             flash("Ya tiene vacaciones registradas en ese rango de fechas", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+        # =========================
+        # VALIDAR LÍMITE DE 30 DÍAS POR AÑO + PENDIENTES ACUMULADOS
+        # =========================
+        cursor.execute("""
+            SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_acumulado
+            FROM usuarios
+            WHERE id_usuario = %s
+        """, (id_usuario,))
+        total_acumulado = cursor.fetchone()["total_acumulado"] or 0
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(DATEDIFF(fecha_fin, fecha_inicio) + 1), 0) AS total_tomados
+            FROM vacaciones
+            WHERE id_usuario = %s
+              AND fecha_inicio <= CURDATE()
+        """, (id_usuario,))
+        dias_tomados_total = cursor.fetchone()["total_tomados"] or 0
+
+        dias_nuevos = (fin_dt - inicio_dt).days + 1
+        dias_disponibles = total_acumulado - dias_tomados_total
+
+        if dias_nuevos > dias_disponibles:
+            flash(
+                f"Excede los días disponibles: tiene {dias_disponibles} días de vacaciones "
+                f"(30 días por año de servicio + pendientes de años anteriores).",
+                "error"
+            )
             return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
 
         # =========================
@@ -1680,7 +1739,7 @@ def inicio():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            pendientes_este_anio = max(0, 30 - a["dias_tomados"])
+            pendientes_este_anio = max(0, min(30, a["total_acumulado"]) - a["dias_tomados"])
             a["dias_pendientes_este_anio"] = pendientes_este_anio
             a["dias_pendientes_anteriores"] = max(
                 0,
