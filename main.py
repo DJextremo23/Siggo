@@ -2799,7 +2799,7 @@ def mis_guardias():
     if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
-    anio = request.args.get("anio")
+    anio = request.args.get("anio", "").strip()
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     asistencia = request.args.get("asistencia")
@@ -2851,8 +2851,13 @@ def mis_guardias():
 
         # ================= FILTRO AÑO =================
         if anio:
-            sql += " AND YEAR(g.fecha_guardia) = %s "
-            params.append(anio)
+            try:
+                anio_int = int(anio)
+            except (TypeError, ValueError):
+                anio_int = None
+            if anio_int:
+                sql += " AND YEAR(g.fecha_guardia) = %s "
+                params.append(anio_int)
 
         # ================= FILTRO DESDE =================
         if fecha_desde:
@@ -2935,8 +2940,13 @@ def mis_feriados():
         params = [session["id_usuario"]]
 
         if anio:
-            sql += " AND YEAR(f.fecha) = %s"
-            params.append(anio)
+            try:
+                anio_int = int(anio)
+            except (TypeError, ValueError):
+                anio_int = None
+            if anio_int:
+                sql += " AND YEAR(f.fecha) = %s"
+                params.append(anio_int)
 
         if fecha_desde:
             sql += " AND f.fecha >= %s"
