@@ -8,7 +8,7 @@
     <title>Registrar Informe</title>
     <link rel="stylesheet"
           href="{{ url_for('static', filename='fiscal/editar_informe.css') }}">
-    <style>
+    <style nonce="{{ csp_nonce() }}">
         .combobox {
             position: relative;
             flex: 1;

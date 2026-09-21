@@ -39,6 +39,13 @@ Crear un archivo .env (o variables del sistema) con:
 - FOTOS_FOLDER      (opcional)     ruta de fotos de perfil     (default: static/fotos)
 - GEMINI_API_KEY    (solo si usan analisis con IA)
 - GEMINI_MODEL      (opcional)     ejemplo: gemini-2.5-flash   (default: gemini-2.5-flash)
+- RATE_LIMIT_STORAGE (opcional)    ejemplo: redis://localhost:6379/0  (default: memory://)
+                                   Usar redis:// solo si la app corre en varios workers/replicas.
+                                   Si se usa redis, se requiere un servidor Redis y el paquete
+                                   "redis" (ya incluido en requirements.txt).
+- LOG_DIR           (opcional)     carpeta de logs            (default: logs)
+- LOG_LEVEL         (opcional)     DEBUG/INFO/WARNING/ERROR   (default: INFO)
+                                   Los logs se guardan en LOG_DIR/app.log con rotación (10 MB, 5 respaldos).
 
 Generar SECRET_KEY con:
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -51,8 +58,8 @@ python main.py
 
 La app usa Waitress como servidor (no requiere gunicorn). Escucha en 0.0.0.0:PORT.
 
-OJO CON EL PUERTO: nginx.conf hace proxy a 127.0.0.1:5000, pero main.py por defecto usa 8080.
-Ajustar uno de los dos (definir PORT=5000 o cambiar proxy_pass en nginx).
+PUERTO: nginx.conf hace proxy a 127.0.0.1:8080, que coincide con el default de
+main.py (PORT=8080). Si usan otro puerto, definir PORT o ajustar proxy_pass.
 
 
 5. HTTPS Y NGINX

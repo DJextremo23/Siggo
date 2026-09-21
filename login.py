@@ -466,7 +466,8 @@ def verificar_2fa():
 # Genera el SVG del código QR a partir de un secreto TOTP
 def _generar_qr_svg(secret, usuario):
     totp = pyotp.TOTP(secret)
-    uri = totp.provisioning_uri(name=usuario, issuer_name="SIGGO-OIG")
+    usuario_seguro = "".join(c if c.isalnum() or c in ".-_@" else "_" for c in (usuario or "usuario"))
+    uri = totp.provisioning_uri(name=usuario_seguro, issuer_name="SIGGO-OIG")
     factory = qrcode.image.svg.SvgPathImage
     img = qrcode.make(uri, image_factory=factory)
     buffer = BytesIO()

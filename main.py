@@ -1,4 +1,7 @@
 import os
+import sys
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 from flask_talisman import Talisman
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -36,6 +39,50 @@ Este módulo contiene:
 """
 
 load_dotenv()
+
+# -----------------------------------------------
+# Logging: archivo con rotación + consola
+# -----------------------------------------------
+def configurar_logging():
+    log_dir = os.getenv("LOG_DIR", "logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    formato = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    archivo = RotatingFileHandler(
+        os.path.join(log_dir, "app.log"),
+        maxBytes=10 * 1024 * 1024,
+        backupCount=5,
+        encoding="utf-8",
+    )
+    archivo.setFormatter(formato)
+
+    consola = logging.StreamHandler()
+    consola.setFormatter(formato)
+
+    nivel = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+
+    root = logging.getLogger()
+    root.setLevel(nivel)
+    root.addHandler(archivo)
+    root.addHandler(consola)
+
+
+class _StreamToLogger:
+    """Redirige stdout/stderr hacia el logger (captura print y trazas no controladas)."""
+    def __init__(self, level):
+        self._level = level
+
+    def write(self, buf):
+        if buf and buf.strip():
+            logging.log(self._level, buf.rstrip())
+
+    def flush(self):
+        pass
+
+
+configurar_logging()
+
 
 # -----------------------------------------------
 # Configuración de la app y seguridad
@@ -98,17 +145,17 @@ Talisman(
     frame_options="DENY",
     referrer_policy="strict-origin-when-cross-origin",
     x_content_type_options=True,
-    x_xss_protection=True,
     content_security_policy={
         "default-src": ["'self'", "blob:"],
         "script-src": ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-        "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+        "style-src": ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+        "style-src-attr": ["'unsafe-inline'"],
         "img-src": ["'self'", "data:", "blob:"],
         "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         "connect-src": ["'self'"],
         "frame-ancestors": ["'none'"],
     },
-    content_security_policy_nonce_in=["script-src"],
+    content_security_policy_nonce_in=["script-src", "style-src"],
 )
 
 
@@ -3268,6 +3315,11 @@ def handle_500(error):
 # Arranque de la aplicación con Waitress (producción)
 # -----------------------------------------------
 if __name__ == "__main__":
+    # En producción, redirigir stdout/stderr al log para capturar
+    # los print de errores y las trazas no controladas.
+    sys.stdout = _StreamToLogger(logging.INFO)
+    sys.stderr = _StreamToLogger(logging.ERROR)
+
     from waitress import serve
     port = int(os.getenv("PORT", 8080))
     host = "0.0.0.0"
