@@ -47,7 +47,7 @@
     <!-- ===== FORMULARIO DE EDICIÓN: Permite modificar fecha y descripción del feriado ===== -->
     <div class="card">
 
-        <form method="POST" action="{{ url_for('actualizar_feriado', id=data.id_feriado) }}">
+        <form method="POST" action="{{ url_for('feriados.actualizar_feriado', id=data.id_feriado) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div class="field">
@@ -75,7 +75,7 @@
             </div>
 
             <div class="form-actions">
-                <a href="{{ url_for('feriados') }}" class="btn btn-cancel">
+                <a href="{{ url_for('feriados.feriados') }}" class="btn btn-cancel">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>

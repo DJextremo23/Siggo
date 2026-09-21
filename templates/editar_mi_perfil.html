@@ -181,7 +181,7 @@
 
             <!-- BOTONES -->
             <div class="form-actions">
-                <a href="{{ url_for('inicio') }}" class="btn btn-cancel">
+                <a href="{{ url_for('dashboard.inicio') }}" class="btn btn-cancel">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
@@ -215,7 +215,13 @@
             </svg>
         </div>
         <h3 id="confirm-title">Desactivar 2FA</h3>
-        <p id="confirm-message">¿Estás seguro de que deseas desactivar la autenticación en dos pasos?</p>
+        <p id="confirm-message">Ingresá tu contraseña actual para desactivar la autenticación en dos pasos.</p>
+        <div class="field" style="margin:16px 0;">
+            <label class="field-label" for="passwordDesactivar2FA">Contraseña actual</label>
+            <div class="field-input">
+                <input type="password" id="passwordDesactivar2FA" name="password" autocomplete="current-password" placeholder="Contraseña actual" required>
+            </div>
+        </div>
         <div class="modal-actions">
             <button type="button" class="modal-btn modal-btn-cancel" id="confirm-cancel">Cancelar</button>
             <button type="button" class="modal-btn modal-btn-danger" id="confirm-ok">Desactivar</button>
@@ -241,6 +247,7 @@
     }
 
     document.getElementById('confirm-ok').addEventListener('click', function() {
+        var password = document.getElementById('passwordDesactivar2FA').value;
         closeConfirm();
         var form = document.createElement('form');
         form.method = 'POST';
@@ -251,6 +258,11 @@
         csrf.name = 'csrf_token';
         csrf.value = csrfToken;
         form.appendChild(csrf);
+        var pass = document.createElement('input');
+        pass.type = 'hidden';
+        pass.name = 'password';
+        pass.value = password;
+        form.appendChild(pass);
         document.body.appendChild(form);
         form.submit();
     });

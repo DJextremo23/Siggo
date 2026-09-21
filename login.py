@@ -331,7 +331,7 @@ def login():
 
             if len(roles) == 1:
                 session["perfil_activo"] = roles[0]
-                return redirect(url_for("inicio"))
+                return redirect(url_for("dashboard.inicio"))
 
             return redirect(url_for("login.seleccionar_perfil"))
 
@@ -376,7 +376,7 @@ def activar_perfil(rol):
 
     session["perfil_activo"] = rol
 
-    return redirect(url_for("inicio"))
+    return redirect(url_for("dashboard.inicio"))
 
 
 # ==========================
@@ -431,7 +431,7 @@ def verificar_2fa():
 
         if len(pendiente["roles"]) == 1:
             session["perfil_activo"] = pendiente["roles"][0]
-            respuesta = redirect(url_for("inicio"))
+            respuesta = redirect(url_for("dashboard.inicio"))
         else:
             respuesta = redirect(url_for("login.seleccionar_perfil"))
 
@@ -459,6 +459,18 @@ def verificar_2fa():
 # ==========================
 # 2FA — CONFIGURAR (activar) desde el perfil del usuario
 # ==========================
+
+# Genera el SVG del código QR a partir de un secreto TOTP
+def _generar_qr_svg(secret, usuario):
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name=usuario, issuer_name="SIGGO-OIG")
+    factory = qrcode.image.svg.SvgPathImage
+    img = qrcode.make(uri, image_factory=factory)
+    buffer = BytesIO()
+    img.save(buffer)
+    return buffer.getvalue().decode("utf-8")
+
+
 @login_bp.route("/configurar_2fa", methods=["GET", "POST"])
 def configurar_2fa():
     if "usuario" not in session:
@@ -471,10 +483,38 @@ def configurar_2fa():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        if request.method == "POST":
-            codigo = request.form.get("codigo", "").strip()
-            secret_temporal = session.get("_2fa_temp_secret")
+        # Obtiene el hash de la contraseña actual para reautenticar al usuario
+        cursor.execute(
+            "SELECT password FROM usuarios WHERE id_usuario = %s",
+            (session["id_usuario"],)
+        )
+        user_row = cursor.fetchone()
 
+        if request.method == "POST":
+            password = request.form.get("password", "")
+            codigo = request.form.get("codigo", "").strip()
+
+            # PASO 1: confirmar identidad con la contraseña actual antes de mostrar el QR
+            if password:
+                if not user_row or not check_password_hash(user_row["password"], password):
+                    return render_template(
+                        "configurar_2fa.html",
+                        error="Contraseña incorrecta."
+                    )
+
+                secret = pyotp.random_base32()
+                session["_2fa_temp_secret"] = secret
+                qr_svg = _generar_qr_svg(secret, session.get("usuario", "usuario"))
+
+                return render_template(
+                    "configurar_2fa.html",
+                    secret=secret,
+                    qr_svg=qr_svg,
+                    qr_mostrado=True
+                )
+
+            # PASO 2: verificar el código TOTP y activar el 2FA
+            secret_temporal = session.get("_2fa_temp_secret")
             if not secret_temporal:
                 return render_template(
                     "configurar_2fa.html",
@@ -513,27 +553,18 @@ def configurar_2fa():
                 configurado=True
             )
 
-        secret = pyotp.random_base32()
-        session["_2fa_temp_secret"] = secret
+        # GET: si ya se confirmó la contraseña, muestra el QR; si no, pide la contraseña
+        secret_temporal = session.get("_2fa_temp_secret")
+        if secret_temporal:
+            qr_svg = _generar_qr_svg(secret_temporal, session.get("usuario", "usuario"))
+            return render_template(
+                "configurar_2fa.html",
+                secret=secret_temporal,
+                qr_svg=qr_svg,
+                qr_mostrado=True
+            )
 
-        totp = pyotp.TOTP(secret)
-        uri = totp.provisioning_uri(
-            name=session.get("usuario", "usuario"),
-            issuer_name="SIGGO-OIG"
-        )
-
-        factory = qrcode.image.svg.SvgPathImage
-        img = qrcode.make(uri, image_factory=factory)
-        buffer = BytesIO()
-        img.save(buffer)
-        qr_svg = buffer.getvalue().decode("utf-8")
-
-        return render_template(
-            "configurar_2fa.html",
-            secret=secret,
-            qr_svg=qr_svg,
-            qr_mostrado=True
-        )
+        return render_template("configurar_2fa.html")
 
     except Exception as e:
         if conn is not None:
@@ -563,12 +594,27 @@ def desactivar_2fa():
 
     ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
+    password = request.form.get("password", "")
+
     conn = None
     cursor = None
 
     try:
         conn = conexion()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT password FROM usuarios WHERE id_usuario = %s",
+            (session["id_usuario"],)
+        )
+        user_row = cursor.fetchone()
+
+        # Reautenticación obligatoria antes de desactivar el 2FA
+        if not user_row or not check_password_hash(user_row["password"], password):
+            if ajax:
+                return jsonify({"success": False, "message": "Contraseña incorrecta."}), 400
+            flash("Contraseña incorrecta.", "error")
+            return redirect(url_for("perfil.editar_mi_perfil"))
 
         cursor.execute("""
             UPDATE usuarios

@@ -53,7 +53,7 @@ def editar_mi_perfil():
         usuario = cursor.fetchone()
 
         if not usuario:
-            return redirect(url_for("inicio"))
+            return redirect(url_for("dashboard.inicio"))
 
         return render_template(
             "editar_mi_perfil.html",
@@ -64,7 +64,7 @@ def editar_mi_perfil():
 
         print("ERROR EDITAR MI PERFIL:", e)
 
-        return redirect(url_for("inicio"))
+        return redirect(url_for("dashboard.inicio"))
 
     finally:
 
@@ -211,7 +211,7 @@ def actualizar_mi_perfil():
 
         flash("Perfil actualizado correctamente", "success")
 
-        return redirect(url_for("inicio"))
+        return redirect(url_for("dashboard.inicio"))
 
     except Exception as e:
 

@@ -96,7 +96,7 @@
 </div>
 
             <div class="kpi-actions">
-                <a href="{{ url_for('mi_asistencia') }}" class="btn-asistencia">
+                <a href="{{ url_for('guardias.mi_asistencia') }}" class="btn-asistencia">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
@@ -108,7 +108,7 @@
 
         <!-- FILTROS -->
         <div class="card filtros-card">
-            <form method="GET" action="{{ url_for('asistencia') }}" class="filtro-form">
+            <form method="GET" action="{{ url_for('guardias.asistencia') }}" class="filtro-form">
 
                 <div class="filtro-field">
                     <label class="filtro-label">Desde</label>
@@ -163,7 +163,7 @@
                         </svg>
                         Buscar
                     </button>
-                    <a href="{{ url_for('asistencia') }}" class="btn-limpiar">
+                    <a href="{{ url_for('guardias.asistencia') }}" class="btn-limpiar">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="15" y1="9" x2="9" y2="15"/>

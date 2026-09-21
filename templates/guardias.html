@@ -73,7 +73,7 @@
                 <h3>Registrar Nueva Guardia</h3>
             </div>
 
-            <form action="{{ url_for('agregar_guardia') }}" method="POST" class="form-pro">
+            <form action="{{ url_for('guardias.agregar_guardia') }}" method="POST" class="form-pro">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <div class="form-group">
@@ -117,7 +117,7 @@
 
             <!-- FILTROS DE BÚSQUEDA (fiscalizador, fechas, asistencia) -->
             <div class="filtros-card">
-                <form method="GET" action="{{ url_for('ver_guardias') }}" class="filtro-form">
+                <form method="GET" action="{{ url_for('guardias.ver_guardias') }}" class="filtro-form">
 
                     <div class="filtro-field">
                         <label for="filtro_id_usuario" class="filtro-label">Fiscalizador</label>
@@ -190,7 +190,7 @@
                             </svg>
                             Buscar
                         </button>
-                        <a href="{{ url_for('ver_guardias') }}" class="btn-limpiar">
+                        <a href="{{ url_for('guardias.ver_guardias') }}" class="btn-limpiar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
                                 <line x1="15" y1="9" x2="9" y2="15"/>
@@ -319,7 +319,7 @@
 
                             <td data-label="Acciones">
                                 <div class="acciones-tabla">
-                                    <a href="{{ url_for('editar_guardia', id=g.id_guardia) }}"
+                                    <a href="{{ url_for('guardias.editar_guardia', id=g.id_guardia) }}"
                                        class="btn-editar"
                                        title="Editar guardia">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -330,7 +330,7 @@
                                     <a href="#"
                                        class="btn-eliminar"
                                        title="Eliminar guardia"
-                                       data-url="{{ url_for('eliminar_guardia', id=g.id_guardia) }}"
+                                       data-url="{{ url_for('guardias.eliminar_guardia', id=g.id_guardia) }}"
                                        data-confirm="¿Seguro que deseas eliminar esta guardia?">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                             <polyline points="3 6 5 6 21 6"/>
@@ -491,7 +491,7 @@ function confirmarEliminarSeleccion() {
     checks.forEach(function(cb) { pendingIds.push(cb.value); });
     document.getElementById('confirm-message').textContent =
         '¿Eliminar ' + pendingIds.length + ' guardias seleccionadas? Se eliminarán también sus asistencias, compensaciones e informes asociados. Esta acción no se puede deshacer.';
-    pendingUrl = '{{ url_for("eliminar_guardias") }}';
+    pendingUrl = '{{ url_for("guardias.eliminar_guardias") }}';
     document.getElementById('confirm-overlay').classList.add('show');
 }
 

@@ -133,7 +133,7 @@
         <!-- FILTROS SEMÁFORO DE ALERTAS - Búsqueda por año, fechas, fiscalizador y estado -->
         <div class="card">
             <div class="card-body">
-                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtro-form" id="filtrosAlertas">
+                <form method="GET" action="{{ url_for('vacaciones.vacaciones') }}" class="filtro-form" id="filtrosAlertas">
                     <div class="filtro-field">
                         <label for="filtroAnio" class="filtro-label">Año</label>
                         <div class="filtro-input-wrap">
@@ -210,7 +210,7 @@
                             </svg>
                             Buscar
                         </button>
-                        <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
+                        <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones.vacaciones') }}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
                                 <line x1="15" y1="9" x2="9" y2="15"/>
@@ -346,7 +346,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('guardar_vacacion') }}">
+                <form method="POST" action="{{ url_for('vacaciones.guardar_vacacion') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                     <div class="form-group">
@@ -397,7 +397,7 @@
         <!-- FILTROS LISTADO DE VACACIONES - Búsqueda por año, fechas, fiscalizador y estado -->
         <div class="card">
             <div class="card-body">
-                <form method="GET" action="{{ url_for('vacaciones') }}" class="filtro-form" id="filtrosVacaciones">
+                <form method="GET" action="{{ url_for('vacaciones.vacaciones') }}" class="filtro-form" id="filtrosVacaciones">
                     <div class="filtro-field">
                         <label for="filtroVacAnio" class="filtro-label">Año</label>
                         <div class="filtro-input-wrap">
@@ -474,7 +474,7 @@
                             </svg>
                             Buscar
                         </button>
-                        <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones') }}">
+                        <button type="button" class="btn-limpiar" data-url="{{ url_for('vacaciones.vacaciones') }}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
                                 <line x1="15" y1="9" x2="9" y2="15"/>
@@ -608,7 +608,7 @@
                                 </td>
                                 <td data-label="Acciones">
                                     <div class="acciones-tabla">
-                                        <a href="{{ url_for('editar_vacacion', id=v.id_vacacion) }}"
+                                        <a href="{{ url_for('vacaciones.editar_vacacion', id=v.id_vacacion) }}"
                                            class="btn-editar"
                                            title="Editar vacación">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -619,7 +619,7 @@
                                         <a href="#"
                                            class="btn-eliminar"
                                            title="Eliminar vacación"
-                                           data-url="{{ url_for('eliminar_vacacion', id=v.id_vacacion) }}"
+                                           data-url="{{ url_for('vacaciones.eliminar_vacacion', id=v.id_vacacion) }}"
                                            data-confirm="¿Seguro que deseas eliminar esta vacación?">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                                 <polyline points="3 6 5 6 21 6"/>
@@ -974,7 +974,7 @@ function confirmarEliminarSeleccion() {
     checks.forEach(function(cb) { pendingIds.push(cb.value); });
     document.getElementById('confirm-message').textContent =
         '¿Eliminar ' + pendingIds.length + ' vacaciones seleccionadas? Se notificará a los usuarios afectados y esta acción no se puede deshacer.';
-    pendingUrl = '{{ url_for("eliminar_vacaciones") }}';
+    pendingUrl = '{{ url_for("vacaciones.eliminar_vacaciones") }}';
     document.getElementById('confirm-overlay').classList.add('show');
 }
 
