@@ -1109,3 +1109,9 @@ body.rol-jefatura .tabla-vacaciones th:nth-child(5), body.rol-jefatura .tabla-va
 body.rol-jefatura .tabla-vacaciones th:nth-child(6), body.rol-jefatura .tabla-vacaciones td:nth-child(6) {
     text-align: center;
 }
+
+/* ===== JEFATURA: centrar columnas cortas (tabla de alertas) ===== */
+body.rol-jefatura .tabla-alertas th:nth-child(2), body.rol-jefatura .tabla-alertas td:nth-child(2),
+body.rol-jefatura .tabla-alertas th:nth-child(4), body.rol-jefatura .tabla-alertas td:nth-child(4) {
+    text-align: center;
+}

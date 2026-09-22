@@ -792,3 +792,11 @@ select.filtro-input {
 .btn-filtrar:active {
     transform: translateY(0);
 }
+
+/* ===== JEFATURA: centrar columnas cortas ===== */
+body.rol-jefatura th:nth-child(1), body.rol-jefatura td:nth-child(1),
+body.rol-jefatura th:nth-child(3), body.rol-jefatura td:nth-child(3),
+body.rol-jefatura th:nth-child(7), body.rol-jefatura td:nth-child(7),
+body.rol-jefatura th:nth-child(8), body.rol-jefatura td:nth-child(8) {
+    text-align: center;
+}
