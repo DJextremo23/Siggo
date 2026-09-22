@@ -643,6 +643,11 @@ body.rol-jefatura table th:first-child {
 
 body.rol-jefatura .tabla-alertas th:first-child {
     text-align: left;
+    padding-left: 32px;
+}
+
+body.rol-jefatura .tabla-alertas td:first-child {
+    padding-left: 32px;
 }
 
 body.rol-jefatura table th {
