@@ -199,13 +199,13 @@
                             <button type="button" id="btn-toggle-todos" title="Seleccionar / Deseleccionar todas" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#475569;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
                         </th>
                         {% endif %}
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:6%"{% endif %}>ID</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:23%"{% endif %}>Fiscalizador</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:6%; text-align:center"{% endif %}>ID</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:27%"{% endif %}>Fiscalizador</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Fecha Guardia</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:11%"{% endif %}>Día</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Asistencia</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Compensación</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:21%"{% endif %}>Observaciones</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:17%"{% endif %}>Observaciones</th>
                         {% if session.get('perfil_activo') == 'admin' %}
                         <th>Acciones</th>
                         {% endif %}

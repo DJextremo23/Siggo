@@ -184,12 +184,12 @@
             <table class="tabla-resp">
                 <thead>
                     <tr>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:5%"{% endif %}>ID</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:15%"{% endif %}>Fiscalizador</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:5%; text-align:center"{% endif %}>ID</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Fiscalizador</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:14%"{% endif %}>Fecha Guardia</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:15%"{% endif %}>Título</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:12%"{% endif %}>Descripción</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:12%"{% endif %}>Archivo</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Título</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>Descripción</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:11%"{% endif %}>Archivo</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:7%"{% endif %}>Tipo</th>
                         <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>Registro</th>
                         <th class="th-acciones" {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>Acciones</th>
