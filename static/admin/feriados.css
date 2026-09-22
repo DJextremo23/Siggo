@@ -659,10 +659,3 @@ select.filtro-input {
 .inline-flex-center{display:inline-flex;align-items:center;gap:6px;}
 
 .flex-col-center{display:flex;flex-direction:column;align-items:center;gap:8px;}
-
-/* ===== JEFATURA: centrar columnas cortas ===== */
-body.rol-jefatura th:nth-child(1), body.rol-jefatura td:nth-child(1),
-body.rol-jefatura th:nth-child(2), body.rol-jefatura td:nth-child(2),
-body.rol-jefatura th:nth-child(3), body.rol-jefatura td:nth-child(3) {
-    text-align: center;
-}
