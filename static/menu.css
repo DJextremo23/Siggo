@@ -637,6 +637,14 @@ body.rol-jefatura table {
     table-layout: fixed;
 }
 
+body.rol-jefatura table th:first-child {
+    text-align: center;
+}
+
+body.rol-jefatura .tabla-alertas th:first-child {
+    text-align: left;
+}
+
 body.rol-jefatura table th {
     vertical-align: middle;
 }
