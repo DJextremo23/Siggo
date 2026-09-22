@@ -213,6 +213,7 @@
         </div>
 
         <div class="module-grid">
+            {% if session.get('perfil_activo') == 'admin' %}
             <a href="{{ url_for('fiscalizadores.listar_fiscalizadores') }}" class="module-card module-card--usuarios">
                 <div class="module-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -225,6 +226,7 @@
                 <h3>Usuarios</h3>
                 <p>Gestión de fiscalizadores y personal</p>
             </a>
+            {% endif %}
 
             <a href="{{ url_for('asistencia_admin') }}" class="module-card module-card--asistencia">
                 <div class="module-icon">
