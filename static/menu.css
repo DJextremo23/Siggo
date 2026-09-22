@@ -641,13 +641,12 @@ body.rol-jefatura table th:first-child {
     text-align: center;
 }
 
-body.rol-jefatura .tabla-alertas th:first-child {
-    text-align: left;
-    padding-left: 74px;
+body.rol-jefatura .tabla-alertas {
+    table-layout: auto;
 }
 
-body.rol-jefatura .tabla-alertas td:first-child {
-    padding-left: 74px;
+body.rol-jefatura .tabla-alertas th:first-child {
+    text-align: left;
 }
 
 body.rol-jefatura table th {
