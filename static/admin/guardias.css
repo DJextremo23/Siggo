@@ -465,7 +465,7 @@ thead {
 
 th {
     text-align: left;
-    padding: 10px 14px;
+    padding: 12px 16px;
     color: var(--color-muted);
     font-size: 12px;
     font-weight: 700;
@@ -475,7 +475,7 @@ th {
 }
 
 td {
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-bottom: 1px solid #f1f5f9;
     color: var(--color-primario);
     vertical-align: middle;
