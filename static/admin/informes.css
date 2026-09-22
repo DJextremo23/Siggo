@@ -1,4 +1,4 @@
-/* ================= VARIABLES ================= */
+﻿/* ================= VARIABLES ================= */
 :root{
     --bg-main: #f1f5f9;
     --bg-sidebar: #0f172a;
@@ -411,7 +411,7 @@ thead{
 
 th{
     text-align: left;
-    padding: 14px 16px;
+    padding: 10px 14px;
     color: var(--text-muted);
     font-size: 12px;
     font-weight: 700;
@@ -427,7 +427,7 @@ th{
 }
 
 td{
-    padding: 14px 16px;
+    padding: 10px 14px;
     border-bottom: 1px solid #f1f5f9;
     font-size: 14px;
     vertical-align: middle;

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --color-primario: #0f172a;
     --color-secundario: #1e293b;
     --color-acento: #3b82f6;
@@ -465,7 +465,7 @@ thead {
 
 th {
     text-align: left;
-    padding: 14px 16px;
+    padding: 10px 14px;
     color: var(--color-muted);
     font-size: 12px;
     font-weight: 700;
@@ -475,7 +475,7 @@ th {
 }
 
 td {
-    padding: 14px 16px;
+    padding: 10px 14px;
     border-bottom: 1px solid #f1f5f9;
     color: var(--color-primario);
     vertical-align: middle;
