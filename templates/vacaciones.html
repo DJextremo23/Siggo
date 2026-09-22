@@ -255,10 +255,10 @@
                     <table class="tabla-resp">
                         <thead>
                             <tr>
-                                <th>Fiscalizador</th>
-                                <th>Fecha de habilitación</th>
-                                <th>Estado de derecho</th>
-                                <th>Estado</th>
+                                <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:30%"{% endif %}>Fiscalizador</th>
+                                <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Fecha de habilitación</th>
+                                <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:30%"{% endif %}>Estado de derecho</th>
+                                <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Estado</th>
                             </tr>
                         </thead>
                         <tbody id="alertas-tbody">
