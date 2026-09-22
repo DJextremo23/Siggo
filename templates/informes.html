@@ -5,7 +5,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Informes</title>
+    <title>{{ 'Consulta de Informes' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Informes' }}</title>
 
     <link rel="stylesheet"
           href="{{ url_for('static', filename='admin/informes.css') }}">
@@ -32,8 +32,8 @@
                 </svg>
             </div>
         <div class="page-header-text">
-            <h1>Gestión de Informes</h1>
-            <p>Visualiza y administra todos los informes del sistema</p>
+            <h1>{{ 'Consulta de Informes' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Informes' }}</h1>
+            <p>{{ 'Consulta todos los informes del sistema' if session.get('perfil_activo') == 'jefatura' else 'Visualiza y administra todos los informes del sistema' }}</p>
         </div>
     </div>
 

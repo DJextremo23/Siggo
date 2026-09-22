@@ -5,7 +5,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Feriados</title>
+    <title>{{ 'Consulta de Feriados' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Feriados' }}</title>
 
     <link rel="stylesheet"
           href="{{ url_for('static', filename='admin/feriados.css') }}">
@@ -34,8 +34,8 @@
                 </svg>
             </div>
             <div class="page-header-text">
-                <h1>Gestión de Feriados</h1>
-                <p>Registrar y administrar días feriados</p>
+                <h1>{{ 'Consulta de Feriados' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Feriados' }}</h1>
+                <p>{{ 'Consulta de días feriados' if session.get('perfil_activo') == 'jefatura' else 'Registrar y administrar días feriados' }}</p>
             </div>
         </div>
 

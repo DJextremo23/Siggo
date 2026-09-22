@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Asistencia</title>
+    <title>{{ 'Consulta de Asistencia' if session.get('perfil_activo') == 'jefatura' else 'Control de Asistencia' }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='admin/asistencias.css') }}">
 </head>
 
@@ -28,8 +28,8 @@
                 </svg>
             </div>
             <div class="page-header-text">
-                <h1>Control de Asistencia</h1>
-                <p>Gestión de asistencia de fiscalizadores</p>
+                <h1>{{ 'Consulta de Asistencia' if session.get('perfil_activo') == 'jefatura' else 'Control de Asistencia' }}</h1>
+                <p>{{ 'Consulta de asistencia de fiscalizadores' if session.get('perfil_activo') == 'jefatura' else 'Gestión de asistencia de fiscalizadores' }}</p>
             </div>
         </div>
 

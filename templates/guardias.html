@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Guardias</title>
+    <title>{{ 'Consulta de Guardias' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Guardias' }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='admin/guardias.css') }}">
 </head>
 
@@ -27,8 +27,8 @@
             </svg>
         </div>
         <div class="page-header-text">
-            <h1>Gestión de Guardias</h1>
-            <p>Registro y control de guardias de fiscalizadores</p>
+            <h1>{{ 'Consulta de Guardias' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Guardias' }}</h1>
+            <p>{{ 'Consulta de guardias programadas' if session.get('perfil_activo') == 'jefatura' else 'Registro y control de guardias de fiscalizadores' }}</p>
         </div>
     </div>
 
