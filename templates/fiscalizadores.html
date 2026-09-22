@@ -219,8 +219,8 @@
                             {% endif %}
                         </td>
 
+                        {% if session.get('perfil_activo') == 'admin' %}
                         <td class="td-acciones" data-label="Acciones">
-                            {% if session.get('perfil_activo') == 'admin' %}
                             <div class="acciones-tabla">
 
                                 <a href="{{ url_for('fiscalizadores.editar_usuario', id=f.id_usuario) }}"
@@ -264,8 +264,8 @@
                                 </a>
 
                             </div>
-                            {% endif %}
                         </td>
+                        {% endif %}
 
                     </tr>
 

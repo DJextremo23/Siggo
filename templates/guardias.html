@@ -254,11 +254,11 @@
 
                         <tr>
 
+                            {% if session.get('perfil_activo') == 'admin' %}
                             <td data-label="Selección" style="text-align:center;">
-                                {% if session.get('perfil_activo') == 'admin' %}
                                 <input type="checkbox" class="check-guardia" value="{{ g.id_guardia }}">
-                                {% endif %}
                             </td>
+                            {% endif %}
 
                             <td class="td-id" data-label="ID"><span class="id-badge">{{ g.id_guardia }}</span></td>
 
@@ -327,8 +327,8 @@
                                 {% endif %}
                             </td>
 
+                            {% if session.get('perfil_activo') == 'admin' %}
                             <td data-label="Acciones">
-                                {% if session.get('perfil_activo') == 'admin' %}
                                 <div class="acciones-tabla">
                                     <a href="{{ url_for('editar_guardia', id=g.id_guardia) }}"
                                        class="btn-editar"
@@ -351,15 +351,15 @@
                                         </svg>
                                     </a>
                                 </div>
-                                {% endif %}
                             </td>
+                            {% endif %}
 
                         </tr>
 
                         {% else %}
 
                         <tr>
-                            <td colspan="8">
+                            <td colspan="{{ 8 if session.get('perfil_activo') == 'admin' else 6 }}">
                                 <div class="flex-col-center">
                                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
