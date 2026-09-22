@@ -33,7 +33,7 @@ def foto_permitida(nombre):
 @fiscalizadores_bp.route("/admin/fiscalizadores")
 def listar_fiscalizadores():
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo") not in ("admin", "jefatura"):
         return redirect(url_for("login.login"))
 
     conn = None

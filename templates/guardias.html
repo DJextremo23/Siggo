@@ -67,6 +67,7 @@
         {% endif %}
 
         <!-- FORMULARIO PARA REGISTRAR NUEVA GUARDIA -->
+        {% if session.get('perfil_activo') == 'admin' %}
         <div class="card">
 
             <div class="card-header">
@@ -107,6 +108,7 @@
             </form>
 
         </div>
+        {% endif %}
 
         <!-- TABLA DE LISTA DE GUARDIAS -->
         <div class="card">
@@ -204,6 +206,7 @@
             </div>
 
             <!-- BARRA DE ELIMINACIÓN EN LOTE -->
+            {% if session.get('perfil_activo') == 'admin' %}
             <div id="barra-eliminar-lote" style="display:none; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
                 <span style="font-size:13px; color:#991b1b; font-weight:600;"><span id="count-seleccion">0</span> seleccionado(s)</span>
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -220,6 +223,7 @@
                     </button>
                 </div>
             </div>
+            {% endif %}
 
             <div class="tabla-container">
 
@@ -227,16 +231,20 @@
 
                     <thead>
                         <tr>
+                            {% if session.get('perfil_activo') == 'admin' %}
                             <th style="width:40px;">
                                 <button type="button" id="btn-toggle-todos" title="Seleccionar / Deseleccionar todas" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#475569;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
                             </th>
+                            {% endif %}
                             <th>ID</th>
                             <th>Fiscalizador</th>
                             <th>Fecha</th>
                             <th>Día</th>
                             <th>Asistencia</th>
                             <th>Compensación</th>
+                            {% if session.get('perfil_activo') == 'admin' %}
                             <th>Acciones</th>
+                            {% endif %}
                         </tr>
                     </thead>
 
@@ -247,7 +255,9 @@
                         <tr>
 
                             <td data-label="Selección" style="text-align:center;">
+                                {% if session.get('perfil_activo') == 'admin' %}
                                 <input type="checkbox" class="check-guardia" value="{{ g.id_guardia }}">
+                                {% endif %}
                             </td>
 
                             <td class="td-id" data-label="ID"><span class="id-badge">{{ g.id_guardia }}</span></td>
@@ -318,6 +328,7 @@
                             </td>
 
                             <td data-label="Acciones">
+                                {% if session.get('perfil_activo') == 'admin' %}
                                 <div class="acciones-tabla">
                                     <a href="{{ url_for('editar_guardia', id=g.id_guardia) }}"
                                        class="btn-editar"
@@ -340,6 +351,7 @@
                                         </svg>
                                     </a>
                                 </div>
+                                {% endif %}
                             </td>
 
                         </tr>
@@ -459,6 +471,7 @@ document.querySelectorAll('.alert-close').forEach(function(btn) {
 });
 
 /* --- Eliminación en lote --- */
+{% if session.get('perfil_activo') == 'admin' %}
 function actualizarSeleccion() {
     var checks = document.querySelectorAll('.check-guardia:checked');
     var barra = document.getElementById('barra-eliminar-lote');
@@ -496,6 +509,7 @@ function confirmarEliminarSeleccion() {
 }
 
 document.getElementById('btn-eliminar-seleccion').addEventListener('click', confirmarEliminarSeleccion);
+{% endif %}
 </script>
 </body>
 </html>

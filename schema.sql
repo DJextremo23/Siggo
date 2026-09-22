@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS roles (
     nombre_rol VARCHAR(50) NOT NULL UNIQUE
 );
 
-INSERT IGNORE INTO roles (nombre_rol) VALUES ('admin'), ('fiscalizador');
+INSERT IGNORE INTO roles (nombre_rol) VALUES ('admin'), ('fiscalizador'), ('jefatura');
 
 -- ── USUARIOS ──
 CREATE TABLE IF NOT EXISTS usuarios (

@@ -237,7 +237,7 @@ def administrador():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     cursor = None
@@ -403,7 +403,7 @@ def compensaciones_admin():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_compensaciones")
@@ -747,7 +747,7 @@ def feriados():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_feriados")
@@ -1067,7 +1067,7 @@ def vacaciones():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_vacaciones")
@@ -1748,6 +1748,9 @@ def inicio():
     if session.get("perfil_activo", "").lower() == "admin":
         return redirect(url_for("administrador"))
 
+    if session.get("perfil_activo", "").lower() == "jefatura":
+        return redirect(url_for("administrador"))
+
     if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
@@ -1957,7 +1960,7 @@ def ver_guardias():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_guardias")
@@ -2428,7 +2431,7 @@ def asistencia_admin():
         return redirect(url_for("home"))
 
     # 🔥 CORRECCIÓN AQUÍ TAMBIÉN
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_asistencias")

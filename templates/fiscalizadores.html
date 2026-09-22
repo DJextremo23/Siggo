@@ -138,6 +138,7 @@
                 >
             </div>
 
+            {% if session.get('perfil_activo') == 'admin' %}
             <a href="{{ url_for('registro.registro') }}" class="btn-agregar">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -146,6 +147,7 @@
                 </svg>
                 <span>Nuevo usuario</span>
             </a>
+            {% endif %}
 
         </div>
 
@@ -169,7 +171,9 @@
                             <th>Usuario</th>
                             <th>Roles</th>
                             <th>Estado</th>
+                            {% if session.get('perfil_activo') == 'admin' %}
                             <th class="th-acciones">Acciones</th>
+                            {% endif %}
                         </tr>
                     </thead>
 
@@ -216,6 +220,7 @@
                         </td>
 
                         <td class="td-acciones" data-label="Acciones">
+                            {% if session.get('perfil_activo') == 'admin' %}
                             <div class="acciones-tabla">
 
                                 <a href="{{ url_for('fiscalizadores.editar_usuario', id=f.id_usuario) }}"
@@ -259,6 +264,7 @@
                                 </a>
 
                             </div>
+                            {% endif %}
                         </td>
 
                     </tr>

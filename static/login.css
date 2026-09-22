@@ -540,6 +540,11 @@ button,
     color: #10b981;
 }
 
+.jefatura-icon {
+    background: #f5f3ff;
+    color: #8b5cf6;
+}
+
 .profile-card:hover .admin-icon {
     background: var(--color-acento);
     color: #ffffff;
@@ -547,6 +552,11 @@ button,
 
 .profile-card:hover .fiscal-icon {
     background: #10b981;
+    color: #ffffff;
+}
+
+.profile-card:hover .jefatura-icon {
+    background: #8b5cf6;
     color: #ffffff;
 }
 

@@ -46,7 +46,7 @@
             </div>
             <div class="user-role">
                 <span class="role-dot {{ session.get('perfil_activo', '') }}"></span>
-                {{ 'Administrador' if session.get('perfil_activo') == 'admin' else 'Fiscalizador' }}
+                {{ 'Administrador' if session.get('perfil_activo') == 'admin' else ('Jefatura' if session.get('perfil_activo') == 'jefatura' else 'Fiscalizador') }}
             </div>
         </div>
     </div>
@@ -65,7 +65,7 @@
         </a>
 
         <!-- SECCIÓN: Navegación del perfil administrador -->
-        {% if session.get('perfil_activo') == 'admin' %}
+        {% if session.get('perfil_activo') in ['admin', 'jefatura'] %}
 
             <div class="sidebar-section-label">Administración</div>
 

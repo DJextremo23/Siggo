@@ -104,7 +104,7 @@ def construir_filtro(anio=None, mes=None, fecha_desde=None, fecha_hasta=None, id
 def reporte():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -350,7 +350,7 @@ def _aplicar_estilo_datos_excel(ws, columnas, data_start):
 def exportar_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -449,7 +449,7 @@ def exportar_pdf():
 def exportar_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -536,7 +536,7 @@ def exportar_excel():
 def exportar_detalle_fecha_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -634,7 +634,7 @@ def exportar_detalle_fecha_pdf():
 def exportar_detalle_fecha_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -718,7 +718,7 @@ def exportar_detalle_fecha_excel():
 def exportar_vacaciones_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -826,7 +826,7 @@ def exportar_vacaciones_pdf():
 def exportar_vacaciones_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -920,7 +920,7 @@ def exportar_vacaciones_excel():
 def exportar_resumen_vacaciones_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -1030,7 +1030,7 @@ def exportar_resumen_vacaciones_pdf():
 def exportar_resumen_vacaciones_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo") not in ("admin", "jefatura"):
         return acceso_no_autorizado()
 
     ids_usuarios = request.args.getlist("id_usuario")

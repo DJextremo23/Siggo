@@ -34,7 +34,7 @@
                 {% endif %}
             </div>
             <div class="welcome-text">
-                <h1>Panel de Administración</h1>
+                <h1>{% if session.get('perfil_activo') == 'jefatura' %}Panel de Supervisión{% else %}Panel de Administración{% endif %}</h1>
                 <p>Bienvenido, <strong>{{ session.nombre }}</strong></p>
             </div>
         </div>
@@ -51,7 +51,7 @@
                     {% endif %}
                 </button>
             </div>
-            <span class="welcome-role">Administrador</span>
+            <span class="welcome-role">{{ 'Administrador' if session.get('perfil_activo') == 'admin' else 'Jefatura' }}</span>
 
             {% if total_notif_count > 0 %}
             <div class="notif-panel" id="notifPanel">
