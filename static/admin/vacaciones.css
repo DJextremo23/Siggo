@@ -1100,3 +1100,12 @@ select.filtro-input {
     from { opacity: 0; transform: scale(0.96); }
     to   { opacity: 1; transform: scale(1); }
 }
+
+/* ===== JEFATURA: centrar columnas cortas ===== */
+body.rol-jefatura .tabla-vacaciones th:nth-child(1), body.rol-jefatura .tabla-vacaciones td:nth-child(1),
+body.rol-jefatura .tabla-vacaciones th:nth-child(3), body.rol-jefatura .tabla-vacaciones td:nth-child(3),
+body.rol-jefatura .tabla-vacaciones th:nth-child(4), body.rol-jefatura .tabla-vacaciones td:nth-child(4),
+body.rol-jefatura .tabla-vacaciones th:nth-child(5), body.rol-jefatura .tabla-vacaciones td:nth-child(5),
+body.rol-jefatura .tabla-vacaciones th:nth-child(6), body.rol-jefatura .tabla-vacaciones td:nth-child(6) {
+    text-align: center;
+}

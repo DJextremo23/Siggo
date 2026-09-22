@@ -296,3 +296,9 @@ body {
         font-size: 12px;
     }
 }
+
+/* ===== JEFATURA: centrar columnas cortas ===== */
+body.rol-jefatura th:nth-child(1), body.rol-jefatura td:nth-child(1),
+body.rol-jefatura th:nth-child(4), body.rol-jefatura td:nth-child(4) {
+    text-align: center;
+}

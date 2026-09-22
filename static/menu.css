@@ -636,3 +636,12 @@ button,
 body.rol-jefatura table {
     table-layout: fixed;
 }
+
+body.rol-jefatura table th {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+body.rol-jefatura table td {
+    vertical-align: middle;
+}
