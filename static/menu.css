@@ -635,6 +635,8 @@ button,
    ============================================= */
 body.rol-jefatura table {
     table-layout: fixed;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 body.rol-jefatura table th {
