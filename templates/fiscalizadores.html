@@ -1,4 +1,4 @@
-<!-- Lista de usuarios (admin) -->
+﻿<!-- Lista de usuarios (admin) -->
 <!DOCTYPE html>
 <html lang="es">
 
@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/fiscalizadores.css') }}">
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
 <div class="layout">
 

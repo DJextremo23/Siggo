@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -11,7 +11,7 @@
           href="{{ url_for('static', filename='admin/feriados.css') }}">
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
     <!-- ==========================================================
          PÁGINA: Gestión de Feriados (Administrador)
@@ -290,10 +290,10 @@
                                 <button type="button" id="btn-toggle-todos" title="Seleccionar / Deseleccionar todas" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#475569;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
                             </th>
                             {% endif %}
-                            <th>ID</th>
-                            <th>Fecha</th>
-                            <th>Dia</th>
-                            <th>Descripción</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>ID</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:18%"{% endif %}>Fecha</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:18%"{% endif %}>Dia</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:54%"{% endif %}>Descripción</th>
                             {% if session.get('perfil_activo') == 'admin' %}
                             <th>Acciones</th>
                             {% endif %}

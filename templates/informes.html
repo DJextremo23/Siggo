@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -11,7 +11,7 @@
           href="{{ url_for('static', filename='admin/informes.css') }}">
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
     {% set active_page = 'informes' %}
     {% include 'menu.html' %}

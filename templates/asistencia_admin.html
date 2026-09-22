@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Página: Control de Asistencia (vista administrador) — Gestión de asistencia de fiscalizadores -->
 <html lang="es">
 
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='admin/asistencias.css') }}">
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
     <!-- BARRA LATERAL DE NAVEGACIÓN -->
     {% set active_page = 'asistencias' %}
@@ -170,11 +170,11 @@
 
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Fiscalizador</th>
-                            <th>Fecha</th>
-                            <th>Día</th>
-                            <th>Estado</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:9%"{% endif %}>ID</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:32%"{% endif %}>Fiscalizador</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Fecha</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:18%"{% endif %}>Día</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:21%"{% endif %}>Estado</th>
                             {% if session.get('perfil_activo') == 'admin' %}
                             <th>Acciones</th>
                             {% endif %}

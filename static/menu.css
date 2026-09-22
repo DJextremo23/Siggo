@@ -629,3 +629,10 @@ button,
 .btn-icon {
     -webkit-tap-highlight-color: transparent;
 }
+
+/* =============================================
+   TABLAS BALANCEADAS PARA JEFATURA (solo lectura)
+   ============================================= */
+body.rol-jefatura table {
+    table-layout: fixed;
+}

@@ -1,4 +1,4 @@
-<!-- Lista de fiscalizadores -->
+﻿<!-- Lista de fiscalizadores -->
 <!DOCTYPE html>
 <html lang="es">
 
@@ -12,7 +12,7 @@
 
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
 {% set active_page = 'fiscalizadores' %}
 {% include 'menu.html' %}
@@ -66,10 +66,10 @@
 
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Nombre y Apellido</th>
-                        <th>Correo</th>
-                        <th>Estado</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>ID</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:34%"{% endif %}>Nombre y Apellido</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:36%"{% endif %}>Correo</th>
+                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Estado</th>
                     </tr>
                 </thead>
 

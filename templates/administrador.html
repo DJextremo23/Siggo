@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 {# Descripción: Panel principal del administrador con estadísticas y módulos de gestión #}
 <html lang="es">
 
@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
 {% set active_page = 'inicio' %}
 {% include 'menu.html' %}

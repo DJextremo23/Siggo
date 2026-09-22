@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Página: Gestión de Guardias (vista administrador) — Registro, consulta y control de guardias de fiscalizadores -->
 <html lang="es">
 
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='admin/guardias.css') }}">
 </head>
 
-<body>
+<body class="rol-{{ session.get('perfil_activo', '') }}">
 
     {% set active_page = 'guardias' %}
     {% include 'menu.html' %}
@@ -236,12 +236,12 @@
                                 <button type="button" id="btn-toggle-todos" title="Seleccionar / Deseleccionar todas" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#475569;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
                             </th>
                             {% endif %}
-                            <th>ID</th>
-                            <th>Fiscalizador</th>
-                            <th>Fecha</th>
-                            <th>Día</th>
-                            <th>Asistencia</th>
-                            <th>Compensación</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:7%"{% endif %}>ID</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:32%"{% endif %}>Fiscalizador</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:15%"{% endif %}>Fecha</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:14%"{% endif %}>Día</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:16%"{% endif %}>Asistencia</th>
+                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:16%"{% endif %}>Compensación</th>
                             {% if session.get('perfil_activo') == 'admin' %}
                             <th>Acciones</th>
                             {% endif %}
