@@ -27,23 +27,12 @@
     color: white;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
     overscroll-behavior: contain;
     z-index: 1000;
     box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35);
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     box-sizing: border-box;
-}
-
-.sidebar::-webkit-scrollbar {
-    width: 4px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.25);
-    border-radius: 2px;
 }
 
 /* =============================================
@@ -196,17 +185,15 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 12px 14px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-nav::-webkit-scrollbar {
-    width: 4px;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.25);
-    border-radius: 2px;
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .sidebar-section-label {
