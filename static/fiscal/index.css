@@ -25,19 +25,24 @@
     box-sizing: border-box;
 }
 
+html {
+    overflow-x: hidden;
+}
+
 body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg-main);
     color: var(--text-main);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
 /* =============================================
    CONTENT AREA
    ============================================= */
 .content {
-    padding: 32px 32px calc(32px + env(safe-area-inset-bottom, 0px));
+    padding: 32px;
     min-height: 100vh;
 }
 
