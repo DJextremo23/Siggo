@@ -322,6 +322,18 @@ def admin_editar_informe(id_informe):
                 ruta = os.path.join(UPLOAD_FOLDER, nombre)
                 archivo.save(ruta)
 
+                # Elimina el archivo anterior para no dejar huérfanos
+                ruta_anterior = informe.get("ruta_archivo")
+                if ruta_anterior:
+                    uploads_real = os.path.realpath(UPLOAD_FOLDER)
+                    ruta_anterior_real = os.path.realpath(ruta_anterior)
+                    if ruta_anterior_real == uploads_real or ruta_anterior_real.startswith(uploads_real + os.sep):
+                        try:
+                            if os.path.isfile(ruta_anterior_real):
+                                os.remove(ruta_anterior_real)
+                        except OSError:
+                            pass
+
                 cursor.execute("""
                     UPDATE informes
                     SET nombre_archivo = %s,
@@ -417,13 +429,32 @@ def admin_eliminar_informe(id_informe):
     try:
         conn = conexion()
         cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE informes
-            SET estado = 'eliminado'
-            WHERE id_informe = %s
-        """, (id_informe,))
+        cursor.execute(
+            "SELECT ruta_archivo FROM informes WHERE id_informe = %s AND estado = 'activo'",
+            (id_informe,),
+        )
+        informe = cursor.fetchone()
+        if not informe:
+            flash("Informe no encontrado", "error")
+            return redirigir_con_filtros("informes.admin_informes", "filtro_informes")
+
+        cursor.execute(
+            "UPDATE informes SET estado = 'eliminado' WHERE id_informe = %s",
+            (id_informe,),
+        )
 
         conn.commit()
+
+        ruta = informe[0]
+        if ruta:
+            uploads_real = os.path.realpath(UPLOAD_FOLDER)
+            ruta_real = os.path.realpath(ruta)
+            if ruta_real == uploads_real or ruta_real.startswith(uploads_real + os.sep):
+                try:
+                    if os.path.isfile(ruta_real):
+                        os.remove(ruta_real)
+                except OSError:
+                    pass
 
         flash("Informe eliminado correctamente", "success")
         return redirigir_con_filtros("informes.admin_informes", "filtro_informes")

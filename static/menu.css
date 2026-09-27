@@ -267,11 +267,17 @@
     border-top: 1px solid var(--sidebar-divider);
 }
 
-.sidebar-footer a {
+.sidebar-footer form {
+    margin: 0;
+}
+
+.sidebar-footer a,
+.sidebar-footer .sidebar-logout-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
+    width: 100%;
     padding: 12px;
     border-radius: var(--sidebar-radius);
     background: rgba(239, 68, 68, 0.1);
@@ -279,13 +285,16 @@
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
+    font-family: inherit;
     border: 1px solid rgba(239, 68, 68, 0.18);
+    cursor: pointer;
     transition: background var(--sidebar-transition),
                 color var(--sidebar-transition),
                 border-color var(--sidebar-transition);
 }
 
-.sidebar-footer a:hover {
+.sidebar-footer a:hover,
+.sidebar-footer .sidebar-logout-btn:hover {
     background: var(--sidebar-logout);
     color: #ffffff;
     border-color: var(--sidebar-logout);

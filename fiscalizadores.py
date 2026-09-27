@@ -114,7 +114,9 @@ def editar_usuario(id):
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT u.*, GROUP_CONCAT(r.nombre_rol ORDER BY r.nombre_rol SEPARATOR ', ') AS roles
+            SELECT u.id_usuario, u.nombre, u.apellidos, u.correo, u.usuario,
+                   u.estado, u.foto, u.fecha_ingreso, u.dos_factores_activo,
+                   GROUP_CONCAT(r.nombre_rol ORDER BY r.nombre_rol SEPARATOR ', ') AS roles
             FROM usuarios u
             LEFT JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             LEFT JOIN roles r ON ur.id_rol = r.id_rol

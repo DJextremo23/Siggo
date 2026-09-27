@@ -89,6 +89,7 @@ def _dias_pendientes_acumulados(cursor, id_usuario):
         SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
         FROM vacaciones v
         WHERE v.id_usuario = %s
+          AND v.fecha_inicio <= CURDATE()
     """, (id_usuario,))
     result = cursor.fetchone()
     total_tomados = result["total"] if result else 0
@@ -125,6 +126,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
             WHERE v.id_usuario = %s
+              AND v.fecha_inicio <= CURDATE()
         """, (id_usuario,))
         result = cursor.fetchone()
         dias_tomados_total = result["total"] if result else 0
@@ -213,9 +215,7 @@ def mis_reportes():
                 AS guardias_feriado,
 
                 SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END)
-                AS compensaciones,
-
-                (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
+                AS compensaciones
 
             FROM guardias g
 
@@ -350,6 +350,7 @@ def mis_reportes():
                 FROM vacaciones v
                 JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
+                  AND v.fecha_inicio <= CURDATE()
             """, (id_usuario,))
             result = cursor.fetchone()
             dias_tomados_total = result["total"] if result else 0
@@ -649,8 +650,7 @@ def exportar_resumen_pdf():
             SELECT
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
-                (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones
             FROM guardias g
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
@@ -752,8 +752,7 @@ def exportar_resumen_excel():
             SELECT
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
-                (COUNT(g.id_guardia) - COUNT(c.id_compensacion)) AS pendientes
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones
             FROM guardias g
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia

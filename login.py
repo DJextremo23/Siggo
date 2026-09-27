@@ -111,7 +111,7 @@ def _limpiar_bloqueo(identificador):
 
 # Nombre de la cookie y días de validez para dispositivos confiables
 NOMBRE_COOKIE_DISPOSITIVO = "ds_confiable"
-DIAS_VALIDEZ_DISPOSITIVO = 7
+DIAS_VALIDEZ_DISPOSITIVO = 30
 
 # Genera hash SHA-256 del token para almacenarlo de forma segura
 def _hash_token(token):
@@ -225,8 +225,8 @@ def _eliminar_dispositivos_confiables(id_usuario):
 @limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
-        usuario = request.form["usuario"].strip()
-        password = request.form["password"].strip()
+        usuario = request.form.get("usuario", "").strip()
+        password = request.form.get("password", "").strip()
 
         if len(usuario) > 100 or len(password) > 128:
             return render_template(
@@ -234,7 +234,10 @@ def login():
                 error="Credenciales inválidas"
             )
 
-        if _esta_bloqueado(usuario):
+        # Normalizar el identificador de bloqueo para evitar evadirlo variando mayúsculas
+        identificador_bloqueo = usuario.lower()
+
+        if _esta_bloqueado(identificador_bloqueo):
             return render_template(
                 "login.html",
                 error="Demasiados intentos fallidos. Intente de nuevo en 15 minutos."
@@ -272,7 +275,7 @@ def login():
             resultados = cursor.fetchall()
 
             if not resultados:
-                _registrar_fallo(usuario)
+                _registrar_fallo(identificador_bloqueo)
                 return render_template(
                     "login.html",
                     error="Credenciales inválidas"
@@ -281,7 +284,7 @@ def login():
             user = resultados[0]
 
             if user["estado"] != "activo":
-                _registrar_fallo(usuario)
+                _registrar_fallo(identificador_bloqueo)
                 return render_template(
                     "login.html",
                     error="Credenciales inválidas"
@@ -291,13 +294,13 @@ def login():
                 user["password"],
                 password
             ):
-                _registrar_fallo(usuario)
+                _registrar_fallo(identificador_bloqueo)
                 return render_template(
                     "login.html",
                     error="Credenciales inválidas"
                 )
 
-            _limpiar_bloqueo(usuario)
+            _limpiar_bloqueo(identificador_bloqueo)
 
             session.clear()
 
@@ -307,7 +310,12 @@ def login():
 
             dos_factores = user.get("dos_factores_activo") if "dos_factores_activo" in user else False
 
-            if dos_factores and user.get("totp_secret"):
+            if dos_factores:
+                if not user.get("totp_secret"):
+                    return render_template(
+                        "login.html",
+                        error="Error del sistema. Contacte al administrador."
+                    )
                 dispositivo_confiable = _verificar_dispositivo_confiable(user["id_usuario"])
                 if dispositivo_confiable:
                     _actualizar_ultimo_uso_dispositivo(user["id_usuario"], dispositivo_confiable)
@@ -369,7 +377,7 @@ def seleccionar_perfil():
 # ==========================
 # ACTIVAR PERFIL — Guarda el rol seleccionado en la sesión
 # ==========================
-@login_bp.route("/activar_perfil/<rol>")
+@login_bp.route("/activar_perfil/<rol>", methods=["POST"])
 def activar_perfil(rol):
     if "id_usuario" not in session:
         return redirect(url_for("login.login"))
@@ -385,7 +393,7 @@ def activar_perfil(rol):
 # ==========================
 # LOGOUT — Cierra sesión y limpia todos los datos de sesión
 # ==========================
-@login_bp.route("/logout")
+@login_bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return redirect(
@@ -600,7 +608,7 @@ def configurar_2fa():
 
 
 # Cancela la configuración de 2FA en curso y vuelve al perfil
-@login_bp.route("/cancelar_configurar_2fa")
+@login_bp.route("/cancelar_configurar_2fa", methods=["POST"])
 def cancelar_configurar_2fa():
     session.pop("_2fa_temp_secret", None)
     session.pop("_2fa_temp_secret_expira", None)

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
 import os
@@ -89,6 +89,7 @@ def actualizar_mi_perfil():
     correo = request.form.get("correo", "").strip()
     usuario_form = request.form.get("usuario", "").strip()
     password = request.form.get("password", "").strip()
+    password_actual = request.form.get("password_actual", "").strip()
 
     # Helper interno: reconstruye el diccionario de usuario para re-renderizar el formulario en caso de error
     def _datos_error(dos_factores_activo=None, foto=None):
@@ -112,12 +113,14 @@ def actualizar_mi_perfil():
 
         # Obtiene los valores actuales de dos_factores y foto para pasarlos al helper de error
         cursor.execute(
-            "SELECT dos_factores_activo, foto FROM usuarios WHERE id_usuario = %s",
+            "SELECT dos_factores_activo, foto, password, correo FROM usuarios WHERE id_usuario = %s",
             (id_usuario,)
         )
         current = cursor.fetchone()
         dos_factores = current["dos_factores_activo"] if current else None
         foto_actual = current["foto"] if current else None
+        password_hash_actual = current["password"] if current else None
+        correo_actual = current["correo"] if current else ""
 
         # Valida que los campos no excedan las longitudes máximas permitidas
         valido, msg = validar_longitudes({
@@ -155,6 +158,16 @@ def actualizar_mi_perfil():
                 error="El correo o el nombre de usuario ya están en uso por otra cuenta.",
                 usuario=_datos_error(dos_factores, foto_actual)
             )
+
+        # Si cambia contraseña o correo, exige reautenticación con la contraseña actual
+        cambia_correo = bool(correo_actual) and correo.lower() != correo_actual.lower()
+        if password or cambia_correo:
+            if not password_hash_actual or not check_password_hash(password_hash_actual, password_actual):
+                return render_template(
+                    "editar_mi_perfil.html",
+                    error="Debe ingresar su contraseña actual para cambiar la contraseña o el correo.",
+                    usuario=_datos_error(dos_factores, foto_actual)
+                )
 
         # Si se proporcionó contraseña, se actualiza también el hash de la contraseña
         if password:

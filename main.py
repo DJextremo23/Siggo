@@ -258,14 +258,14 @@ def administrador():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario), 0
+                     WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
                 ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -307,7 +307,8 @@ def administrador():
                   WHERE a.estado = 'falta' AND YEAR(g.fecha_guardia) = YEAR(CURDATE())) AS faltas,
                 (SELECT COUNT(*) FROM guardias g LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
                   WHERE (a.estado IS NULL OR a.estado = '' OR a.estado NOT IN ('asistio','falta','justificado'))
-                    AND YEAR(g.fecha_guardia) = YEAR(CURDATE())) AS pendientes
+                    AND YEAR(g.fecha_guardia) = YEAR(CURDATE())
+                    AND g.fecha_guardia <= CURDATE()) AS pendientes
         """)
         resumen_operativo = cursor.fetchone()
         resumen_operativo = {
@@ -582,7 +583,7 @@ def guardar_edicion_compensacion(id_guardia):
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
-    fecha = request.form["fecha_compensacion"]
+    fecha = request.form.get("fecha_compensacion", "").strip()
     observacion = request.form.get("observacion", "").strip()
 
     cursor = conexion.cursor()
@@ -771,8 +772,13 @@ def feriados():
         params = []
 
         if anio:
-            sql += " AND YEAR(fecha) = %s "
-            params.append(int(anio))
+            try:
+                anio_int = int(anio)
+            except (TypeError, ValueError):
+                anio_int = None
+            if anio_int:
+                sql += " AND YEAR(fecha) = %s "
+                params.append(anio_int)
 
         if fecha_desde:
             sql += " AND fecha >= %s "
@@ -1197,13 +1203,13 @@ def vacaciones():
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario), 0
+                     WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
                 ) AS dias_tomados_total,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)), 0
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()), 0
                 ) AS dias_tomados_anio
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -1843,14 +1849,14 @@ def inicio():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario), 0
+                     WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
                 ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -3273,12 +3279,13 @@ def mis_vacaciones():
             cursor.execute("""
                 SELECT 
                     COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
+                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()
                                       THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                       ELSE 0 END), 0) AS total_anio
                 FROM vacaciones v
                 JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
+                  AND v.fecha_inicio <= CURDATE()
             """, (session["id_usuario"],))
 
             result = cursor.fetchone()

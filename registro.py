@@ -1,7 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 import os
 from datetime import datetime
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
 from limiter_instance import limiter
@@ -61,6 +61,8 @@ def registro():
 
         rol = request.form.get("rol", "")
 
+        password_actual = request.form.get("password_actual", "")
+
         conn = None
         cursor = None
 
@@ -79,13 +81,27 @@ def registro():
                 correo,
                 usuario,
                 password,
-                rol
+                rol,
+                password_actual
 
             ]):
 
                 return render_template(
                     "registro.html",
                     error="Todos los campos son obligatorios"
+                )
+
+            # Reautenticación del administrador: confirmar su contraseña antes
+            # de crear un usuario (evita creación no autorizada con sesión abierta)
+            cursor.execute(
+                "SELECT password FROM usuarios WHERE id_usuario = %s",
+                (session.get("id_usuario"),)
+            )
+            admin_row = cursor.fetchone()
+            if not admin_row or not check_password_hash(admin_row["password"], password_actual):
+                return render_template(
+                    "registro.html",
+                    error="Contraseña de administrador incorrecta"
                 )
 
             # Validar que el rol sea uno de los permitidos
@@ -203,8 +219,6 @@ def registro():
                 )
             )
 
-            conn.commit()
-
             # Recuperar el ID autogenerado del usuario recién insertado
             id_usuario = cursor.lastrowid
 
@@ -230,7 +244,6 @@ def registro():
                         "UPDATE usuarios SET foto = %s WHERE id_usuario = %s",
                         (nombre_foto, id_usuario)
                     )
-                    conn.commit()
 
             # Obtener ID del rol administrador para la asignación de roles
             cursor.execute(

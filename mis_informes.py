@@ -140,9 +140,12 @@ def registrar_informe():
 
         if request.method == "POST":
 
-            id_guardia = request.form["id_guardia"]
-            titulo = request.form["titulo"]
-            descripcion = request.form["descripcion"]
+            id_guardia = request.form.get("id_guardia", "").strip()
+            titulo = request.form.get("titulo", "").strip()
+            descripcion = request.form.get("descripcion", "").strip()
+
+            if not id_guardia or not titulo:
+                return datos_invalidos("La guardia y el título son obligatorios")
 
             cursor.execute("""
                 SELECT 1
@@ -292,8 +295,8 @@ def editar_informe(id_informe):
 
         if request.method == "POST":
 
-            titulo = request.form["titulo"]
-            descripcion = request.form["descripcion"]
+            titulo = request.form.get("titulo", "").strip()
+            descripcion = request.form.get("descripcion", "").strip()
 
             valido, msg = validar_longitudes({
                 "titulo": titulo,
@@ -319,55 +322,68 @@ def editar_informe(id_informe):
 
             if archivo and archivo.filename != "":
 
-                if archivo_permitido(archivo.filename):
+                if not archivo_permitido(archivo.filename):
+                    return datos_invalidos("Formato de archivo no permitido")
 
-                    extension_edit = archivo.filename.rsplit(".", 1)[1].lower()
+                extension_edit = archivo.filename.rsplit(".", 1)[1].lower()
 
-                    # ── Validar tamaño máximo ──
-                    archivo.seek(0, os.SEEK_END)
-                    tamano_nuevo = archivo.tell()
-                    archivo.seek(0)
-                    if tamano_nuevo > MAX_FILE_SIZE:
-                        return datos_invalidos("El archivo excede el tamaño máximo permitido (10 MB)")
+                # ── Validar tamaño máximo ──
+                archivo.seek(0, os.SEEK_END)
+                tamano_nuevo = archivo.tell()
+                archivo.seek(0)
+                if tamano_nuevo > MAX_FILE_SIZE:
+                    return datos_invalidos("El archivo excede el tamaño máximo permitido (10 MB)")
 
-                    # ── Validar MIME real ──
-                    magic_bytes = archivo.read(12)
-                    archivo.seek(0)
-                    if not validar_mime_real(magic_bytes, extension_edit):
-                        return datos_invalidos("El contenido del archivo no coincide con su extensión")
+                # ── Validar MIME real ──
+                magic_bytes = archivo.read(12)
+                archivo.seek(0)
+                if not validar_mime_real(magic_bytes, extension_edit):
+                    return datos_invalidos("El contenido del archivo no coincide con su extensión")
 
-                    nombre = (
-                        datetime.now().strftime("%Y%m%d%H%M%S_")
-                        + sanitizar_nombre(secure_filename(archivo.filename))
-                    )
+                nombre = (
+                    datetime.now().strftime("%Y%m%d%H%M%S_")
+                    + sanitizar_nombre(secure_filename(archivo.filename))
+                )
 
-                    ruta = os.path.join(
-                        UPLOAD_FOLDER,
-                        nombre
-                    )
+                ruta = os.path.join(
+                    UPLOAD_FOLDER,
+                    nombre
+                )
 
-                    archivo.save(ruta)
+                archivo.save(ruta)
 
-                    extension = nombre.rsplit(".", 1)[1].lower()
+                # Elimina el archivo anterior para no dejar huérfanos
+                ruta_anterior = informe.get("ruta_archivo")
+                if ruta_anterior:
+                    uploads_real = os.path.realpath(UPLOAD_FOLDER)
+                    ruta_anterior_real = os.path.realpath(ruta_anterior)
+                    if ruta_anterior_real == uploads_real or ruta_anterior_real.startswith(uploads_real + os.sep):
+                        try:
+                            if os.path.isfile(ruta_anterior_real):
+                                os.remove(ruta_anterior_real)
+                        except OSError:
+                            pass
 
-                    cursor.execute("""
-                        UPDATE informes
-                        SET nombre_archivo=%s,
-                            ruta_archivo=%s,
-                            tipo_archivo=%s,
-                            extension=%s,
-                            tamano_archivo=%s
-                        WHERE id_informe=%s
-                          AND id_usuario=%s
-                    """, (
-                        nombre,
-                        ruta,
-                        extension,
-                        extension,
-                        tamano_nuevo,
-                        id_informe,
-                        session["id_usuario"]
-                    ))
+                extension = nombre.rsplit(".", 1)[1].lower()
+
+                cursor.execute("""
+                    UPDATE informes
+                    SET nombre_archivo=%s,
+                        ruta_archivo=%s,
+                        tipo_archivo=%s,
+                        extension=%s,
+                        tamano_archivo=%s
+                    WHERE id_informe=%s
+                      AND id_usuario=%s
+                """, (
+                    nombre,
+                    ruta,
+                    extension,
+                    extension,
+                    tamano_nuevo,
+                    id_informe,
+                    session["id_usuario"]
+                ))
 
             conn.commit()
 
@@ -458,14 +474,32 @@ def eliminar_informe(id_informe):
         conn = conexion()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            UPDATE informes
-            SET estado = 'eliminado'
-            WHERE id_informe = %s
-            AND id_usuario = %s
-        """, (id_informe, session["id_usuario"]))
+        cursor.execute(
+            "SELECT ruta_archivo FROM informes WHERE id_informe = %s AND id_usuario = %s AND estado = 'activo'",
+            (id_informe, session["id_usuario"]),
+        )
+        informe = cursor.fetchone()
+        if not informe:
+            flash("Informe no encontrado", "error")
+            return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")
+
+        cursor.execute(
+            "UPDATE informes SET estado = 'eliminado' WHERE id_informe = %s AND id_usuario = %s",
+            (id_informe, session["id_usuario"]),
+        )
 
         conn.commit()
+
+        ruta = informe[0]
+        if ruta:
+            uploads_real = os.path.realpath(UPLOAD_FOLDER)
+            ruta_real = os.path.realpath(ruta)
+            if ruta_real == uploads_real or ruta_real.startswith(uploads_real + os.sep):
+                try:
+                    if os.path.isfile(ruta_real):
+                        os.remove(ruta_real)
+                except OSError:
+                    pass
 
         flash("Informe eliminado correctamente", "success")
         return redirigir_con_filtros("informe.mis_informes", "filtro_mis_informes")

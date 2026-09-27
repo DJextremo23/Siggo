@@ -159,17 +159,28 @@ button,
     margin-top: 24px;
 }
 
-.login-footer a {
+.login-footer form {
+    display: inline-block;
+}
+
+.login-footer a,
+.login-footer .login-footer-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     color: #64748b;
     font-size: 13px;
     text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
     transition: color var(--transition);
 }
 
-.login-footer a:hover {
+.login-footer a:hover,
+.login-footer .login-footer-btn:hover {
     color: var(--color-acento);
 }
 
@@ -469,17 +480,28 @@ button,
     margin-top: 24px;
 }
 
-.form-footer a {
+.form-footer form {
+    display: inline-block;
+}
+
+.form-footer a,
+.form-footer .form-footer-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     color: #64748b;
     font-size: 13px;
     text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
     transition: color var(--transition);
 }
 
-.form-footer a:hover {
+.form-footer a:hover,
+.form-footer .form-footer-btn:hover {
     color: var(--color-acento);
 }
 
@@ -504,14 +526,21 @@ button,
     display: flex;
     align-items: center;
     gap: 16px;
+    width: 100%;
     padding: 18px 20px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     text-decoration: none;
     color: var(--color-primario);
+    font-family: inherit;
+    text-align: left;
     transition: background var(--transition), border-color var(--transition), box-shadow var(--transition), transform var(--transition);
     cursor: pointer;
+}
+
+.profile-form {
+    margin: 0;
 }
 
 .profile-card:hover {
