@@ -50,6 +50,7 @@
    HEADER BRAND
    ============================================= */
 .sidebar-brand {
+    flex-shrink: 0;
     padding: 28px 22px 22px;
     text-align: center;
     border-bottom: 1px solid var(--sidebar-divider);
@@ -91,6 +92,7 @@
    USER CARD
    ============================================= */
 .sidebar-user {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -185,16 +187,26 @@
     background: #22c55e;
 }
 
-.role-dot.jefatura {
-    background: #8b5cf6;
-}
-
 /* =============================================
    NAVIGATION
    ============================================= */
 .sidebar-nav {
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 12px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
+    border-radius: 2px;
 }
 
 .sidebar-section-label {
@@ -263,6 +275,7 @@
    LOGOUT
    ============================================= */
 .sidebar-footer {
+    flex-shrink: 0;
     padding: 14px;
     border-top: 1px solid var(--sidebar-divider);
 }
@@ -630,29 +643,3 @@ button,
     -webkit-tap-highlight-color: transparent;
 }
 
-/* =============================================
-   TABLAS BALANCEADAS PARA JEFATURA (solo lectura)
-   ============================================= */
-body.rol-jefatura table {
-    table-layout: fixed;
-}
-
-body.rol-jefatura table th:first-child {
-    text-align: center;
-}
-
-body.rol-jefatura .tabla-alertas {
-    table-layout: auto;
-}
-
-body.rol-jefatura .tabla-alertas th:first-child {
-    text-align: left;
-}
-
-body.rol-jefatura table th {
-    vertical-align: middle;
-}
-
-body.rol-jefatura table td {
-    vertical-align: middle;
-}

@@ -36,7 +36,7 @@
     </div>
     <div class="page-header-text">
         <h1>Reporte de Guardias</h1>
-        <p>{{ 'Consulta y monitoreo del personal fiscalizador' if session.get('perfil_activo') == 'jefatura' else 'Control y monitoreo anual del personal fiscalizador' }}</p>
+        <p>{{ 'Control y monitoreo anual del personal fiscalizador' }}</p>
     </div>
 </div>
 
@@ -292,13 +292,13 @@
 <table class="tabla-resp">
 <thead>
 <tr>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:24%"{% endif %}>Fiscalizador</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:12%"{% endif %}>Fecha</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:15%"{% endif %}>Feriado</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Asistencia</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Compensación</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:11%"{% endif %}>Estado</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:12%"{% endif %}>Observaciones</th>
+  <th>Fiscalizador</th>
+  <th>Fecha</th>
+  <th>Feriado</th>
+  <th>Asistencia</th>
+  <th>Compensación</th>
+  <th>Estado</th>
+  <th>Observaciones</th>
 </tr>
 </thead>
 
@@ -488,11 +488,11 @@
 <table class="tabla-resp">
 <thead>
 <tr>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:35%"{% endif %}>Fiscalizador</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:17%"{% endif %}>Inicio</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:17%"{% endif %}>Fin</th>
-   <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:15%"{% endif %}>Días tomados</th>
-  <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:16%"{% endif %}>Estado</th>
+  <th>Fiscalizador</th>
+  <th>Inicio</th>
+  <th>Fin</th>
+   <th>Días tomados</th>
+  <th>Estado</th>
 </tr>
 </thead>
 

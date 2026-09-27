@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ 'Panel de Supervisión' if session.get('perfil_activo') == 'jefatura' else 'Panel de Administración' }}</title>
+<title>{{ 'Panel de Administración' }}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='fiscal/index.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -34,7 +34,7 @@
                 {% endif %}
             </div>
             <div class="welcome-text">
-                <h1>{% if session.get('perfil_activo') == 'jefatura' %}Panel de Supervisión{% else %}Panel de Administración{% endif %}</h1>
+                <h1>Panel de Administración</h1>
                 <p>Bienvenido, <strong>{{ session.nombre }}</strong></p>
             </div>
         </div>
@@ -51,7 +51,7 @@
                     {% endif %}
                 </button>
             </div>
-            <span class="welcome-role">{{ 'Administrador' if session.get('perfil_activo') == 'admin' else 'Jefatura' }}</span>
+            <span class="welcome-role">Administrador</span>
 
             {% if total_notif_count > 0 %}
             <div class="notif-panel" id="notifPanel">
@@ -235,7 +235,7 @@
                     </svg>
                 </div>
                 <h3>Asistencia</h3>
-                <p>{{ 'Consulta de asistencia' if session.get('perfil_activo') == 'jefatura' else 'Control y registro de asistencia' }}</p>
+                <p>{{ 'Control y registro de asistencia' }}</p>
             </a>
 
             <a href="{{ url_for('ver_guardias') }}" class="module-card module-card--guardias">
@@ -248,7 +248,7 @@
                     </svg>
                 </div>
                 <h3>Guardias</h3>
-                <p>{{ 'Consulta de guardias' if session.get('perfil_activo') == 'jefatura' else 'Programación de turnos y guardias' }}</p>
+                <p>{{ 'Programación de turnos y guardias' }}</p>
             </a>
 
             <a href="{{ url_for('feriados') }}" class="module-card module-card--feriados">
@@ -270,7 +270,7 @@
                     </svg>
                 </div>
                 <h3>Vacaciones</h3>
-                <p>{{ 'Consulta de vacaciones' if session.get('perfil_activo') == 'jefatura' else 'Gestión de licencias del personal' }}</p>
+                <p>{{ 'Gestión de licencias del personal' }}</p>
             </a>
 
             <a href="{{ url_for('compensaciones_admin') }}" class="module-card module-card--compensaciones">
@@ -284,7 +284,7 @@
                     </svg>
                 </div>
                 <h3>Compensaciones</h3>
-                <p>{{ 'Consulta de compensaciones' if session.get('perfil_activo') == 'jefatura' else 'Días compensatorios acumulados' }}</p>
+                <p>{{ 'Días compensatorios acumulados' }}</p>
             </a>
 
             <a href="{{ url_for('informes.admin_informes') }}" class="module-card module-card--informes">
@@ -297,7 +297,7 @@
                     </svg>
                 </div>
                 <h3>Informes</h3>
-                <p>{{ 'Consulta de informes' if session.get('perfil_activo') == 'jefatura' else 'Gestión y seguimiento de informes' }}</p>
+                <p>{{ 'Gestión y seguimiento de informes' }}</p>
             </a>
 
             <a href="{{ url_for('reporte_bp.reporte') }}" class="module-card module-card--reportes">

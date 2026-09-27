@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ 'Consulta de Asistencia' if session.get('perfil_activo') == 'jefatura' else 'Control de Asistencia' }}</title>
+    <title>{{ 'Control de Asistencia' }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='admin/asistencias.css') }}">
 </head>
 
@@ -28,8 +28,8 @@
                 </svg>
             </div>
             <div class="page-header-text">
-                <h1>{{ 'Consulta de Asistencia' if session.get('perfil_activo') == 'jefatura' else 'Control de Asistencia' }}</h1>
-                <p>{{ 'Consulta de asistencia de fiscalizadores' if session.get('perfil_activo') == 'jefatura' else 'Gestión de asistencia de fiscalizadores' }}</p>
+                <h1>{{ 'Control de Asistencia' }}</h1>
+                <p>{{ 'Gestión de asistencia de fiscalizadores' }}</p>
             </div>
         </div>
 
@@ -170,11 +170,11 @@
 
                     <thead>
                         <tr>
-                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:9%; text-align:center"{% endif %}>ID</th>
-                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:32%"{% endif %}>Fiscalizador</th>
-                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Fecha</th>
-                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:18%"{% endif %}>Día</th>
-                            <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:21%"{% endif %}>Estado</th>
+                            <th>ID</th>
+                            <th>Fiscalizador</th>
+                            <th>Fecha</th>
+                            <th>Día</th>
+                            <th>Estado</th>
                             {% if session.get('perfil_activo') == 'admin' %}
                             <th>Acciones</th>
                             {% endif %}
@@ -213,7 +213,13 @@
                             </td>
 
                             <td data-label="Día">
+                                {% if g.tipo_dia and g.tipo_dia|upper == 'FERIADO' %}
+                                <span class="badge-dia" style="background: #fef3c7; color: #92400e;">
+                                    {{ g.dia_semana }} (Feriado)
+                                </span>
+                                {% else %}
                                 <span class="badge-dia">{{ g.dia_semana }}</span>
+                                {% endif %}
                             </td>
 
                             <td data-label="Estado">

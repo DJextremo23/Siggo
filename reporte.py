@@ -104,7 +104,7 @@ def construir_filtro(anio=None, mes=None, fecha_desde=None, fecha_hasta=None, id
 def reporte():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -267,26 +267,25 @@ def reporte():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio <= CURDATE()
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v2.fecha_inicio <= CURDATE()
+                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                 ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
                          SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1)
                          FROM vacaciones v3
-                         WHERE v3.id_usuario = u.id_usuario AND v3.fecha_inicio <= CURDATE()
+                         WHERE v3.id_usuario = u.id_usuario
                      ), 0))
                     - GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
-                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v4.fecha_inicio <= CURDATE()
+                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                      ), 0))
                 ) AS dias_pendientes_anteriores
             FROM usuarios u
@@ -350,7 +349,7 @@ def _aplicar_estilo_datos_excel(ws, columnas, data_start):
 def exportar_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -449,7 +448,7 @@ def exportar_pdf():
 def exportar_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -536,7 +535,7 @@ def exportar_excel():
 def exportar_detalle_fecha_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -634,7 +633,7 @@ def exportar_detalle_fecha_pdf():
 def exportar_detalle_fecha_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -718,7 +717,7 @@ def exportar_detalle_fecha_excel():
 def exportar_vacaciones_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -826,7 +825,7 @@ def exportar_vacaciones_pdf():
 def exportar_vacaciones_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -920,7 +919,7 @@ def exportar_vacaciones_excel():
 def exportar_resumen_vacaciones_pdf():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
@@ -949,26 +948,25 @@ def exportar_resumen_vacaciones_pdf():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio <= CURDATE()
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v2.fecha_inicio <= CURDATE()
+                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                 ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
                          SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1)
                          FROM vacaciones v3
-                         WHERE v3.id_usuario = u.id_usuario AND v3.fecha_inicio <= CURDATE()
+                         WHERE v3.id_usuario = u.id_usuario
                      ), 0))
                     - GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
-                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v4.fecha_inicio <= CURDATE()
+                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                      ), 0))
                 ) AS dias_pendientes_anteriores
             FROM usuarios u
@@ -1030,7 +1028,7 @@ def exportar_resumen_vacaciones_pdf():
 def exportar_resumen_vacaciones_excel():
     if "usuario" not in session:
         return redirect("/")
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     ids_usuarios = request.args.getlist("id_usuario")
@@ -1056,26 +1054,25 @@ def exportar_resumen_vacaciones_excel():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio <= CURDATE()
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v2.fecha_inicio <= CURDATE()
+                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                 ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30
                      - COALESCE((
                          SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1)
                          FROM vacaciones v3
-                         WHERE v3.id_usuario = u.id_usuario AND v3.fecha_inicio <= CURDATE()
+                         WHERE v3.id_usuario = u.id_usuario
                      ), 0))
                     - GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
-                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v4.fecha_inicio <= CURDATE()
+                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                      ), 0))
                 ) AS dias_pendientes_anteriores
             FROM usuarios u

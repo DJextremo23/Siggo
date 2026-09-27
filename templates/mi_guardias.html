@@ -173,7 +173,13 @@
                         </span>
                     </td>
 
-                    <td data-label="Día"><span class="badge-dia">{{ g.dia_semana }}</span></td>
+                    <td data-label="Día">
+                        {% if g.tipo_dia and g.tipo_dia|upper == 'FERIADO' %}
+                            <span class="badge-dia" style="background: #fffbeb; color: #92400e;">{{ g.dia_semana }} (Feriado)</span>
+                        {% else %}
+                            <span class="badge-dia">{{ g.dia_semana }}</span>
+                        {% endif %}
+                    </td>
 
                     <td data-label="Asistencia">
                         {% if g.asistencia == 'Asistió' %}

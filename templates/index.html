@@ -340,7 +340,13 @@
                                 {{ d.fecha_guardia|fecha }}
                             </span>
                         </td>
-                        <td data-label="Día"><span class="badge-dia">{{ d.dia_semana }}</span></td>
+                        <td data-label="Día">
+                            {% if d.tipo_dia and d.tipo_dia|upper == 'FERIADO' %}
+                                <span class="badge-dia" style="background: #fffbeb; color: #92400e;">{{ d.dia_semana }} (Feriado)</span>
+                            {% else %}
+                                <span class="badge-dia">{{ d.dia_semana }}</span>
+                            {% endif %}
+                        </td>
                         <td data-label="Estado">
                             {% if d.asistencia == 'asistio' %}
                                 <span class="badge green">Realizada</span>

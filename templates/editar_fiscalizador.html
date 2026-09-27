@@ -130,7 +130,6 @@
                     <select name="rol" required {% if es_propio %}disabled{% endif %}>
                         <option value="admin" {% if usuario.roles and 'admin' in usuario.roles %}selected{% endif %}>Administrador</option>
                         <option value="fiscalizador" {% if usuario.roles and 'fiscalizador' in usuario.roles and 'admin' not in usuario.roles %}selected{% endif %}>Fiscalizador</option>
-                        <option value="jefatura" {% if usuario.roles and 'jefatura' in usuario.roles and 'admin' not in usuario.roles %}selected{% endif %}>Jefatura</option>
                     </select>
                     {% if es_propio %}<small>No puedes cambiar tu propio rol.</small>{% endif %}
                 </div>

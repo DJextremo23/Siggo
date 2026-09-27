@@ -24,8 +24,8 @@ def admin_informes():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    # Solo perfil administrador o jefatura (solo lectura)
-    if session.get("perfil_activo", "").lower() not in ("admin", "jefatura"):
+    # Solo perfil administrador
+    if session.get("perfil_activo", "").lower() != "admin":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_informes")
@@ -354,7 +354,7 @@ def admin_descargar_informe(id_informe):
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo", "").lower() not in ("admin", "jefatura"):
+    if session.get("perfil_activo", "").lower() != "admin":
         return acceso_no_autorizado()
 
     conn = None

@@ -1201,7 +1201,7 @@ def analizar_informe(id_informe):
     if "usuario" not in session:
         return redirect(url_for("home"))
     perfil = session.get("perfil_activo")
-    if perfil not in ("fiscalizador", "admin", "jefatura"):
+    if perfil not in ("fiscalizador", "admin"):
         return acceso_no_autorizado()
 
     conn = None
@@ -1211,7 +1211,7 @@ def analizar_informe(id_informe):
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        if perfil in ("admin", "jefatura"):
+        if perfil == "admin":
             cursor.execute("""
                 SELECT i.*, g.fecha_guardia
                 FROM informes i
@@ -1250,7 +1250,7 @@ def analizar_informe_api(id_informe):
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
     perfil = session.get("perfil_activo")
-    if perfil not in ("fiscalizador", "admin", "jefatura"):
+    if perfil not in ("fiscalizador", "admin"):
         return jsonify({"error": "Acceso no autorizado"}), 403
 
     forzar = request.args.get("force") == "1"
@@ -1262,7 +1262,7 @@ def analizar_informe_api(id_informe):
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        if perfil in ("admin", "jefatura"):
+        if perfil == "admin":
             cursor.execute("""
                 SELECT i.*, g.fecha_guardia
                 FROM informes i
@@ -1338,7 +1338,7 @@ def analizar_informe_imagen(id_informe, indice):
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
     perfil = session.get("perfil_activo")
-    if perfil not in ("fiscalizador", "admin", "jefatura"):
+    if perfil not in ("fiscalizador", "admin"):
         return jsonify({"error": "Acceso no autorizado"}), 403
 
     conn = None
@@ -1347,7 +1347,7 @@ def analizar_informe_imagen(id_informe, indice):
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        if perfil in ("admin", "jefatura"):
+        if perfil == "admin":
             cursor.execute("""
                 SELECT i.ruta_archivo, i.tipo_archivo
                 FROM informes i
@@ -1390,7 +1390,7 @@ def generar_ppt_analisis(id_informe):
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
     perfil = session.get("perfil_activo")
-    if perfil not in ("fiscalizador", "admin", "jefatura"):
+    if perfil not in ("fiscalizador", "admin"):
         return jsonify({"error": "Acceso no autorizado"}), 403
 
     data = request.get_json(silent=True)
@@ -1404,7 +1404,7 @@ def generar_ppt_analisis(id_informe):
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        if perfil in ("admin", "jefatura"):
+        if perfil == "admin":
             cursor.execute("""
                 SELECT i.titulo, i.nombre_archivo, i.tipo_archivo, i.ruta_archivo,
                        g.fecha_guardia,

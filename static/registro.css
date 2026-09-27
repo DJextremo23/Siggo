@@ -10,6 +10,8 @@ body.login-body {
 /* --- CONTENEDOR DEL FORM MÁS ANCHO --- */
 .registro-container {
     max-width: 580px;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 /* --- CARD PADDING MÁS AMPLIO --- */

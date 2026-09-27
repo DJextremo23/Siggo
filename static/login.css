@@ -40,7 +40,7 @@ button,
     min-height: 100dvh;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     padding: 20px;
 }
 
@@ -50,6 +50,7 @@ button,
 .login-container {
     width: 100%;
     max-width: 440px;
+    margin: auto;
 }
 
 .login-card {
@@ -183,6 +184,7 @@ button,
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    margin: auto;
 }
 
 /* =============================================
@@ -540,11 +542,6 @@ button,
     color: #10b981;
 }
 
-.jefatura-icon {
-    background: #f5f3ff;
-    color: #8b5cf6;
-}
-
 .profile-card:hover .admin-icon {
     background: var(--color-acento);
     color: #ffffff;
@@ -552,11 +549,6 @@ button,
 
 .profile-card:hover .fiscal-icon {
     background: #10b981;
-    color: #ffffff;
-}
-
-.profile-card:hover .jefatura-icon {
-    background: #8b5cf6;
     color: #ffffff;
 }
 

@@ -237,7 +237,7 @@ def administrador():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     cursor = None
@@ -258,14 +258,14 @@ def administrador():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio <= CURDATE()
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
+                     WHERE v.id_usuario = u.id_usuario), 0
                 ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -403,7 +403,7 @@ def compensaciones_admin():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_compensaciones")
@@ -747,7 +747,7 @@ def feriados():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_feriados")
@@ -1067,7 +1067,7 @@ def vacaciones():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_vacaciones")
@@ -1191,13 +1191,13 @@ def vacaciones():
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
+                     WHERE v.id_usuario = u.id_usuario), 0
                 ) AS dias_tomados_total,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio <= CURDATE()), 0
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)), 0
                 ) AS dias_tomados_anio
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -1350,6 +1350,24 @@ def actualizar_vacacion(id):
 
         id_usuario = old_data["id_usuario"]
 
+        # =========================
+        # VALIDAR 1 AÑO DE ANTIGÜEDAD
+        # =========================
+        cursor.execute("SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+        user_ant = cursor.fetchone()
+
+        if user_ant and user_ant.get("fecha_ingreso"):
+            fecha_ingreso = user_ant["fecha_ingreso"]
+            try:
+                fecha_habil = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
+            except ValueError:
+                # 29 de febrero en un año no bisiesto: se toma el 28 de febrero
+                fecha_habil = fecha_ingreso.replace(year=fecha_ingreso.year + 1, day=28)
+
+            if datetime.now().date() < fecha_habil:
+                flash("El usuario aún no cumple 1 año de antigüedad para solicitar vacaciones", "error")
+                return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
         # Validar que no haya guardias en el nuevo rango de fechas
         cursor.execute("""
             SELECT 1
@@ -1394,7 +1412,6 @@ def actualizar_vacacion(id):
             SELECT COALESCE(SUM(DATEDIFF(fecha_fin, fecha_inicio) + 1), 0) AS total_tomados
             FROM vacaciones
             WHERE id_usuario = %s AND id_vacacion != %s
-              AND fecha_inicio <= CURDATE()
         """, (id_usuario, id))
         dias_tomados_total = cursor.fetchone()["total_tomados"] or 0
 
@@ -1552,7 +1569,6 @@ def guardar_vacacion():
             SELECT COALESCE(SUM(DATEDIFF(fecha_fin, fecha_inicio) + 1), 0) AS total_tomados
             FROM vacaciones
             WHERE id_usuario = %s
-              AND fecha_inicio <= CURDATE()
         """, (id_usuario,))
         dias_tomados_total = cursor.fetchone()["total_tomados"] or 0
 
@@ -1748,9 +1764,6 @@ def inicio():
     if session.get("perfil_activo", "").lower() == "admin":
         return redirect(url_for("administrador"))
 
-    if session.get("perfil_activo", "").lower() == "jefatura":
-        return redirect(url_for("administrador"))
-
     if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
@@ -1816,14 +1829,14 @@ def inicio():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio <= CURDATE()
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
+                     WHERE v.id_usuario = u.id_usuario), 0
                 ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -1960,7 +1973,7 @@ def ver_guardias():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_guardias")
@@ -2431,7 +2444,7 @@ def asistencia_admin():
         return redirect(url_for("home"))
 
     # 🔥 CORRECCIÓN AQUÍ TAMBIÉN
-    if session.get("perfil_activo") not in ("admin", "jefatura"):
+    if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_asistencias")
@@ -2987,6 +3000,13 @@ def mis_guardias():
                     'Jueves','Viernes','Sábado') AS dia_semana,
 
                 CASE
+                    WHEN f.id_feriado IS NOT NULL THEN 'FERIADO'
+                    ELSE ELT(DAYOFWEEK(g.fecha_guardia),
+                        'Domingo','Lunes','Martes','Miércoles',
+                        'Jueves','Viernes','Sábado')
+                END AS tipo_dia,
+
+                CASE
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')
                         THEN 'Asistió'
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('falta')
@@ -3001,6 +3021,7 @@ def mis_guardias():
             FROM guardias g
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
 
             WHERE g.id_usuario = %s
         """
@@ -3244,7 +3265,6 @@ def mis_vacaciones():
                 FROM vacaciones v
                 JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
-                  AND v.fecha_inicio <= CURDATE()
             """, (session["id_usuario"],))
 
             result = cursor.fetchone()

@@ -46,7 +46,7 @@
             </div>
             <div class="user-role">
                 <span class="role-dot {{ session.get('perfil_activo', '') }}"></span>
-                {{ 'Administrador' if session.get('perfil_activo') == 'admin' else ('Jefatura' if session.get('perfil_activo') == 'jefatura' else 'Fiscalizador') }}
+                {{ 'Administrador' if session.get('perfil_activo') == 'admin' else 'Fiscalizador' }}
             </div>
         </div>
     </div>
@@ -65,7 +65,7 @@
         </a>
 
         <!-- SECCIÓN: Navegación del perfil administrador -->
-        {% if session.get('perfil_activo') in ['admin', 'jefatura'] %}
+        {% if session.get('perfil_activo') == 'admin' %}
 
             <div class="sidebar-section-label">Administración</div>
 
@@ -78,16 +78,6 @@
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <span class="nav-label">Usuarios</span>
-            </a>
-            {% endif %}
-
-            {% if session.get('perfil_activo') == 'jefatura' %}
-            <a href="{{ url_for('fiscalizadores.fiscalizadores') }}" class="{{ 'active' if active_page == 'fiscalizadores' else '' }}">
-                <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span class="nav-label">Fiscalizadores</span>
             </a>
             {% endif %}
 

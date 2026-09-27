@@ -272,18 +272,6 @@ def registro():
 
             fiscalizador = cursor.fetchone()
 
-            # Obtener ID del rol jefatura para la asignación de roles
-            cursor.execute(
-
-                """
-                SELECT id_rol
-                FROM roles
-                WHERE nombre_rol='jefatura'
-                """
-            )
-
-            jefatura = cursor.fetchone()
-
             # Asignar rol: si es admin se le otorgan ambos roles (admin + fiscalizador)
             if rol == "admin":
 
@@ -321,26 +309,7 @@ def registro():
                     )
                 )
 
-            # Si el rol es jefatura, se asigna únicamente el rol de jefatura (sin registros)
-            elif rol == "jefatura":
-
-                cursor.execute(
-
-                    """
-                    INSERT INTO usuarios_roles
-                    (id_usuario, id_rol)
-                    VALUES (%s,%s)
-                    """,
-
-                    (
-
-                        id_usuario,
-                        jefatura["id_rol"]
-
-                    )
-                )
-
-            # Si el rol no es admin ni jefatura, se asigna únicamente el rol de fiscalizador
+            # Si el rol no es admin, se asigna únicamente el rol de fiscalizador
             else:
 
                 cursor.execute(

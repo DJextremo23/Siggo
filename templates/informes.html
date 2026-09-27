@@ -5,7 +5,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ 'Consulta de Informes' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Informes' }}</title>
+    <title>{{ 'Gestión de Informes' }}</title>
 
     <link rel="stylesheet"
           href="{{ url_for('static', filename='admin/informes.css') }}">
@@ -32,8 +32,8 @@
                 </svg>
             </div>
         <div class="page-header-text">
-            <h1>{{ 'Consulta de Informes' if session.get('perfil_activo') == 'jefatura' else 'Gestión de Informes' }}</h1>
-            <p>{{ 'Consulta todos los informes del sistema' if session.get('perfil_activo') == 'jefatura' else 'Visualiza y administra todos los informes del sistema' }}</p>
+            <h1>{{ 'Gestión de Informes' }}</h1>
+            <p>{{ 'Visualiza y administra todos los informes del sistema' }}</p>
         </div>
     </div>
 
@@ -184,15 +184,15 @@
             <table class="tabla-resp">
                 <thead>
                     <tr>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:5%; text-align:center"{% endif %}>ID</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:20%"{% endif %}>Fiscalizador</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:14%"{% endif %}>Fecha Guardia</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:13%"{% endif %}>Título</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>Descripción</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:11%"{% endif %}>Archivo</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:7%"{% endif %}>Tipo</th>
-                        <th {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>Registro</th>
-                        <th class="th-acciones" {% if session.get('perfil_activo') == 'jefatura' %}style="width:10%"{% endif %}>Acciones</th>
+                        <th>ID</th>
+                        <th>Fiscalizador</th>
+                        <th>Fecha Guardia</th>
+                        <th>Título</th>
+                        <th>Descripción</th>
+                        <th>Archivo</th>
+                        <th>Tipo</th>
+                        <th>Registro</th>
+                        <th class="th-acciones">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
