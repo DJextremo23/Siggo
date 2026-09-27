@@ -119,7 +119,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         cursor.execute("""
             SELECT
                 COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
+                COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
                                   THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                   ELSE 0 END), 0) AS total_anio
             FROM vacaciones v
@@ -344,7 +344,7 @@ def mis_reportes():
             cursor.execute("""
                 SELECT
                     COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
+                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
                                       THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                       ELSE 0 END), 0) AS total_anio
                 FROM vacaciones v

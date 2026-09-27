@@ -69,7 +69,6 @@
                         <th>ID</th>
                         <th>Nombre y Apellido</th>
                         <th>Correo</th>
-                        <th>Estado</th>
                     </tr>
                 </thead>
 
@@ -92,28 +91,6 @@
                     </td>
 
                     <td data-label="Correo">{{ f.correo }}</td>
-
-                    <!-- 🔥 ESTADO CORREGIDO -->
-                    <td data-label="Estado">
-                        {% set estado = f.estado|string|lower %}
-
-                        {% if estado in ['activo', '1', 'true', 'a'] %}
-                            <span class="estado activo">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                                Activo
-                            </span>
-                        {% else %}
-                            <span class="estado inactivo">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"/>
-                                    <line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                                Inactivo
-                            </span>
-                        {% endif %}
-                    </td>
 
                 </tr>
                 {% endfor %}

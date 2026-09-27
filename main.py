@@ -249,16 +249,16 @@ def administrador():
             SELECT
                 u.id_usuario,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
-                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) AS fecha_vacaciones,
+                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
-                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR),
+                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
@@ -627,21 +627,27 @@ def guardar_edicion_compensacion(id_guardia):
             flash("La fecha de compensación no puede ser anterior a la fecha de la guardia", "error")
             return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
+        # Determinar el estado según si la fecha de compensación ya se disfrutó
+        estado_compensacion = 'usado' if datetime.now().date() >= fecha_compensacion else 'pendiente'
+
         # Insertar o actualizar compensación
         cursor.execute("""
             INSERT INTO compensaciones (
                 id_guardia,
                 fecha_compensacion,
-                observacion
+                observacion,
+                estado
             )
-            VALUES (%s, %s, %s)
+            VALUES (%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 fecha_compensacion = VALUES(fecha_compensacion),
-                observacion = VALUES(observacion)
+                observacion = VALUES(observacion),
+                estado = VALUES(estado)
         """, (
             id_guardia,
             fecha,
-            observacion
+            observacion,
+            estado_compensacion
         ))
 
         conexion.commit()
@@ -1160,31 +1166,31 @@ def vacaciones():
         params_alerta = []
 
         if anio_alerta:
-            filtro_alerta += " AND YEAR(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR)) = %s"
+            filtro_alerta += " AND YEAR(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR)) = %s"
             params_alerta.append(int(anio_alerta))
         if desde_alerta:
-            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) >= %s"
+            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) >= %s"
             params_alerta.append(desde_alerta)
         if hasta_alerta:
-            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) <= %s"
+            filtro_alerta += " AND DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) <= %s"
             params_alerta.append(hasta_alerta)
         if fiscalizador_alerta:
             filtro_alerta += " AND u.id_usuario = %s"
             params_alerta.append(int(fiscalizador_alerta))
         if estado_alerta == "LISTO":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 0"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) <= 0"
         elif estado_alerta == "PRÓXIMO":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) BETWEEN 1 AND 15"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) BETWEEN 1 AND 15"
         elif estado_alerta == "NORMAL":
-            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) > 15"
+            filtro_alerta += " AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) > 15"
 
         cursor.execute(f"""
             SELECT 
                 u.id_usuario,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
-                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) AS fecha_vacaciones,
+                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
-                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR),
+                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
@@ -1197,7 +1203,7 @@ def vacaciones():
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)), 0
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)), 0
                 ) AS dias_tomados_anio
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -1243,7 +1249,7 @@ def vacaciones():
             INNER JOIN roles r ON ur.id_rol = r.id_rol
             WHERE r.nombre_rol = 'fiscalizador'
               AND u.estado = 'activo'
-              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) BETWEEN 1 AND 15
+              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) BETWEEN 1 AND 15
         """)
         total_proximas = cursor.fetchone()["total"]
 
@@ -1254,7 +1260,7 @@ def vacaciones():
             INNER JOIN roles r ON ur.id_rol = r.id_rol
             WHERE r.nombre_rol = 'fiscalizador'
               AND u.estado = 'activo'
-              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR), CURDATE()) <= 0
+              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) <= 0
         """)
         total_disponibles = cursor.fetchone()["total"]
 
@@ -1351,12 +1357,20 @@ def actualizar_vacacion(id):
         id_usuario = old_data["id_usuario"]
 
         # =========================
-        # VALIDAR 1 AÑO DE ANTIGÜEDAD
+        # VALIDAR ESTADO Y 1 AÑO DE ANTIGÜEDAD
         # =========================
-        cursor.execute("SELECT fecha_ingreso FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+        cursor.execute("SELECT fecha_ingreso, estado FROM usuarios WHERE id_usuario = %s", (id_usuario,))
         user_ant = cursor.fetchone()
 
-        if user_ant and user_ant.get("fecha_ingreso"):
+        if not user_ant:
+            flash("Usuario no encontrado", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+        if user_ant.get("estado") != "activo":
+            flash("No se pueden actualizar vacaciones para un usuario inactivo", "error")
+            return redirigir_con_filtros("vacaciones", "filtro_vacaciones")
+
+        if user_ant.get("fecha_ingreso"):
             fecha_ingreso = user_ant["fecha_ingreso"]
             try:
                 fecha_habil = fecha_ingreso.replace(year=fecha_ingreso.year + 1)
@@ -1820,16 +1834,16 @@ def inicio():
             SELECT
                 u.id_usuario,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
-                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR) AS fecha_vacaciones,
+                DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
-                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, YEAR(CURDATE()) - YEAR(u.fecha_ingreso)) YEAR),
+                    DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
+                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
                     ), 0
                 ) AS dias_tomados,
                 TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
@@ -3259,7 +3273,7 @@ def mis_vacaciones():
             cursor.execute("""
                 SELECT 
                     COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR)
+                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
                                       THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
                                       ELSE 0 END), 0) AS total_anio
                 FROM vacaciones v

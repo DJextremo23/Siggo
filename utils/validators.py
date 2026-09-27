@@ -62,6 +62,17 @@ def sanitizar_nombre(filename):
     return nombre + extension
 
 
+# Valida que la contraseña cumpla con los requisitos mínimos de seguridad
+def password_segura(password):
+    return all([
+        len(password) >= 10,
+        bool(re.search(r"[A-Z]", password)),
+        bool(re.search(r"[a-z]", password)),
+        bool(re.search(r"[0-9]", password)),
+        bool(re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password))
+    ])
+
+
 INPUT_LIMITS = {
     "nombre": 100,
     "apellidos": 100,

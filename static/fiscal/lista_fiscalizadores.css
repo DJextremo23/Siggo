@@ -185,11 +185,6 @@ body {
     border-bottom: 2px solid #e2e8f0;
 }
 
-.tabla-pro th:nth-child(4),
-.tabla-pro td:nth-child(4) {
-    text-align: center;
-}
-
 .tabla-pro tbody tr {
     transition: background var(--transition);
 }

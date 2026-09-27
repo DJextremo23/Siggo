@@ -720,7 +720,7 @@ function renderResumenVacacionesChart() {
       labels: data.map(function(r) { return r.fiscalizador; }),
       datasets: [
         { label: 'Días Tomados', data: data.map(function(r){ return Number(r.dias_tomados) || 0; }), backgroundColor: '#22c55e' },
-        { label: 'Días Pendientes', data: data.map(function(r){ return Number(r.dias_pendientes) || 0; }), backgroundColor: '#f59e0b' },
+        { label: 'Días Pendientes (Este Año)', data: data.map(function(r){ return Number(r.dias_pendientes) || 0; }), backgroundColor: '#f59e0b' },
         { label: 'Días Pend. Años Anteriores', data: data.map(function(r){ return Number(r.dias_pendientes_anteriores) || 0; }), backgroundColor: '#ef4444' }
       ]
     },

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash
 from conexion import conexion
-from utils.validators import validar_mime_real, validar_longitudes
+from utils.validators import validar_mime_real, validar_longitudes, password_segura
 import os
 from datetime import datetime
 
@@ -25,6 +25,7 @@ def foto_permitida(nombre):
         "." in nombre
         and nombre.rsplit(".", 1)[1].lower() in ALLOWED_PHOTO_EXTENSIONS
     )
+
 
 # ==========================
 # LISTAR FISCALIZADORES (ADMIN)
@@ -178,8 +179,58 @@ def actualizar_usuario(id):
                 usuario=request.form
             )
 
+        # Validar que el rol sea uno de los permitidos
+        # (en autoedición el select de rol está deshabilitado y no se envía)
+        if rol and rol not in ("admin", "fiscalizador"):
+            return render_template(
+                "editar_fiscalizador.html",
+                error="Rol inválido",
+                usuario=request.form
+            )
+
+        # Validar que el estado sea válido
+        if estado not in ("activo", "inactivo"):
+            return render_template(
+                "editar_fiscalizador.html",
+                error="Estado inválido",
+                usuario=request.form
+            )
+
+        # Validar el formato de la fecha de ingreso
+        try:
+            datetime.strptime(fecha_ingreso or "", "%Y-%m-%d")
+        except ValueError:
+            return render_template(
+                "editar_fiscalizador.html",
+                error="Fecha de ingreso inválida. Use YYYY-MM-DD",
+                usuario=request.form
+            )
+
+        # Validar que la nueva contraseña cumpla los requisitos de seguridad
+        if password and not password_segura(password):
+            return render_template(
+                "editar_fiscalizador.html",
+                error="La contraseña es débil: mínimo 10 caracteres, con mayúscula, minúscula, número y símbolo.",
+                usuario=request.form
+            )
+
         conn = conexion()
         cursor = conn.cursor()
+
+        # Validar que el correo y el nombre de usuario no estén en uso por otra cuenta
+        cursor.execute("""
+            SELECT id_usuario
+            FROM usuarios
+            WHERE (correo = %s OR usuario = %s)
+              AND id_usuario != %s
+            LIMIT 1
+        """, (correo, usuario_form, id))
+        if cursor.fetchone():
+            return render_template(
+                "editar_fiscalizador.html",
+                error="El correo o el nombre de usuario ya están en uso por otra cuenta.",
+                usuario=request.form
+            )
 
         id_rol = None
 
@@ -436,6 +487,70 @@ def toggle_usuario(id):
         if conn is not None: conn.close()
 
 # ==========================
+# RESETEAR 2FA (ADMIN)
+# ==========================
+# Desactiva la autenticación en dos pasos de un usuario (por pérdida de código o cambio de dispositivo)
+@fiscalizadores_bp.route("/resetear_2fa/<int:id>", methods=["POST"])
+def resetear_2fa(id):
+
+    if "usuario" not in session or session.get("perfil_activo") != "admin":
+        return redirect(url_for("login.login"))
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT nombre, apellidos
+            FROM usuarios
+            WHERE id_usuario = %s
+        """, (id,))
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            flash("Usuario no encontrado", "error")
+            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+        # Desactivar 2FA y limpiar el secreto TOTP
+        cursor.execute("""
+            UPDATE usuarios
+            SET totp_secret = NULL, dos_factores_activo = FALSE
+            WHERE id_usuario = %s
+        """, (id,))
+
+        # Eliminar los dispositivos de confianza asociados
+        cursor.execute("""
+            DELETE FROM dispositivos_confiables
+            WHERE id_usuario = %s
+        """, (id,))
+
+        conn.commit()
+
+        flash(
+            f"Autenticación en dos pasos desactivada para {usuario['nombre']} {usuario['apellidos']}.",
+            "success"
+        )
+        return redirect(url_for("fiscalizadores.editar_usuario", id=id))
+
+    except Exception as e:
+
+        if conn is not None: conn.rollback()
+
+        print("ERROR RESETEAR 2FA:", e)
+        flash("Error interno del servidor al desactivar la autenticación en dos pasos", "error")
+
+        return redirect(url_for("fiscalizadores.editar_usuario", id=id))
+
+    finally:
+
+        if cursor is not None: cursor.close()
+        if conn is not None: conn.close()
+
+
+# ==========================
 # LISTA PÚBLICA FISCALIZADORES
 # ==========================
 # Muestra la lista de fiscalizadores para usuarios autenticados (vista de solo lectura)
@@ -458,7 +573,6 @@ def fiscalizadores():
                 u.nombre,
                 u.apellidos,
                 u.correo,
-                u.estado,
                 u.foto
             FROM usuarios u
             LEFT JOIN usuarios_roles ur
@@ -466,6 +580,7 @@ def fiscalizadores():
             LEFT JOIN roles r
                 ON ur.id_rol = r.id_rol
             WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
             ORDER BY u.nombre
         """)
 

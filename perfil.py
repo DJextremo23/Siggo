@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash
 from conexion import conexion
-from utils.validators import validar_mime_real, validar_longitudes
+from utils.validators import validar_mime_real, validar_longitudes, password_segura
 import os
 from datetime import datetime
 
@@ -130,6 +130,29 @@ def actualizar_mi_perfil():
             return render_template(
                 "editar_mi_perfil.html",
                 error=msg,
+                usuario=_datos_error(dos_factores, foto_actual)
+            )
+
+        # Validar que la contraseña nueva cumpla los requisitos de seguridad
+        if password and not password_segura(password):
+            return render_template(
+                "editar_mi_perfil.html",
+                error="La contraseña es débil: mínimo 10 caracteres, con mayúscula, minúscula, número y símbolo.",
+                usuario=_datos_error(dos_factores, foto_actual)
+            )
+
+        # Validar que el correo y el nombre de usuario no estén en uso por otra cuenta
+        cursor.execute("""
+            SELECT id_usuario
+            FROM usuarios
+            WHERE (correo = %s OR usuario = %s)
+              AND id_usuario != %s
+            LIMIT 1
+        """, (correo, usuario_form, id_usuario))
+        if cursor.fetchone():
+            return render_template(
+                "editar_mi_perfil.html",
+                error="El correo o el nombre de usuario ya están en uso por otra cuenta.",
                 usuario=_datos_error(dos_factores, foto_actual)
             )
 

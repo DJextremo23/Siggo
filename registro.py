@@ -1,10 +1,9 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
-import re
 import os
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from conexion import conexion
-from utils.validators import validar_mime_real, validar_longitudes
+from utils.validators import validar_mime_real, validar_longitudes, password_segura
 from limiter_instance import limiter
 
 """
@@ -26,25 +25,6 @@ def foto_permitida(nombre):
         "." in nombre
         and nombre.rsplit(".", 1)[1].lower() in ALLOWED_PHOTO_EXTENSIONS
     )
-
-# =====================================================
-# VALIDAR PASSWORD
-# =====================================================
-def password_segura(password):
-
-    return all([
-
-        len(password) >= 10,
-
-        bool(re.search(r"[A-Z]", password)),
-
-        bool(re.search(r"[a-z]", password)),
-
-        bool(re.search(r"[0-9]", password)),
-
-        bool(re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password))
-
-    ])
 
 # =====================================================
 # REGISTRO
@@ -107,6 +87,10 @@ def registro():
                     "registro.html",
                     error="Todos los campos son obligatorios"
                 )
+
+            # Validar que el rol sea uno de los permitidos
+            if rol not in ("admin", "fiscalizador"):
+                return render_template("registro.html", error="Rol inválido")
 
             # =================================================
             # VALIDAR LONGITUDES DE CAMPOS

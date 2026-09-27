@@ -673,7 +673,7 @@ function renderResumenVacacionesChart() {
   window.chartResumenVacaciones = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
     data: {
-      labels: ['Días Tomados', 'Días Pendientes', 'Días Pend. Años Anteriores'],
+      labels: ['Días Tomados', 'Días Pendientes (Este Año)', 'Días Pend. Años Anteriores'],
       datasets: [{
         data: [
           {{ dias_tomados | int }},

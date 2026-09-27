@@ -223,6 +223,40 @@ body {
     transform: translateY(-1px);
 }
 
+/* --- DANGER --- */
+.btn-danger {
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+}
+
+/* --- SECCIÓN 2FA --- */
+.twofa-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.twofa-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-primario);
+    margin-bottom: 4px;
+}
+
+.twofa-section p {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
 /* =============================================
    PHOTO EDIT
    ============================================= */

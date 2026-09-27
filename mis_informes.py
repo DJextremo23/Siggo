@@ -144,6 +144,16 @@ def registrar_informe():
             titulo = request.form["titulo"]
             descripcion = request.form["descripcion"]
 
+            cursor.execute("""
+                SELECT 1
+                FROM guardias
+                WHERE id_guardia = %s
+                  AND id_usuario = %s
+                LIMIT 1
+            """, (id_guardia, session["id_usuario"]))
+            if not cursor.fetchone():
+                return datos_invalidos("La guardia seleccionada no es válida")
+
             valido, msg = validar_longitudes({
                 "titulo": titulo,
                 "descripcion": descripcion,
@@ -297,10 +307,12 @@ def editar_informe(id_informe):
                 SET titulo=%s,
                     descripcion=%s
                 WHERE id_informe=%s
+                  AND id_usuario=%s
             """, (
                 titulo,
                 descripcion,
-                id_informe
+                id_informe,
+                session["id_usuario"]
             ))
 
             archivo = request.files.get("archivo")
@@ -346,13 +358,15 @@ def editar_informe(id_informe):
                             extension=%s,
                             tamano_archivo=%s
                         WHERE id_informe=%s
+                          AND id_usuario=%s
                     """, (
                         nombre,
                         ruta,
                         extension,
                         extension,
                         tamano_nuevo,
-                        id_informe
+                        id_informe,
+                        session["id_usuario"]
                     ))
 
             conn.commit()
@@ -379,6 +393,9 @@ def descargar_informe(id_informe):
     if "usuario" not in session:
         return redirect(url_for("home"))
 
+    if session.get("perfil_activo") != "fiscalizador":
+        return acceso_no_autorizado()
+
     conn = None
     cursor = None
 
@@ -390,8 +407,9 @@ def descargar_informe(id_informe):
             SELECT *
             FROM informes
             WHERE id_informe = %s
+            AND id_usuario = %s
             AND estado = 'activo'
-        """, (id_informe,))
+        """, (id_informe, session["id_usuario"]))
 
         informe = cursor.fetchone()
 

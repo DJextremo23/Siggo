@@ -185,6 +185,23 @@
 
         </form>
 
+        {% if usuario.dos_factores_activo %}
+        <div class="twofa-section">
+            <h3>Autenticación en dos pasos</h3>
+            <p>Este usuario tiene 2FA activo. Si perdió su código (cambió de dispositivo o eliminó su app de autenticación), desactívalo para que pueda volver a iniciar sesión con su contraseña y reactivarlo cuando quiera.</p>
+            <form action="{{ url_for('fiscalizadores.resetear_2fa', id=usuario.id_usuario) }}" method="POST" onsubmit="return confirm('¿Desactivar la autenticación en dos pasos de este usuario?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Desactivar 2FA
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
     </div>
 
 </div>
