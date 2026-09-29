@@ -83,7 +83,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <h4>Registros totales</h4>
+                    <h4>Registros totales (año actual)</h4>
                     <p class="kpi-number">{{ total_registros }}</p>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <h4>Finalizadas</h4>
+                    <h4>Finalizadas (año actual)</h4>
                     <p class="kpi-number">{{ total_finalizadas }}</p>
                 </div>
             </div>
@@ -749,43 +749,6 @@ function alertasCambiarPagina(cambio) {
     alertasRender();
 }
 
-/* ===== BUSCAR ALERTAS (filtro client-side) ===== */
-function buscarAlertas() {
-    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
-    var anio = document.getElementById('filtroAnio').value.trim();
-    var desde = document.getElementById('filtroDesde').value;
-    var hasta = document.getElementById('filtroHasta').value;
-    var fiscalizador = document.getElementById('filtroFiscalizador').value.trim().toLowerCase();
-    var semaforo = document.getElementById('filtroSemaforo').value.trim();
-
-    for (var i = 0; i < rows.length; i++) {
-        var cells = rows[i].querySelectorAll('td');
-        var nombre = cells[0].textContent.trim().toLowerCase();
-        var fechaStr = cells[1].textContent.trim();
-        var badgeEl = cells[3].querySelector('.badge');
-        var badgeText = badgeEl ? badgeEl.textContent.trim() : '';
-        var ocultar = false;
-
-        if (fiscalizador && nombre.indexOf(fiscalizador) === -1) ocultar = true;
-        if (semaforo && badgeText !== semaforo) ocultar = true;
-
-        if (fechaStr && fechaStr !== '—') {
-            var fecha = new Date(fechaStr + 'T00:00:00');
-            if (anio && fecha.getFullYear() !== parseInt(anio)) ocultar = true;
-            if (desde && fecha < new Date(desde + 'T00:00:00')) ocultar = true;
-            if (hasta && fecha > new Date(hasta + 'T00:00:00')) ocultar = true;
-        } else if (anio || desde || hasta) {
-            ocultar = true;
-        }
-
-        rows[i].classList.toggle('oculta-filtro', ocultar);
-        if (ocultar) rows[i].style.display = 'none';
-    }
-
-    alertasPage = 0;
-    alertasRender();
-}
-
 /* ===== PAGINACION VACACIONES ===== */
 var vacacionesPage = 0;
 
@@ -840,81 +803,6 @@ function vacacionesCambiarPagina(cambio) {
     vacacionesPage += cambio;
     if (vacacionesPage < 0) vacacionesPage = 0;
     if (vacacionesPage >= max) vacacionesPage = max - 1;
-    vacacionesRender();
-}
-
-/* ===== BUSCAR VACACIONES (filtro client-side) ===== */
-function buscarVacaciones() {
-    var rows = document.querySelectorAll('#vacaciones-tbody tr:not(.empty-row)');
-    var anio = document.getElementById('filtroVacAnio').value.trim();
-    var desde = document.getElementById('filtroVacDesde').value;
-    var hasta = document.getElementById('filtroVacHasta').value;
-    var fiscalizador = document.getElementById('filtroVacFiscalizador').value.trim().toLowerCase();
-    var estado = document.getElementById('filtroVacEstado').value.trim();
-
-    for (var i = 0; i < rows.length; i++) {
-        var cells = rows[i].querySelectorAll('td');
-        var nombre = cells[2].textContent.trim().toLowerCase();
-        var fechaInicioStr = cells[3].textContent.trim();
-        var fechaFinStr = cells[4].textContent.trim();
-        var badgeEl = cells[6].querySelector('.badge');
-        var badgeText = badgeEl ? badgeEl.textContent.trim() : '';
-        var ocultar = false;
-
-        if (fiscalizador && nombre.indexOf(fiscalizador) === -1) ocultar = true;
-        if (estado && badgeText !== estado) ocultar = true;
-
-        var fechaInicio = (fechaInicioStr && fechaInicioStr !== '—') ? new Date(fechaInicioStr + 'T00:00:00') : null;
-        var fechaFin = (fechaFinStr && fechaFinStr !== '—') ? new Date(fechaFinStr + 'T00:00:00') : null;
-
-        if (fechaInicio && fechaFin) {
-            if (anio) {
-                var anioNum = parseInt(anio);
-                if (fechaInicio.getFullYear() !== anioNum && fechaFin.getFullYear() !== anioNum) ocultar = true;
-            }
-            if (desde && fechaFin < new Date(desde + 'T00:00:00')) ocultar = true;
-            if (hasta && fechaInicio > new Date(hasta + 'T00:00:00')) ocultar = true;
-        } else if (anio || desde || hasta) {
-            ocultar = true;
-        }
-
-        rows[i].classList.toggle('oculta-filtro', ocultar);
-        if (ocultar) rows[i].style.display = 'none';
-    }
-
-    vacacionesPage = 0;
-    vacacionesRender();
-}
-
-function limpiarFiltrosAlertas() {
-    document.getElementById('filtroAnio').value = '';
-    document.getElementById('filtroDesde').value = '';
-    document.getElementById('filtroHasta').value = '';
-    document.getElementById('filtroFiscalizador').value = '';
-    document.getElementById('filtroSemaforo').value = '';
-
-    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
-    for (var i = 0; i < rows.length; i++) {
-        rows[i].classList.remove('oculta-filtro');
-        rows[i].style.removeProperty('display');
-    }
-    alertasPage = 0;
-    alertasRender();
-}
-
-function limpiarFiltrosVacaciones() {
-    document.getElementById('filtroVacAnio').value = '';
-    document.getElementById('filtroVacDesde').value = '';
-    document.getElementById('filtroVacHasta').value = '';
-    document.getElementById('filtroVacFiscalizador').value = '';
-    document.getElementById('filtroVacEstado').value = '';
-
-    var rows = document.querySelectorAll('#vacaciones-tbody tr:not(.empty-row)');
-    for (var i = 0; i < rows.length; i++) {
-        rows[i].classList.remove('oculta-filtro');
-        rows[i].style.removeProperty('display');
-    }
-    vacacionesPage = 0;
     vacacionesRender();
 }
 
@@ -1005,20 +893,6 @@ document.getElementById('btn-eliminar-seleccion').addEventListener('click', conf
 document.addEventListener('DOMContentLoaded', function() {
     alertasRender();
     vacacionesRender();
-
-    var tieneFiltroAlerta = document.getElementById('filtroAnio').value
-        || document.getElementById('filtroDesde').value
-        || document.getElementById('filtroHasta').value
-        || document.getElementById('filtroFiscalizador').value
-        || document.getElementById('filtroSemaforo').value;
-    if (tieneFiltroAlerta && typeof buscarAlertas === 'function') buscarAlertas();
-
-    var tieneFiltroVac = document.getElementById('filtroVacAnio').value
-        || document.getElementById('filtroVacDesde').value
-        || document.getElementById('filtroVacHasta').value
-        || document.getElementById('filtroVacFiscalizador').value
-        || document.getElementById('filtroVacEstado').value;
-    if (tieneFiltroVac && typeof buscarVacaciones === 'function') buscarVacaciones();
 
     document.getElementById('alertas-prev').addEventListener('click', function() { alertasCambiarPagina(-1); });
     document.getElementById('alertas-next').addEventListener('click', function() { alertasCambiarPagina(1); });

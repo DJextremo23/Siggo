@@ -68,7 +68,7 @@ def filtrar_por_texto(data, texto):
 # UTILIDAD (FILTRO BASE)
 # ==========================
 # Construye la cláusula WHERE y los parámetros para filtrar guardias por fecha y usuarios
-def construir_filtro(anio=None, mes=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None, alias_fecha="g.fecha_guardia"):
+def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None, alias_fecha="g.fecha_guardia"):
     filtro = "WHERE 1=1"
     params = []
 
@@ -84,9 +84,6 @@ def construir_filtro(anio=None, mes=None, fecha_desde=None, fecha_hasta=None, id
         if anio:
             filtro += f" AND YEAR({alias_fecha}) = %s"
             params.append(int(anio))
-        if mes:
-            filtro += f" AND MONTH({alias_fecha}) = %s"
-            params.append(int(mes))
 
     if ids_usuarios:
         placeholders = ",".join(["%s"] * len(ids_usuarios))
@@ -108,7 +105,6 @@ def reporte():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -118,7 +114,7 @@ def reporte():
     buscar_resumen_vac = request.args.get("buscar_resumen_vac", "").strip()
 
     # Por defecto, si no hay ningún filtro de fecha, se muestra el año actual
-    if not anio and not mes and not fecha_desde and not fecha_hasta:
+    if not anio and not fecha_desde and not fecha_hasta:
         args = request.args.to_dict(flat=False)
         args["anio"] = str(date.today().year)
         return redirect(url_for("reporte_bp.reporte") + "?" + urlencode(args, doseq=True))
@@ -140,7 +136,7 @@ def reporte():
         usuarios = cursor.fetchall()
 
         filtro, params = construir_filtro(
-            anio=anio, mes=mes,
+            anio=anio,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
             ids_usuarios=ids_usuarios
         )
@@ -221,9 +217,6 @@ def reporte():
             if anio:
                 filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
                 params_vac.extend([int(anio), int(anio)])
-            if mes:
-                filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
-                params_vac.append(int(mes))
 
         if ids_usuarios:
             placeholders = ",".join(["%s"] * len(ids_usuarios))
@@ -259,6 +252,23 @@ def reporte():
             filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
             params_usuarios = list(ids_usuarios)
 
+        # Filtro de fechas para el resumen de vacaciones (mismo criterio que el detalle)
+        filtro_vac_fechas = ""
+        params_vac_fechas = []
+
+        if fecha_desde:
+            filtro_vac_fechas += " AND v2.fecha_fin >= %s"
+            params_vac_fechas.append(fecha_desde)
+
+        if fecha_hasta:
+            filtro_vac_fechas += " AND v2.fecha_inicio <= %s"
+            params_vac_fechas.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta:
+            if anio:
+                filtro_vac_fechas += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+                params_vac_fechas.extend([int(anio), int(anio)])
+
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
@@ -268,6 +278,7 @@ def reporte():
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
                       AND v2.fecha_inicio <= CURDATE()
+                      {filtro_vac_fechas}
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
@@ -296,7 +307,7 @@ def reporte():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_usuarios)
+        """, params_usuarios + params_vac_fechas)
 
         resumen_vacaciones = cursor.fetchall()
     finally:
@@ -354,7 +365,6 @@ def exportar_pdf():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -367,7 +377,7 @@ def exportar_pdf():
         cursor = conn.cursor(dictionary=True)
 
         filtro, params = construir_filtro(
-            anio=anio, mes=mes,
+            anio=anio,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
             ids_usuarios=ids_usuarios
         )
@@ -453,7 +463,6 @@ def exportar_excel():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -466,7 +475,7 @@ def exportar_excel():
         cursor = conn.cursor(dictionary=True)
 
         filtro, params = construir_filtro(
-            anio=anio, mes=mes,
+            anio=anio,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
             ids_usuarios=ids_usuarios
         )
@@ -540,7 +549,6 @@ def exportar_detalle_fecha_pdf():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -553,7 +561,7 @@ def exportar_detalle_fecha_pdf():
         cursor = conn.cursor(dictionary=True)
 
         filtro, params = construir_filtro(
-            anio=anio, mes=mes,
+            anio=anio,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
             ids_usuarios=ids_usuarios
         )
@@ -638,7 +646,6 @@ def exportar_detalle_fecha_excel():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -651,7 +658,7 @@ def exportar_detalle_fecha_excel():
         cursor = conn.cursor(dictionary=True)
 
         filtro, params = construir_filtro(
-            anio=anio, mes=mes,
+            anio=anio,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
             ids_usuarios=ids_usuarios
         )
@@ -722,7 +729,6 @@ def exportar_vacaciones_pdf():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -749,9 +755,6 @@ def exportar_vacaciones_pdf():
             if anio:
                 filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
                 params_vac.extend([int(anio), int(anio)])
-            if mes:
-                filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
-                params_vac.append(int(mes))
 
         if ids_usuarios:
             placeholders = ",".join(["%s"] * len(ids_usuarios))
@@ -830,7 +833,6 @@ def exportar_vacaciones_excel():
         return acceso_no_autorizado()
 
     anio = request.args.get("anio")
-    mes = request.args.get("mes")
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
@@ -857,9 +859,6 @@ def exportar_vacaciones_excel():
             if anio:
                 filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
                 params_vac.extend([int(anio), int(anio)])
-            if mes:
-                filtro_vac += " AND MONTH(v.fecha_inicio) = %s"
-                params_vac.append(int(mes))
 
         if ids_usuarios:
             placeholders = ",".join(["%s"] * len(ids_usuarios))
@@ -942,6 +941,22 @@ def exportar_resumen_vacaciones_pdf():
             filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
             params_usuarios = list(ids_usuarios)
 
+        filtro_vac_fechas = ""
+        params_vac_fechas = []
+
+        if fecha_desde:
+            filtro_vac_fechas += " AND v2.fecha_fin >= %s"
+            params_vac_fechas.append(fecha_desde)
+
+        if fecha_hasta:
+            filtro_vac_fechas += " AND v2.fecha_inicio <= %s"
+            params_vac_fechas.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta:
+            if anio:
+                filtro_vac_fechas += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+                params_vac_fechas.extend([int(anio), int(anio)])
+
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
@@ -950,6 +965,7 @@ def exportar_resumen_vacaciones_pdf():
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
                       AND v2.fecha_inicio <= CURDATE()
+                      {filtro_vac_fechas}
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
@@ -978,7 +994,7 @@ def exportar_resumen_vacaciones_pdf():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_usuarios)
+        """, params_usuarios + params_vac_fechas)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:
@@ -1033,6 +1049,9 @@ def exportar_resumen_vacaciones_excel():
     if session.get("perfil_activo") != "admin":
         return acceso_no_autorizado()
 
+    anio = request.args.get("anio")
+    fecha_desde = request.args.get("fecha_desde")
+    fecha_hasta = request.args.get("fecha_hasta")
     ids_usuarios = request.args.getlist("id_usuario")
     buscar_resumen_vac = request.args.get("buscar_resumen_vac")
 
@@ -1049,6 +1068,22 @@ def exportar_resumen_vacaciones_excel():
             filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
             params_usuarios = list(ids_usuarios)
 
+        filtro_vac_fechas = ""
+        params_vac_fechas = []
+
+        if fecha_desde:
+            filtro_vac_fechas += " AND v2.fecha_fin >= %s"
+            params_vac_fechas.append(fecha_desde)
+
+        if fecha_hasta:
+            filtro_vac_fechas += " AND v2.fecha_inicio <= %s"
+            params_vac_fechas.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta:
+            if anio:
+                filtro_vac_fechas += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+                params_vac_fechas.extend([int(anio), int(anio)])
+
         cursor.execute(f"""
             SELECT
                 CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
@@ -1057,6 +1092,7 @@ def exportar_resumen_vacaciones_excel():
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
                       AND v2.fecha_inicio <= CURDATE()
+                      {filtro_vac_fechas}
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
@@ -1085,7 +1121,7 @@ def exportar_resumen_vacaciones_excel():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_usuarios)
+        """, params_usuarios + params_vac_fechas)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:

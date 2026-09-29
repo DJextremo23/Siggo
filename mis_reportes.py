@@ -97,8 +97,39 @@ def _dias_pendientes_acumulados(cursor, id_usuario):
     return max(0, total_dias - total_tomados)
 
 
+def _filtro_fechas_vacaciones(anio, fecha_desde, fecha_hasta):
+    """Cláusula y parámetros para filtrar vacaciones por año o rango de fechas (solapamiento)."""
+    filtro = ""
+    params = []
+    if fecha_desde:
+        filtro += " AND v.fecha_fin >= %s"
+        params.append(fecha_desde)
+    if fecha_hasta:
+        filtro += " AND v.fecha_inicio <= %s"
+        params.append(fecha_hasta)
+    if not fecha_desde and not fecha_hasta:
+        if anio:
+            filtro += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+            params.extend([int(anio), int(anio)])
+    return filtro, params
+
+
+def _dias_tomados_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
+    """Días de vacaciones tomados dentro del período/año filtrado."""
+    filtro, params = _filtro_fechas_vacaciones(anio, fecha_desde, fecha_hasta)
+    cursor.execute(f"""
+        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+        FROM vacaciones v
+        WHERE v.id_usuario = %s
+          AND v.fecha_inicio <= CURDATE()
+          {filtro}
+    """, [id_usuario] + params)
+    result = cursor.fetchone()
+    return result["total"] if result else 0
+
+
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
-    """Resumen de vacaciones del fiscalizador: días tomados (totales),
+    """Resumen de vacaciones del fiscalizador: días tomados (en el período filtrado),
     días pendientes este año y días pendientes de años anteriores."""
 
     cursor.execute(
@@ -135,9 +166,11 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
         dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
+    dias_tomados_periodo = _dias_tomados_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
+
     return {
         "nombre": nombre,
-        "dias_tomados": dias_tomados_total,
+        "dias_tomados": dias_tomados_periodo,
         "dias_pendientes_este_anio": dias_pendientes_este_anio,
         "dias_pendientes_anteriores": dias_pendientes_anteriores,
     }
@@ -326,7 +359,7 @@ def mis_reportes():
 
         vacaciones = cursor.fetchall()
 
-        # ================= RESUMEN VACACIONES (balance real, independiente de los filtros) =================
+        # ================= RESUMEN VACACIONES (días tomados según filtro; pendientes como balance actual) =================
         dias_tomados = 0
         dias_tomados_total = 0
         dias_pendientes_este_anio = 0
@@ -359,6 +392,8 @@ def mis_reportes():
             dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
             dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
+        dias_tomados_periodo = _dias_tomados_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
+
     finally:
         if cursor is not None:
             cursor.close()
@@ -370,7 +405,7 @@ def mis_reportes():
         reporte=reporte,
         detalle=detalle,
         vacaciones=vacaciones,
-        dias_tomados=dias_tomados_total,
+        dias_tomados=dias_tomados_periodo,
         dias_pendientes_este_anio=dias_pendientes_este_anio,
         dias_pendientes_anteriores=dias_pendientes_anteriores
     )

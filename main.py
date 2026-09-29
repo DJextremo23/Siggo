@@ -1214,7 +1214,7 @@ def vacaciones():
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
-            WHERE r.nombre_rol = 'fiscalizador' {filtro_alerta}
+            WHERE r.nombre_rol = 'fiscalizador' AND u.estado = 'activo' {filtro_alerta}
             ORDER BY dias_faltantes ASC
         """, params_alerta)
 
@@ -2752,7 +2752,6 @@ def mis_compensaciones():
 
     guardar_filtros("filtro_mis_compensaciones")
 
-    fecha_guardia = request.args.get("fecha_guardia", "")
     anio = request.args.get("anio", "").strip()
     desde = request.args.get("desde", "").strip()
     hasta = request.args.get("hasta", "").strip()
@@ -2790,11 +2789,6 @@ def mis_compensaciones():
     if hasta:
         query += " AND g.fecha_guardia <= %s"
         parametros.append(hasta)
-
-    # FILTRO POR FECHA
-    if fecha_guardia:
-        query += " AND g.fecha_guardia = %s"
-        parametros.append(fecha_guardia)
 
     query += " ORDER BY g.fecha_guardia DESC"
 
