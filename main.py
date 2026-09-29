@@ -1250,25 +1250,21 @@ def vacaciones():
 
         cursor.execute("""
             SELECT COUNT(*) AS total
-            FROM usuarios u
-            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
-            INNER JOIN roles r ON ur.id_rol = r.id_rol
-            WHERE r.nombre_rol = 'fiscalizador'
-              AND u.estado = 'activo'
-              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) BETWEEN 1 AND 15
+            FROM vacaciones
+            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE()))
+              AND CURDATE() < fecha_inicio
         """)
-        total_proximas = cursor.fetchone()["total"]
+        total_pendientes = cursor.fetchone()["total"]
 
         cursor.execute("""
             SELECT COUNT(*) AS total
-            FROM usuarios u
-            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
-            INNER JOIN roles r ON ur.id_rol = r.id_rol
-            WHERE r.nombre_rol = 'fiscalizador'
-              AND u.estado = 'activo'
-              AND DATEDIFF(DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR), CURDATE()) <= 0
+            FROM vacaciones
+            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE()))
+              AND CURDATE() BETWEEN fecha_inicio AND fecha_fin
         """)
-        total_disponibles = cursor.fetchone()["total"]
+        total_en_curso = cursor.fetchone()["total"]
 
         return render_template(
             "vacaciones.html",
@@ -1277,8 +1273,8 @@ def vacaciones():
             alertas=alertas,
             total_registros=total_registros,
             total_finalizadas=total_finalizadas,
-            total_proximas=total_proximas,
-            total_disponibles=total_disponibles
+            total_pendientes=total_pendientes,
+            total_en_curso=total_en_curso
         )
     except Exception as e:
         print("ERROR vacaciones:", e)

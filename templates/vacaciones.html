@@ -70,7 +70,7 @@
         </div>
         {% endif %}
 
-        <!-- KPI CARDS - Tarjetas de indicadores: totales, finalizadas, próximas y disponibles -->
+        <!-- KPI CARDS - Tarjetas de indicadores: registros totales, pendientes, en curso y finalizadas -->
         <div class="kpi-grid">
 
             <div class="kpi-card blue">
@@ -109,8 +109,8 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <h4>Próximas vacaciones</h4>
-                    <p class="kpi-number">{{ total_proximas }}</p>
+                    <h4>En curso (año actual)</h4>
+                    <p class="kpi-number">{{ total_en_curso }}</p>
                 </div>
             </div>
 
@@ -123,8 +123,8 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <h4>Vacaciones disponibles</h4>
-                    <p class="kpi-number">{{ total_disponibles }}</p>
+                    <h4>Pendientes (año actual)</h4>
+                    <p class="kpi-number">{{ total_pendientes }}</p>
                 </div>
             </div>
 
@@ -202,6 +202,11 @@
                             </select>
                         </div>
                     </div>
+                    <input type="hidden" name="anio_vac" value="{{ request.args.get('anio_vac','') }}">
+                    <input type="hidden" name="desde_vac" value="{{ request.args.get('desde_vac','') }}">
+                    <input type="hidden" name="hasta_vac" value="{{ request.args.get('hasta_vac','') }}">
+                    <input type="hidden" name="fiscalizador_vac" value="{{ request.args.get('fiscalizador_vac','') }}">
+                    <input type="hidden" name="estado_vac" value="{{ request.args.get('estado_vac','') }}">
                     <div class="filtro-actions">
                         <button type="submit" class="btn-filtrar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -468,6 +473,11 @@
                             </select>
                         </div>
                     </div>
+                    <input type="hidden" name="anio_alerta" value="{{ request.args.get('anio_alerta','') }}">
+                    <input type="hidden" name="desde_alerta" value="{{ request.args.get('desde_alerta','') }}">
+                    <input type="hidden" name="hasta_alerta" value="{{ request.args.get('hasta_alerta','') }}">
+                    <input type="hidden" name="fiscalizador_alerta" value="{{ request.args.get('fiscalizador_alerta','') }}">
+                    <input type="hidden" name="estado_alerta" value="{{ request.args.get('estado_alerta','') }}">
                     <div class="filtro-actions">
                         <button type="submit" class="btn-filtrar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
