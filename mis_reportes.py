@@ -128,6 +128,35 @@ def _dias_tomados_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     return result["total"] if result else 0
 
 
+def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
+    """Compensaciones pendientes (guardias asistidas sin compensar o con compensación
+    futura) del fiscalizador dentro del período/año filtrado."""
+    filtro = ""
+    params = [id_usuario]
+    if anio:
+        filtro += " AND YEAR(g2.fecha_guardia) = %s"
+        params.append(int(anio))
+    if fecha_desde:
+        filtro += " AND g2.fecha_guardia >= %s"
+        params.append(fecha_desde)
+    if fecha_hasta:
+        filtro += " AND g2.fecha_guardia <= %s"
+        params.append(fecha_hasta)
+
+    cursor.execute(f"""
+        SELECT COUNT(g2.id_guardia) AS pendientes
+        FROM guardias g2
+        LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
+        LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
+        WHERE g2.id_usuario = %s
+          AND a2.estado = 'asistio'
+          AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
+          {filtro}
+    """, params)
+    result = cursor.fetchone()
+    return result["pendientes"] if result else 0
+
+
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador para el período seleccionado:
     días tomados en el período y balance (pendientes) al cierre del período."""
@@ -271,19 +300,9 @@ def mis_reportes():
 
         reporte = cursor.fetchall()
 
-        # Pendientes históricas: guardias asistidas sin compensación (o con compensación futura), sin importar el año
-        cursor.execute("""
-            SELECT COUNT(g2.id_guardia) AS pendientes
-            FROM guardias g2
-            LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
-            LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
-            WHERE g2.id_usuario = %s
-              AND a2.estado = 'asistio'
-              AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
-        """, (id_usuario,))
-        pendientes_hist = cursor.fetchone()
-        if reporte and pendientes_hist is not None:
-            reporte[0]["pendientes"] = pendientes_hist["pendientes"]
+        # Compensaciones pendientes del período filtrado
+        if reporte:
+            reporte[0]["pendientes"] = _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
 
         # ================= DETALLE =================
         cursor.execute(f"""
@@ -673,18 +692,8 @@ def exportar_resumen_pdf():
         resumen = cursor.fetchall()
         r = resumen[0] if resumen else {}
 
-        cursor.execute("""
-            SELECT COUNT(g2.id_guardia) AS pendientes
-            FROM guardias g2
-            LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
-            LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
-            WHERE g2.id_usuario = %s
-              AND a2.estado = 'asistio'
-              AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
-        """, (id_usuario,))
-        pendientes_hist = cursor.fetchone()
-        if resumen and pendientes_hist is not None:
-            r["pendientes"] = pendientes_hist["pendientes"]
+        if resumen:
+            r["pendientes"] = _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
     finally:
         if cursor is not None:
             cursor.close()
@@ -775,18 +784,8 @@ def exportar_resumen_excel():
         resumen = cursor.fetchall()
         r = resumen[0] if resumen else {}
 
-        cursor.execute("""
-            SELECT COUNT(g2.id_guardia) AS pendientes
-            FROM guardias g2
-            LEFT JOIN asistencia a2 ON g2.id_guardia = a2.id_guardia
-            LEFT JOIN compensaciones c2 ON g2.id_guardia = c2.id_guardia
-            WHERE g2.id_usuario = %s
-              AND a2.estado = 'asistio'
-              AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
-        """, (id_usuario,))
-        pendientes_hist = cursor.fetchone()
-        if resumen and pendientes_hist is not None:
-            r["pendientes"] = pendientes_hist["pendientes"]
+        if resumen:
+            r["pendientes"] = _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
     finally:
         if cursor is not None:
             cursor.close()

@@ -68,22 +68,34 @@ def filtrar_por_texto(data, texto):
 # UTILIDAD (FILTRO BASE)
 # ==========================
 # Construye la cláusula WHERE y los parámetros para filtrar guardias por fecha y usuarios
-def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None, alias_fecha="g.fecha_guardia"):
-    filtro = "WHERE 1=1"
+def _filtro_fechas(anio=None, fecha_desde=None, fecha_hasta=None, alias_fecha="g.fecha_guardia"):
+    """Cláusula 'AND ...' y parámetros para filtrar por año o rango de fechas."""
+    clause = ""
     params = []
 
     if fecha_desde:
-        filtro += f" AND {alias_fecha} >= %s"
+        clause += f" AND {alias_fecha} >= %s"
         params.append(fecha_desde)
 
     if fecha_hasta:
-        filtro += f" AND {alias_fecha} <= %s"
+        clause += f" AND {alias_fecha} <= %s"
         params.append(fecha_hasta)
 
     if not fecha_desde and not fecha_hasta:
         if anio:
-            filtro += f" AND YEAR({alias_fecha}) = %s"
+            clause += f" AND YEAR({alias_fecha}) = %s"
             params.append(int(anio))
+
+    return clause, params
+
+
+def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None, alias_fecha="g.fecha_guardia"):
+    filtro = "WHERE 1=1"
+    params = []
+
+    clause, fechas_params = _filtro_fechas(anio, fecha_desde, fecha_hasta, alias_fecha)
+    filtro += clause
+    params.extend(fechas_params)
 
     if ids_usuarios:
         placeholders = ",".join(["%s"] * len(ids_usuarios))
@@ -141,6 +153,8 @@ def reporte():
             ids_usuarios=ids_usuarios
         )
 
+        filtro_pend, params_pend = _filtro_fechas(anio, fecha_desde, fecha_hasta, "g2.fecha_guardia")
+
         # ==========================
         # RESUMEN
         # ==========================
@@ -160,6 +174,7 @@ def reporte():
                     WHERE g2.id_usuario = u.id_usuario
                       AND a2.estado = 'asistio'
                       AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
+                      {filtro_pend}
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
@@ -167,7 +182,7 @@ def reporte():
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             {filtro}
             GROUP BY u.id_usuario
-        """, params)
+        """, params_pend + params)
 
         reporte_data = cursor.fetchall()
 
@@ -384,6 +399,8 @@ def exportar_pdf():
             ids_usuarios=ids_usuarios
         )
 
+        filtro_pend, params_pend = _filtro_fechas(anio, fecha_desde, fecha_hasta, "g2.fecha_guardia")
+
         cursor.execute(f"""
             SELECT 
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
@@ -398,6 +415,7 @@ def exportar_pdf():
                     WHERE g2.id_usuario = u.id_usuario
                       AND a2.estado = 'asistio'
                       AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
+                      {filtro_pend}
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
@@ -405,7 +423,7 @@ def exportar_pdf():
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             {filtro}
             GROUP BY u.id_usuario
-        """, params)
+        """, params_pend + params)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar)
     finally:
@@ -482,6 +500,8 @@ def exportar_excel():
             ids_usuarios=ids_usuarios
         )
 
+        filtro_pend, params_pend = _filtro_fechas(anio, fecha_desde, fecha_hasta, "g2.fecha_guardia")
+
         cursor.execute(f"""
             SELECT 
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
@@ -496,6 +516,7 @@ def exportar_excel():
                     WHERE g2.id_usuario = u.id_usuario
                       AND a2.estado = 'asistio'
                       AND (c2.id_compensacion IS NULL OR c2.fecha_compensacion > CURDATE())
+                      {filtro_pend}
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
@@ -503,7 +524,7 @@ def exportar_excel():
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             {filtro}
             GROUP BY u.id_usuario
-        """, params)
+        """, params_pend + params)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar)
     finally:
