@@ -184,6 +184,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total_periodo
             FROM vacaciones v
             WHERE v.id_usuario = %s
+              AND v.fecha_inicio <= CURDATE()
             {filtro}
         """, [id_usuario] + params)
         res = cursor.fetchone()

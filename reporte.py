@@ -144,6 +144,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         "COALESCE((SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1) "
         "FROM vacaciones v2 WHERE v2.id_usuario = u.id_usuario"
         + filtro_dias +
+        " AND v2.fecha_inicio <= CURDATE()"
         "), 0)"
     )
     total_taken_sub = (
