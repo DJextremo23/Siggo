@@ -134,7 +134,13 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     se recalculan tomando como referencia el fin del periodo filtrado.
     """
 
-    ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
+    hoy = date.today().strftime("%Y-%m-%d")
+    periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
+
+    # La antigüedad y los días tomados nunca se proyectan más allá de hoy
+    ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else hoy)
+    if ref_fin > hoy:
+        ref_fin = hoy
 
     cursor.execute(
         "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, "
@@ -144,6 +150,16 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     )
     user = cursor.fetchone()
     nombre = user["nombre"] if user else ""
+
+    # Periodo totalmente en el futuro: aún no hay registros de vacaciones
+    if periodo_inicio and periodo_inicio > hoy:
+        return {
+            "nombre": nombre,
+            "dias_tomados": 0,
+            "dias_pendientes_este_anio": 0,
+            "dias_pendientes_anteriores": 0,
+        }
+
     dias_tomados = 0
     dias_tomados_total = 0
     dias_pendientes_este_anio = 0

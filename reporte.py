@@ -115,7 +115,17 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     detalle de vacaciones); 'dias_pendientes' y 'dias_pendientes_anteriores'
     se recalculan tomando como referencia el fin del periodo filtrado.
     """
-    ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
+    hoy = date.today().strftime("%Y-%m-%d")
+    periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
+
+    # Periodo totalmente en el futuro: aún no hay registros de vacaciones
+    if periodo_inicio and periodo_inicio > hoy:
+        return []
+
+    # La antigüedad y los días tomados nunca se proyectan más allá de hoy
+    ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else hoy)
+    if ref_fin > hoy:
+        ref_fin = hoy
 
     filtro_dias = ""
     params_dias = []
