@@ -307,7 +307,7 @@ def reporte():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_usuarios + params_vac_fechas)
+        """, params_vac_fechas + params_usuarios)
 
         resumen_vacaciones = cursor.fetchall()
     finally:
@@ -994,7 +994,7 @@ def exportar_resumen_vacaciones_pdf():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_usuarios + params_vac_fechas)
+        """, params_vac_fechas + params_usuarios)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:
@@ -1121,7 +1121,7 @@ def exportar_resumen_vacaciones_excel():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, params_usuarios + params_vac_fechas)
+        """, params_vac_fechas + params_usuarios)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:
