@@ -127,12 +127,13 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 
 
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
-    """Resumen de vacaciones del fiscalizador: días tomados (totales),
-    días pendientes este año y días pendientes de años anteriores."""
+    """Resumen de vacaciones del fiscalizador para el período filtrado:
+    días tomados (año de habilitación del período) y balance al cierre del período."""
+
+    ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
 
     cursor.execute(
-        "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, "
-        "TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias "
+        "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, fecha_ingreso "
         "FROM usuarios WHERE id_usuario = %s",
         (id_usuario,)
     )
@@ -143,30 +144,37 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     dias_pendientes_este_anio = 0
     dias_pendientes_anteriores = 0
 
-    if user and user.get("total_dias") is not None:
-        total_dias = user["total_dias"]
-
+    if user and user.get("fecha_ingreso") is not None:
         cursor.execute("""
             SELECT
-                COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR)
-                                  THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
-                                  ELSE 0 END), 0) AS total_anio
-            FROM vacaciones v
-            JOIN usuarios u ON u.id_usuario = v.id_usuario
-            WHERE v.id_usuario = %s
-              AND v.fecha_inicio <= CURDATE()
-        """, (id_usuario,))
+                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30 AS total_dias,
+                COALESCE((
+                    SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
+                    FROM vacaciones v
+                    WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= %s
+                ), 0) AS total_tomados,
+                COALESCE((
+                    SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
+                    FROM vacaciones v
+                    WHERE v.id_usuario = u.id_usuario
+                      AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR)
+                      AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR)
+                      AND v.fecha_inicio <= %s
+                ), 0) AS tomados_anio
+            FROM usuarios u
+            WHERE u.id_usuario = %s
+        """, (ref_fin, ref_fin, ref_fin, ref_fin, ref_fin, id_usuario))
         result = cursor.fetchone()
-        dias_tomados_total = result["total"] if result else 0
-        dias_tomados = result["total_anio"] if result else 0
+        total_dias = result["total_dias"] or 0
+        dias_tomados_total = result["total_tomados"] or 0
+        dias_tomados = result["tomados_anio"] or 0
 
         dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
         dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
     return {
         "nombre": nombre,
-        "dias_tomados": dias_tomados_total,
+        "dias_tomados": dias_tomados,
         "dias_pendientes_este_anio": dias_pendientes_este_anio,
         "dias_pendientes_anteriores": dias_pendientes_anteriores,
     }
@@ -347,7 +355,7 @@ def mis_reportes():
 
         # ================= RESUMEN VACACIONES (balance real, independiente de los filtros) =================
         resumen_vac = _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
-        dias_tomados_total = resumen_vac["dias_tomados"]
+        dias_tomados = resumen_vac["dias_tomados"]
         dias_pendientes_este_anio = resumen_vac["dias_pendientes_este_anio"]
         dias_pendientes_anteriores = resumen_vac["dias_pendientes_anteriores"]
 
@@ -362,7 +370,7 @@ def mis_reportes():
         reporte=reporte,
         detalle=detalle,
         vacaciones=vacaciones,
-        dias_tomados=dias_tomados_total,
+        dias_tomados=dias_tomados,
         dias_pendientes_este_anio=dias_pendientes_este_anio,
         dias_pendientes_anteriores=dias_pendientes_anteriores
     )
