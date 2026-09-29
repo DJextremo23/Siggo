@@ -128,7 +128,7 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador para el período filtrado:
-    días tomados (año de habilitación del período) y balance al cierre del período."""
+    días tomados (relacionado al detalle, respetando estado) y balance al cierre del período."""
 
     ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
 
@@ -139,8 +139,29 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     )
     user = cursor.fetchone()
     nombre = user["nombre"] if user else ""
-    dias_tomados = 0
-    dias_tomados_total = 0
+
+    # Días tomados: períodos que solapan el período filtrado y ya iniciaron (estado != pendiente)
+    filtro_tomados = ""
+    params_tomados = [id_usuario]
+    if anio:
+        filtro_tomados += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+        params_tomados.extend([int(anio), int(anio)])
+    if fecha_desde:
+        filtro_tomados += " AND v.fecha_fin >= %s"
+        params_tomados.append(fecha_desde)
+    if fecha_hasta:
+        filtro_tomados += " AND v.fecha_inicio <= %s"
+        params_tomados.append(fecha_hasta)
+
+    cursor.execute(f"""
+        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
+        FROM vacaciones v
+        WHERE v.id_usuario = %s
+          AND v.fecha_inicio <= CURDATE()
+          {filtro_tomados}
+    """, params_tomados)
+    dias_tomados = cursor.fetchone()["total"] or 0
+
     dias_pendientes_este_anio = 0
     dias_pendientes_anteriores = 0
 
@@ -167,9 +188,9 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         result = cursor.fetchone()
         total_dias = result["total_dias"] or 0
         dias_tomados_total = result["total_tomados"] or 0
-        dias_tomados = result["tomados_anio"] or 0
+        dias_tomados_anio = result["tomados_anio"] or 0
 
-        dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
+        dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados_anio)
         dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
 
     return {

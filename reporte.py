@@ -267,6 +267,22 @@ def reporte():
             filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
             params_usuarios = list(ids_usuarios)
 
+        filtro_vac_fechas = ""
+        params_vac_fechas = []
+
+        if fecha_desde:
+            filtro_vac_fechas += " AND v2.fecha_fin >= %s"
+            params_vac_fechas.append(fecha_desde)
+
+        if fecha_hasta:
+            filtro_vac_fechas += " AND v2.fecha_inicio <= %s"
+            params_vac_fechas.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta:
+            if anio:
+                filtro_vac_fechas += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+                params_vac_fechas.extend([int(anio), int(anio)])
+
         ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
 
         cursor.execute(f"""
@@ -277,9 +293,8 @@ def reporte():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR)
-                      AND v2.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR)
-                      AND v2.fecha_inicio <= %s
+                      AND v2.fecha_inicio <= CURDATE()
+                      {filtro_vac_fechas}
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
@@ -308,7 +323,7 @@ def reporte():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, [ref_fin] * 13 + params_usuarios)
+        """, params_vac_fechas + [ref_fin] * 10 + params_usuarios)
 
         resumen_vacaciones = cursor.fetchall()
     finally:
@@ -948,6 +963,22 @@ def exportar_resumen_vacaciones_pdf():
             filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
             params_usuarios = list(ids_usuarios)
 
+        filtro_vac_fechas = ""
+        params_vac_fechas = []
+
+        if fecha_desde:
+            filtro_vac_fechas += " AND v2.fecha_fin >= %s"
+            params_vac_fechas.append(fecha_desde)
+
+        if fecha_hasta:
+            filtro_vac_fechas += " AND v2.fecha_inicio <= %s"
+            params_vac_fechas.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta:
+            if anio:
+                filtro_vac_fechas += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+                params_vac_fechas.extend([int(anio), int(anio)])
+
         ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
 
         cursor.execute(f"""
@@ -957,9 +988,8 @@ def exportar_resumen_vacaciones_pdf():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR)
-                      AND v2.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR)
-                      AND v2.fecha_inicio <= %s
+                      AND v2.fecha_inicio <= CURDATE()
+                      {filtro_vac_fechas}
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
@@ -988,7 +1018,7 @@ def exportar_resumen_vacaciones_pdf():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, [ref_fin] * 13 + params_usuarios)
+        """, params_vac_fechas + [ref_fin] * 10 + params_usuarios)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:
@@ -1062,6 +1092,22 @@ def exportar_resumen_vacaciones_excel():
             filtro_usuarios = f" AND u.id_usuario IN ({placeholders})"
             params_usuarios = list(ids_usuarios)
 
+        filtro_vac_fechas = ""
+        params_vac_fechas = []
+
+        if fecha_desde:
+            filtro_vac_fechas += " AND v2.fecha_fin >= %s"
+            params_vac_fechas.append(fecha_desde)
+
+        if fecha_hasta:
+            filtro_vac_fechas += " AND v2.fecha_inicio <= %s"
+            params_vac_fechas.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta:
+            if anio:
+                filtro_vac_fechas += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+                params_vac_fechas.extend([int(anio), int(anio)])
+
         ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else date.today().strftime("%Y-%m-%d"))
 
         cursor.execute(f"""
@@ -1071,9 +1117,8 @@ def exportar_resumen_vacaciones_excel():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR)
-                      AND v2.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR)
-                      AND v2.fecha_inicio <= %s
+                      AND v2.fecha_inicio <= CURDATE()
+                      {filtro_vac_fechas}
                 ), 0) AS dias_tomados,
                 GREATEST(0, LEAST(30, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30) - COALESCE((
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
@@ -1102,7 +1147,7 @@ def exportar_resumen_vacaciones_excel():
               AND u.estado = 'activo'
             {filtro_usuarios}
             ORDER BY u.nombre, u.apellidos
-        """, [ref_fin] * 13 + params_usuarios)
+        """, params_vac_fechas + [ref_fin] * 10 + params_usuarios)
 
         data = filtrar_por_texto(cursor.fetchall(), buscar_resumen_vac)
     finally:
