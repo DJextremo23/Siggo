@@ -300,7 +300,7 @@ def reporte():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR) AND v2.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR) AND v2.fecha_inicio <= %s
+                      AND (YEAR(v2.fecha_inicio) = YEAR(%s) OR YEAR(v2.fecha_fin) = YEAR(%s)) AND v2.fecha_inicio <= %s
                 ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30
@@ -313,7 +313,7 @@ def reporte():
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
-                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR) AND v4.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR) AND v4.fecha_inicio <= %s
+                           AND (YEAR(v4.fecha_inicio) = YEAR(%s) OR YEAR(v4.fecha_fin) = YEAR(%s)) AND v4.fecha_inicio <= %s
                      ), 0))
                 ) AS dias_pendientes_anteriores
             FROM usuarios u
@@ -995,7 +995,7 @@ def exportar_resumen_vacaciones_pdf():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR) AND v2.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR) AND v2.fecha_inicio <= %s
+                      AND (YEAR(v2.fecha_inicio) = YEAR(%s) OR YEAR(v2.fecha_fin) = YEAR(%s)) AND v2.fecha_inicio <= %s
                 ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30
@@ -1008,7 +1008,7 @@ def exportar_resumen_vacaciones_pdf():
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
-                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR) AND v4.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR) AND v4.fecha_inicio <= %s
+                           AND (YEAR(v4.fecha_inicio) = YEAR(%s) OR YEAR(v4.fecha_fin) = YEAR(%s)) AND v4.fecha_inicio <= %s
                      ), 0))
                 ) AS dias_pendientes_anteriores
             FROM usuarios u
@@ -1124,7 +1124,7 @@ def exportar_resumen_vacaciones_excel():
                     SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1)
                     FROM vacaciones v2
                     WHERE v2.id_usuario = u.id_usuario
-                      AND v2.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR) AND v2.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR) AND v2.fecha_inicio <= %s
+                      AND (YEAR(v2.fecha_inicio) = YEAR(%s) OR YEAR(v2.fecha_fin) = YEAR(%s)) AND v2.fecha_inicio <= %s
                 ), 0)) AS dias_pendientes,
                 GREATEST(0,
                     (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30
@@ -1137,7 +1137,7 @@ def exportar_resumen_vacaciones_excel():
                          SELECT SUM(DATEDIFF(v4.fecha_fin, v4.fecha_inicio) + 1)
                          FROM vacaciones v4
                          WHERE v4.id_usuario = u.id_usuario
-                           AND v4.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR) AND v4.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR) AND v4.fecha_inicio <= %s
+                           AND (YEAR(v4.fecha_inicio) = YEAR(%s) OR YEAR(v4.fecha_fin) = YEAR(%s)) AND v4.fecha_inicio <= %s
                      ), 0))
                 ) AS dias_pendientes_anteriores
             FROM usuarios u

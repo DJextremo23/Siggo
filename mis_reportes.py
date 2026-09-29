@@ -178,8 +178,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
                     SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                     FROM vacaciones v
                     WHERE v.id_usuario = u.id_usuario
-                      AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) YEAR)
-                      AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) + 1) YEAR)
+                      AND (YEAR(v.fecha_inicio) = YEAR(%s) OR YEAR(v.fecha_fin) = YEAR(%s))
                       AND v.fecha_inicio <= %s
                 ), 0) AS tomados_anio
             FROM usuarios u
