@@ -111,10 +111,10 @@ def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios
 def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None):
     """Resumen de vacaciones por fiscalizador respetando los filtros de año/rango.
 
-    El saldo se reparte por FIFO: los días tomados se descuentan primero de
-    los años anteriores (saldos más antiguos) y solo después del año en curso.
-    'dias_tomados' refleja únicamente los días consumidos de la asignación del
-    año en curso; lo consumido de años anteriores se ve reflejado en
+    'dias_tomados' refleja el total de días de vacaciones ya tomados (con
+    fecha de inicio cumplida). El saldo pendiente se reparte por FIFO: los
+    días tomados se descuentan primero de los años anteriores (saldos más
+    antiguos) y solo después del año en curso, quedando reflejado en
     'dias_pendientes_anteriores'.
     """
     hoy = date.today().strftime("%Y-%m-%d")
@@ -147,7 +147,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         SELECT
             CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
             u.foto,
-            GREATEST(0, {total_taken_sub} - GREATEST(0, {ent} - 30)) AS dias_tomados,
+            {total_taken_sub} AS dias_tomados,
             (GREATEST(0, {ent} - {total_taken_sub})
              - GREATEST(0, GREATEST(0, {ent} - 30) - {total_taken_sub})) AS dias_pendientes,
             GREATEST(0, GREATEST(0, {ent} - 30) - {total_taken_sub}) AS dias_pendientes_anteriores
@@ -161,7 +161,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """
 
     params = (
-        [ref_fin] * 8 +
+        [ref_fin] * 7 +
         params_usuarios
     )
 
