@@ -112,8 +112,10 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """Resumen de vacaciones por fiscalizador respetando los filtros de año/rango.
 
     'dias_tomados' suma los períodos que solapan el filtro (igual que el
-    detalle de vacaciones); 'dias_pendientes' y 'dias_pendientes_anteriores'
-    se recalculan tomando como referencia el fin del periodo filtrado.
+    detalle de vacaciones). El saldo pendiente se reparte por FIFO: los días
+    tomados se descuentan primero de los años anteriores (saldos más antiguos)
+    y solo después del año en curso, de modo que cada día se refleja en el
+    año al que corresponde.
     """
     hoy = date.today().strftime("%Y-%m-%d")
     periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
@@ -165,8 +167,9 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
             CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
             u.foto,
             {dt_sub} AS dias_tomados,
-            GREATEST(0, LEAST(30, {ent}) - {dt_sub}) AS dias_pendientes,
-            GREATEST(0, ({ent} - {total_taken_sub}) - GREATEST(0, LEAST(30, {ent}) - {dt_sub})) AS dias_pendientes_anteriores
+            (GREATEST(0, {ent} - {total_taken_sub})
+             - GREATEST(0, GREATEST(0, {ent} - 30) - {total_taken_sub})) AS dias_pendientes,
+            GREATEST(0, GREATEST(0, {ent} - 30) - {total_taken_sub}) AS dias_pendientes_anteriores
         FROM usuarios u
         INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
         INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -178,10 +181,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
 
     params = (
         params_dias +
-        [ref_fin] +
-        params_dias +
-        [ref_fin, ref_fin, ref_fin] +
-        params_dias +
+        [ref_fin] * 6 +
         params_usuarios
     )
 

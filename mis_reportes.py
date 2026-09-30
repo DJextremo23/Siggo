@@ -130,8 +130,10 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     """Resumen de vacaciones del fiscalizador respetando los filtros de año/rango.
 
     'dias_tomados' suma los períodos que solapan el filtro (igual que el
-    detalle de vacaciones); 'dias_pendientes' y 'dias_pendientes_anteriores'
-    se recalculan tomando como referencia el fin del periodo filtrado.
+    detalle de vacaciones). El saldo pendiente se reparte por FIFO: los días
+    tomados se descuentan primero de los años anteriores (saldos más antiguos)
+    y solo después del año en curso, de modo que cada día se refleja en el
+    año al que corresponde.
     """
 
     hoy = date.today().strftime("%Y-%m-%d")
@@ -170,15 +172,15 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
 
         filtro = ""
         params = []
-        if anio:
-            filtro += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
-            params.extend([int(anio), int(anio)])
         if fecha_desde:
             filtro += " AND v.fecha_fin >= %s"
             params.append(fecha_desde)
         if fecha_hasta:
             filtro += " AND v.fecha_inicio <= %s"
             params.append(fecha_hasta)
+        if not fecha_desde and not fecha_hasta and anio:
+            filtro += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+            params.extend([int(anio), int(anio)])
 
         cursor.execute(f"""
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total_periodo
@@ -199,8 +201,9 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         res = cursor.fetchone()
         dias_tomados_total = res["total"] if res else 0
 
-        dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
-        dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
+        total_pendientes = max(0, total_dias - dias_tomados_total)
+        dias_pendientes_anteriores = max(0, max(0, total_dias - 30) - dias_tomados_total)
+        dias_pendientes_este_anio = total_pendientes - dias_pendientes_anteriores
 
     return {
         "nombre": nombre,
@@ -341,10 +344,6 @@ def mis_reportes():
         filtro_vac = "WHERE v.id_usuario = %s"
         params_vac = [id_usuario]
 
-        if anio:
-            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
-            params_vac.extend([int(anio), int(anio)])
-
         if fecha_desde:
             filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(fecha_desde)
@@ -352,6 +351,10 @@ def mis_reportes():
         if fecha_hasta:
             filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta and anio:
+            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+            params_vac.extend([int(anio), int(anio)])
 
         if buscar_vac:
             filtro_vac += """ AND (
@@ -840,10 +843,6 @@ def exportar_vacaciones_pdf():
         filtro_vac = "WHERE v.id_usuario = %s"
         params_vac = [id_usuario]
 
-        if anio:
-            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
-            params_vac.extend([int(anio), int(anio)])
-
         if fecha_desde:
             filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(fecha_desde)
@@ -851,6 +850,10 @@ def exportar_vacaciones_pdf():
         if fecha_hasta:
             filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta and anio:
+            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+            params_vac.extend([int(anio), int(anio)])
 
         if buscar_vac:
             filtro_vac += """ AND (
@@ -962,10 +965,6 @@ def exportar_vacaciones_excel():
         filtro_vac = "WHERE v.id_usuario = %s"
         params_vac = [id_usuario]
 
-        if anio:
-            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
-            params_vac.extend([int(anio), int(anio)])
-
         if fecha_desde:
             filtro_vac += " AND v.fecha_fin >= %s"
             params_vac.append(fecha_desde)
@@ -973,6 +972,10 @@ def exportar_vacaciones_excel():
         if fecha_hasta:
             filtro_vac += " AND v.fecha_inicio <= %s"
             params_vac.append(fecha_hasta)
+
+        if not fecha_desde and not fecha_hasta and anio:
+            filtro_vac += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
+            params_vac.extend([int(anio), int(anio)])
 
         if buscar_vac:
             filtro_vac += """ AND (
