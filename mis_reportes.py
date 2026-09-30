@@ -1,6 +1,5 @@
 """
 Blueprint para reportes del fiscalizador - resumen personal, detalle y vacaciones con exportación a PDF y Excel
-# version: FIFO puro (Pend. Anteriores = 0)
 """
 from flask import Blueprint, render_template, request, send_file, session, redirect, url_for
 from io import BytesIO
@@ -105,26 +104,30 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador respetando los filtros de año/rango.
 
-    El saldo se reparte por FIFO: los días tomados se descuentan primero de
-    los años anteriores (saldos más antiguos) y solo después del año en curso.
-    'dias_tomados' refleja únicamente los días consumidos de la asignación del
-    año en curso; lo consumido de años anteriores se ve reflejado en
+    Los días tomados se atribuyen por período (FIFO) según el año filtrado:
+    se descuentan primero de los períodos anteriores al año del filtro y
+    luego del propio año filtrado. 'dias_tomados' refleja lo consumido del
+    año filtrado; lo consumido de años anteriores se ve en
     'dias_pendientes_anteriores'.
     """
 
     hoy = date.today().strftime("%Y-%m-%d")
     periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
 
-    # La antigüedad y los días tomados nunca se proyectan más allá de hoy
-    ref_fin = fecha_hasta or (f"{anio}-12-31" if anio else hoy)
-    if ref_fin > hoy:
-        ref_fin = hoy
+    # Año del filtro, para atribuir los días por período (FIFO)
+    if anio:
+        anio_filtro = int(anio)
+    elif fecha_desde:
+        anio_filtro = int(fecha_desde[:4])
+    else:
+        anio_filtro = date.today().year
 
     cursor.execute(
         "SELECT CONCAT(nombre, ' ', apellidos) AS nombre, "
+        "YEAR(fecha_ingreso) AS anio_ingreso, "
         "TIMESTAMPDIFF(YEAR, fecha_ingreso, %s) * 30 AS total_dias "
         "FROM usuarios WHERE id_usuario = %s",
-        (ref_fin, id_usuario)
+        (hoy, id_usuario)
     )
     user = cursor.fetchone()
     nombre = user["nombre"] if user else ""
@@ -151,15 +154,17 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
             FROM vacaciones v
             WHERE v.id_usuario = %s
               AND v.fecha_inicio <= %s
-        """, (id_usuario, ref_fin))
+        """, (id_usuario, hoy))
         res = cursor.fetchone()
         dias_tomados_total = res["total"] if res else 0
 
-        ent_anteriores = max(0, total_dias - 30)
+        anio_ingreso = user["anio_ingreso"] if user.get("anio_ingreso") else date.today().year
+        ent_anteriores = max(0, (anio_filtro - anio_ingreso - 1) * 30)
+
+        # FIFO: los días tomados se descuentan primero de los períodos anteriores al filtrado
         dias_tomados = max(0, dias_tomados_total - ent_anteriores)
-        total_pendientes = max(0, total_dias - dias_tomados_total)
         dias_pendientes_anteriores = max(0, ent_anteriores - dias_tomados_total)
-        dias_pendientes_este_anio = total_pendientes - dias_pendientes_anteriores
+        dias_pendientes_este_anio = max(0, 30 - dias_tomados)
 
     return {
         "nombre": nombre,
