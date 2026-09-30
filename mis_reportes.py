@@ -104,10 +104,10 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador respetando los filtros de año/rango.
 
-    'dias_tomados' refleja el total de días de vacaciones ya tomados (con
-    fecha de inicio cumplida). El saldo pendiente se reparte por FIFO: los
-    días tomados se descuentan primero de los años anteriores (saldos más
-    antiguos) y solo después del año en curso, quedando reflejado en
+    El saldo se reparte por FIFO: los días tomados se descuentan primero de
+    los años anteriores (saldos más antiguos) y solo después del año en curso.
+    'dias_tomados' refleja únicamente los días consumidos de la asignación del
+    año en curso; lo consumido de años anteriores se ve reflejado en
     'dias_pendientes_anteriores'.
     """
 
@@ -155,7 +155,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         dias_tomados_total = res["total"] if res else 0
 
         ent_anteriores = max(0, total_dias - 30)
-        dias_tomados = dias_tomados_total
+        dias_tomados = max(0, dias_tomados_total - ent_anteriores)
         total_pendientes = max(0, total_dias - dias_tomados_total)
         dias_pendientes_anteriores = max(0, ent_anteriores - dias_tomados_total)
         dias_pendientes_este_anio = total_pendientes - dias_pendientes_anteriores
