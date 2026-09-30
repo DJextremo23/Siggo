@@ -137,7 +137,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         "FROM vacaciones v3 WHERE v3.id_usuario = u.id_usuario "
         "AND v3.fecha_inicio <= %s), 0)"
     )
-    ent_antes = "GREATEST(0, (%s - YEAR(u.fecha_ingreso) - 1) * 30)"
+    ent_antes = "GREATEST(0, (CAST(%s AS SIGNED) - CAST(YEAR(u.fecha_ingreso) AS SIGNED) - 1) * 30)"
 
     filtro_usuarios = ""
     params_usuarios = []

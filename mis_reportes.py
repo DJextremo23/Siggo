@@ -868,8 +868,8 @@ def exportar_vacaciones_pdf():
     if anio: partes.append(f"Año: {anio}")
     if fecha_desde: partes.append(f"Desde: {fecha_desde}")
     if fecha_hasta: partes.append(f"Hasta: {fecha_hasta}")
-    partes.append(f"Tomados (año actual): {resumen['dias_tomados']} días")
-    partes.append(f"Pendientes (año actual): {resumen['dias_pendientes_este_anio']} días")
+    partes.append(f"Tomados (año filtrado): {resumen['dias_tomados']} días")
+    partes.append(f"Pendientes (año filtrado): {resumen['dias_pendientes_este_anio']} días")
     partes.append(f"Pend. años anteriores: {resumen['dias_pendientes_anteriores']} días")
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
@@ -979,8 +979,8 @@ def exportar_vacaciones_excel():
 
     ws.merge_cells(start_row=data_start, start_column=1, end_row=data_start, end_column=len(columnas))
     c = ws.cell(row=data_start, column=1)
-    c.value = (f"Tomados (año actual): {resumen['dias_tomados']} días  |  "
-               f"Pendientes (año actual): {resumen['dias_pendientes_este_anio']} días  |  "
+    c.value = (f"Tomados (año filtrado): {resumen['dias_tomados']} días  |  "
+               f"Pendientes (año filtrado): {resumen['dias_pendientes_este_anio']} días  |  "
                f"Pend. años anteriores: {resumen['dias_pendientes_anteriores']} días")
     c.font = Font(name='Segoe UI', italic=True, size=9, color=COLOR_TEXTO_MUTED.lstrip('#'))
     c.alignment = Alignment(horizontal='left', vertical='center')
