@@ -159,12 +159,19 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         dias_tomados_total = res["total"] if res else 0
 
         anio_ingreso = user["anio_ingreso"] if user.get("anio_ingreso") else date.today().year
-        ent_anteriores = max(0, (anio_filtro - anio_ingreso - 1) * 30)
 
-        # FIFO: los días tomados se descuentan primero de los períodos anteriores al filtrado
-        dias_tomados = max(0, dias_tomados_total - ent_anteriores)
-        dias_pendientes_anteriores = max(0, ent_anteriores - dias_tomados_total)
-        dias_pendientes_este_anio = max(0, 30 - dias_tomados)
+        if anio_filtro <= anio_ingreso:
+            # Año de ingreso o anterior: aún no hay vacaciones
+            dias_tomados = 0
+            dias_pendientes_anteriores = 0
+            dias_pendientes_este_anio = 0
+        else:
+            ent_anteriores = (anio_filtro - anio_ingreso - 1) * 30
+
+            # FIFO: los días tomados se descuentan primero de los períodos anteriores al filtrado
+            dias_tomados = min(30, max(0, dias_tomados_total - ent_anteriores))
+            dias_pendientes_anteriores = max(0, ent_anteriores - dias_tomados_total)
+            dias_pendientes_este_anio = max(0, 30 - dias_tomados)
 
     return {
         "nombre": nombre,

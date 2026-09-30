@@ -150,9 +150,12 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         SELECT
             CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
             u.foto,
-            GREATEST(0, {total_taken_sub} - {ent_antes}) AS dias_tomados,
-            GREATEST(0, 30 - GREATEST(0, {total_taken_sub} - {ent_antes})) AS dias_pendientes,
-            GREATEST(0, {ent_antes} - {total_taken_sub}) AS dias_pendientes_anteriores
+            CASE WHEN %s <= YEAR(u.fecha_ingreso) THEN 0
+                 ELSE LEAST(30, GREATEST(0, {total_taken_sub} - {ent_antes})) END AS dias_tomados,
+            CASE WHEN %s <= YEAR(u.fecha_ingreso) THEN 0
+                 ELSE GREATEST(0, 30 - LEAST(30, GREATEST(0, {total_taken_sub} - {ent_antes}))) END AS dias_pendientes,
+            CASE WHEN %s <= YEAR(u.fecha_ingreso) THEN 0
+                 ELSE GREATEST(0, {ent_antes} - {total_taken_sub}) END AS dias_pendientes_anteriores
         FROM usuarios u
         INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
         INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -163,7 +166,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """
 
     params = (
-        [hoy, anio_filtro, hoy, anio_filtro, anio_filtro, hoy] +
+        [anio_filtro, hoy, anio_filtro, anio_filtro, hoy, anio_filtro, anio_filtro, anio_filtro, hoy] +
         params_usuarios
     )
 
