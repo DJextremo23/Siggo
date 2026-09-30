@@ -72,31 +72,6 @@ def _fecha(valor):
     return s
 
 
-def _dias_pendientes_acumulados(cursor, id_usuario):
-    """Total de días pendientes (este año + años anteriores): (años cumplidos × 30) − total tomado en toda la historia."""
-    cursor.execute(
-        "SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias "
-        "FROM usuarios WHERE id_usuario = %s",
-        (id_usuario,)
-    )
-    user = cursor.fetchone()
-    if not user or user.get("total_dias") is None:
-        return 0
-
-    total_dias = user["total_dias"]
-
-    cursor.execute("""
-        SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
-        FROM vacaciones v
-        WHERE v.id_usuario = %s
-          AND v.fecha_inicio <= CURDATE()
-    """, (id_usuario,))
-    result = cursor.fetchone()
-    total_tomados = result["total"] if result else 0
-
-    return max(0, total_dias - total_tomados)
-
-
 def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Compensaciones pendientes (guardias asistidas sin compensar o con compensación
     futura) del fiscalizador dentro del período/año filtrado."""
@@ -865,12 +840,7 @@ def exportar_vacaciones_pdf():
 
         data = cursor.fetchall()
 
-        dias_tomados = 0
-        for v in data:
-            if v["fecha_inicio"] and v["fecha_fin"] and v["estado"] != "pendiente":
-                dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
-
-        dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
+        resumen = _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
     finally:
         if cursor is not None:
             cursor.close()
@@ -892,8 +862,9 @@ def exportar_vacaciones_pdf():
     if anio: partes.append(f"Año: {anio}")
     if fecha_desde: partes.append(f"Desde: {fecha_desde}")
     if fecha_hasta: partes.append(f"Hasta: {fecha_hasta}")
-    partes.append(f"Tomados (período): {dias_tomados} días")
-    partes.append(f"Pendientes: {dias_faltantes} días")
+    partes.append(f"Tomados (año actual): {resumen['dias_tomados']} días")
+    partes.append(f"Pendientes (año actual): {resumen['dias_pendientes_este_anio']} días")
+    partes.append(f"Pend. años anteriores: {resumen['dias_pendientes_anteriores']} días")
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
 
@@ -987,12 +958,7 @@ def exportar_vacaciones_excel():
 
         data = cursor.fetchall()
 
-        dias_tomados = 0
-        for v in data:
-            if v["fecha_inicio"] and v["fecha_fin"] and v["estado"] != "pendiente":
-                dias_tomados += (v["fecha_fin"] - v["fecha_inicio"]).days + 1
-
-        dias_faltantes = _dias_pendientes_acumulados(cursor, id_usuario)
+        resumen = _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta)
     finally:
         if cursor is not None:
             cursor.close()
@@ -1007,7 +973,9 @@ def exportar_vacaciones_excel():
 
     ws.merge_cells(start_row=data_start, start_column=1, end_row=data_start, end_column=len(columnas))
     c = ws.cell(row=data_start, column=1)
-    c.value = f"Tomados (período): {dias_tomados} días  |  Pendientes: {dias_faltantes} días"
+    c.value = (f"Tomados (año actual): {resumen['dias_tomados']} días  |  "
+               f"Pendientes (año actual): {resumen['dias_pendientes_este_anio']} días  |  "
+               f"Pend. años anteriores: {resumen['dias_pendientes_anteriores']} días")
     c.font = Font(name='Segoe UI', italic=True, size=9, color=COLOR_TEXTO_MUTED.lstrip('#'))
     c.alignment = Alignment(horizontal='left', vertical='center')
     data_start += 1
