@@ -111,13 +111,10 @@ def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios
 def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None):
     """Resumen de vacaciones por fiscalizador respetando los filtros de año/rango.
 
-    Solo se cuentan como 'tomados' los días de vacaciones ya finalizadas
-    (fecha_fin <= hoy); las programadas o en curso siguen como pendientes.
-    El saldo se reparte por FIFO: los días tomados se descuentan primero de
-    los años anteriores (saldos más antiguos) y solo después del año en curso.
-    'dias_tomados' refleja únicamente los días consumidos de la asignación del
-    año en curso; lo consumido de años anteriores se ve reflejado en
-    'dias_pendientes_anteriores'.
+    'dias_tomados' suma los períodos que solapan el filtro (igual que el
+    detalle de vacaciones); 'dias_pendientes' y 'dias_pendientes_anteriores'
+    se recalculan tomando como referencia el fin del periodo filtrado. Cada
+    vacación descuenta del año en que se tomó (no se aplica FIFO).
     """
     hoy = date.today().strftime("%Y-%m-%d")
     periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
@@ -131,11 +128,30 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     if ref_fin > hoy:
         ref_fin = hoy
 
+    filtro_dias = ""
+    params_dias = []
+    if fecha_desde:
+        filtro_dias += " AND v2.fecha_fin >= %s"
+        params_dias.append(fecha_desde)
+    if fecha_hasta:
+        filtro_dias += " AND v2.fecha_inicio <= %s"
+        params_dias.append(fecha_hasta)
+    if not fecha_desde and not fecha_hasta and anio:
+        filtro_dias += " AND (YEAR(v2.fecha_inicio) = %s OR YEAR(v2.fecha_fin) = %s)"
+        params_dias.extend([int(anio), int(anio)])
+
     ent = "TIMESTAMPDIFF(YEAR, u.fecha_ingreso, %s) * 30"
+    dt_sub = (
+        "COALESCE((SELECT SUM(DATEDIFF(v2.fecha_fin, v2.fecha_inicio) + 1) "
+        "FROM vacaciones v2 WHERE v2.id_usuario = u.id_usuario"
+        + filtro_dias +
+        " AND v2.fecha_inicio <= CURDATE()"
+        "), 0)"
+    )
     total_taken_sub = (
         "COALESCE((SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1) "
         "FROM vacaciones v3 WHERE v3.id_usuario = u.id_usuario "
-        "AND v3.fecha_fin <= %s), 0)"
+        "AND v3.fecha_inicio <= %s), 0)"
     )
 
     filtro_usuarios = ""
@@ -149,10 +165,9 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         SELECT
             CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
             u.foto,
-            GREATEST(0, {total_taken_sub} - GREATEST(0, {ent} - 30)) AS dias_tomados,
-            (GREATEST(0, {ent} - {total_taken_sub})
-             - GREATEST(0, GREATEST(0, {ent} - 30) - {total_taken_sub})) AS dias_pendientes,
-            GREATEST(0, GREATEST(0, {ent} - 30) - {total_taken_sub}) AS dias_pendientes_anteriores
+            {dt_sub} AS dias_tomados,
+            GREATEST(0, LEAST(30, {ent}) - {dt_sub}) AS dias_pendientes,
+            GREATEST(0, ({ent} - {total_taken_sub}) - GREATEST(0, LEAST(30, {ent}) - {dt_sub})) AS dias_pendientes_anteriores
         FROM usuarios u
         INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
         INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -163,7 +178,11 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """
 
     params = (
-        [ref_fin] * 8 +
+        params_dias +
+        [ref_fin] +
+        params_dias +
+        [ref_fin, ref_fin, ref_fin] +
+        params_dias +
         params_usuarios
     )
 
