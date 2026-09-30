@@ -111,10 +111,10 @@ def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios
 def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None):
     """Resumen de vacaciones por fiscalizador respetando los filtros de año/rango.
 
-    'dias_tomados' suma los períodos que solapan el filtro (igual que el
-    detalle de vacaciones); 'dias_pendientes' y 'dias_pendientes_anteriores'
-    se recalculan tomando como referencia el fin del periodo filtrado. Cada
-    vacación descuenta del año en que se tomó (no se aplica FIFO).
+    'dias_tomados' refleja los días consumidos de la asignación del año en
+    curso (FIFO: los días de años anteriores se descuentan primero).
+    'dias_pendientes_anteriores' refleja el saldo de los períodos anteriores
+    según el año calendario en que se tomó cada vacación.
     """
     hoy = date.today().strftime("%Y-%m-%d")
     periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
@@ -165,8 +165,8 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         SELECT
             CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
             u.foto,
-            {dt_sub} AS dias_tomados,
-            GREATEST(0, LEAST(30, {ent}) - {dt_sub}) AS dias_pendientes,
+            GREATEST(0, {total_taken_sub} - GREATEST(0, {ent} - 30)) AS dias_tomados,
+            GREATEST(0, 30 - GREATEST(0, {total_taken_sub} - GREATEST(0, {ent} - 30))) AS dias_pendientes,
             GREATEST(0, ({ent} - {total_taken_sub}) - GREATEST(0, LEAST(30, {ent}) - {dt_sub})) AS dias_pendientes_anteriores
         FROM usuarios u
         INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
@@ -178,10 +178,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """
 
     params = (
-        params_dias +
-        [ref_fin] +
-        params_dias +
-        [ref_fin, ref_fin, ref_fin] +
+        [ref_fin] * 7 +
         params_dias +
         params_usuarios
     )

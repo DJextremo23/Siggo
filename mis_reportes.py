@@ -104,10 +104,10 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador respetando los filtros de año/rango.
 
-    'dias_tomados' suma los períodos que solapan el filtro (igual que el
-    detalle de vacaciones); 'dias_pendientes' y 'dias_pendientes_anteriores'
-    se recalculan tomando como referencia el fin del periodo filtrado. Cada
-    vacación descuenta del año en que se tomó (no se aplica FIFO).
+    'dias_tomados' refleja los días consumidos de la asignación del año en
+    curso (FIFO: los días de años anteriores se descuentan primero).
+    'dias_pendientes_anteriores' refleja el saldo de los períodos anteriores
+    según el año calendario en que se tomó cada vacación.
     """
 
     hoy = date.today().strftime("%Y-%m-%d")
@@ -160,11 +160,11 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total_periodo
             FROM vacaciones v
             WHERE v.id_usuario = %s
-              AND v.fecha_inicio <= CURDATE()
+              AND v.fecha_inicio <= %s
             {filtro}
-        """, [id_usuario] + params)
+        """, [id_usuario, ref_fin] + params)
         res = cursor.fetchone()
-        dias_tomados = res["total_periodo"] if res else 0
+        dias_tomados_periodo = res["total_periodo"] if res else 0
 
         cursor.execute("""
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
@@ -175,8 +175,17 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         res = cursor.fetchone()
         dias_tomados_total = res["total"] if res else 0
 
-        dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados)
-        dias_pendientes_anteriores = max(0, (total_dias - dias_tomados_total) - dias_pendientes_este_anio)
+        ent_anteriores = max(0, total_dias - 30)
+
+        # Días tomados del año en curso (FIFO: los de años anteriores se descuentan primero)
+        dias_tomados = max(0, dias_tomados_total - ent_anteriores)
+
+        # Días pendientes de años anteriores (por período calendario)
+        dias_tomados_previos = dias_tomados_total - dias_tomados_periodo
+        dias_pendientes_anteriores = max(0, ent_anteriores - dias_tomados_previos)
+
+        # Días pendientes del año en curso
+        dias_pendientes_este_anio = max(0, 30 - dias_tomados)
 
     return {
         "nombre": nombre,
