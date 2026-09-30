@@ -129,11 +129,11 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador respetando los filtros de año/rango.
 
-    'dias_tomados' suma los períodos que solapan el filtro (igual que el
-    detalle de vacaciones). El saldo pendiente se reparte por FIFO: los días
-    tomados se descuentan primero de los años anteriores (saldos más antiguos)
-    y solo después del año en curso, de modo que cada día se refleja en el
-    año al que corresponde.
+    El saldo se reparte por FIFO: los días tomados se descuentan primero de
+    los años anteriores (saldos más antiguos) y solo después del año en curso.
+    'dias_tomados' refleja únicamente los días consumidos de la asignación del
+    año en curso; lo consumido de años anteriores se ve reflejado en
+    'dias_pendientes_anteriores'.
     """
 
     hoy = date.today().strftime("%Y-%m-%d")
@@ -170,28 +170,6 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     if user and user.get("total_dias") is not None:
         total_dias = user["total_dias"]
 
-        filtro = ""
-        params = []
-        if fecha_desde:
-            filtro += " AND v.fecha_fin >= %s"
-            params.append(fecha_desde)
-        if fecha_hasta:
-            filtro += " AND v.fecha_inicio <= %s"
-            params.append(fecha_hasta)
-        if not fecha_desde and not fecha_hasta and anio:
-            filtro += " AND (YEAR(v.fecha_inicio) = %s OR YEAR(v.fecha_fin) = %s)"
-            params.extend([int(anio), int(anio)])
-
-        cursor.execute(f"""
-            SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total_periodo
-            FROM vacaciones v
-            WHERE v.id_usuario = %s
-              AND v.fecha_inicio <= CURDATE()
-            {filtro}
-        """, [id_usuario] + params)
-        res = cursor.fetchone()
-        dias_tomados = res["total_periodo"] if res else 0
-
         cursor.execute("""
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
             FROM vacaciones v
@@ -201,8 +179,10 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
         res = cursor.fetchone()
         dias_tomados_total = res["total"] if res else 0
 
+        ent_anteriores = max(0, total_dias - 30)
+        dias_tomados = max(0, dias_tomados_total - ent_anteriores)
         total_pendientes = max(0, total_dias - dias_tomados_total)
-        dias_pendientes_anteriores = max(0, max(0, total_dias - 30) - dias_tomados_total)
+        dias_pendientes_anteriores = max(0, ent_anteriores - dias_tomados_total)
         dias_pendientes_este_anio = total_pendientes - dias_pendientes_anteriores
 
     return {
