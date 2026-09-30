@@ -1,5 +1,6 @@
 """
 Blueprint para reportes del fiscalizador - resumen personal, detalle y vacaciones con exportación a PDF y Excel
+# version: FIFO puro (Pend. Anteriores = 0)
 """
 from flask import Blueprint, render_template, request, send_file, session, redirect, url_for
 from io import BytesIO
