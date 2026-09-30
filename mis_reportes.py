@@ -104,6 +104,8 @@ def _pendientes_periodo(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
 def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fecha_hasta):
     """Resumen de vacaciones del fiscalizador respetando los filtros de año/rango.
 
+    Solo se cuentan como 'tomados' los días de vacaciones ya finalizadas
+    (fecha_fin <= hoy); las programadas o en curso siguen como pendientes.
     El saldo se reparte por FIFO: los días tomados se descuentan primero de
     los años anteriores (saldos más antiguos) y solo después del año en curso.
     'dias_tomados' refleja únicamente los días consumidos de la asignación del
@@ -149,7 +151,7 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
             FROM vacaciones v
             WHERE v.id_usuario = %s
-              AND v.fecha_inicio <= %s
+              AND v.fecha_fin <= %s
         """, (id_usuario, ref_fin))
         res = cursor.fetchone()
         dias_tomados_total = res["total"] if res else 0

@@ -111,6 +111,8 @@ def construir_filtro(anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios
 def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=None, ids_usuarios=None):
     """Resumen de vacaciones por fiscalizador respetando los filtros de año/rango.
 
+    Solo se cuentan como 'tomados' los días de vacaciones ya finalizadas
+    (fecha_fin <= hoy); las programadas o en curso siguen como pendientes.
     El saldo se reparte por FIFO: los días tomados se descuentan primero de
     los años anteriores (saldos más antiguos) y solo después del año en curso.
     'dias_tomados' refleja únicamente los días consumidos de la asignación del
@@ -133,7 +135,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     total_taken_sub = (
         "COALESCE((SELECT SUM(DATEDIFF(v3.fecha_fin, v3.fecha_inicio) + 1) "
         "FROM vacaciones v3 WHERE v3.id_usuario = u.id_usuario "
-        "AND v3.fecha_inicio <= %s), 0)"
+        "AND v3.fecha_fin <= %s), 0)"
     )
 
     filtro_usuarios = ""
