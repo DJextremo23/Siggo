@@ -112,57 +112,146 @@
             100% { transform: translateY(-100vh) scale(1); opacity: 0; }
         }
 
-        /* ---- AI ORB SPINNER ---- */
-        .ai-orb {
-            width: 88px;
-            height: 88px;
+        /* ---- ROBOT HEAD (analizando) ---- */
+        .robot-head {
+            width: 96px;
+            height: 96px;
             position: relative;
             margin-bottom: 28px;
+            animation: robot-bob 2.4s ease-in-out infinite;
         }
-        .ai-orb .ring {
+        .robot-head::before {
+            content: '';
+            position: absolute;
+            inset: -18px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,92,246,.18) 0%, rgba(139,92,246,0) 70%);
+            animation: robot-halo 2s ease-in-out infinite;
+        }
+        .robot-face {
             position: absolute;
             inset: 0;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            animation: orb-spin 1.6s linear infinite;
+            background: linear-gradient(145deg, #7c3aed, #4f46e5);
+            border-radius: 22px;
+            box-shadow:
+                0 0 0 4px rgba(255,255,255,.08),
+                0 0 0 7px rgba(139,92,246,.15),
+                0 18px 40px rgba(99,102,241,.45);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            overflow: hidden;
         }
-        .ai-orb .ring:nth-child(1) {
-            border-top-color: #6366f1;
-            animation-duration: 1.2s;
-        }
-        .ai-orb .ring:nth-child(2) {
-            inset: 8px;
-            border-right-color: #8b5cf6;
-            animation-duration: 1.8s;
-            animation-direction: reverse;
-        }
-        .ai-orb .ring:nth-child(3) {
-            inset: 16px;
-            border-bottom-color: #a78bfa;
-            animation-duration: 1.4s;
-        }
-        .ai-orb .core {
+        .robot-face::before {
+            content: '';
             position: absolute;
-            inset: 24px;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 45%);
+            pointer-events: none;
+        }
+        .robot-antenna {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            width: 4px;
+            height: 28px;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, #c4b5fd, #8b5cf6);
+            border-radius: 3px;
+            transform-origin: bottom center;
+            animation: antenna-wag 2s ease-in-out infinite;
+        }
+        .robot-antenna .antenna-tip {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            transform: translateX(-50%);
+            background: #22d3ee;
             border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            box-shadow: 0 0 12px #22d3ee, 0 0 24px rgba(34,211,238,.6);
+            animation: antenna-blink 1.2s ease-in-out infinite;
+        }
+        .robot-eyes {
+            display: flex;
+            gap: 22px;
+            position: relative;
+            z-index: 1;
+            animation: eyes-look 4s ease-in-out infinite;
+        }
+        .robot-eye {
+            width: 26px;
+            height: 30px;
+            background: #0f0f23;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 30px rgba(99,102,241,.4);
-            animation: core-pulse 1.5s ease-in-out infinite;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,.6), 0 0 0 2px rgba(255,255,255,.15);
+            animation: eye-blink 3.6s ease-in-out infinite;
         }
-        .ai-orb .core svg {
-            width: 22px;
-            height: 22px;
-            color: white;
+        .eye-pupil {
+            width: 10px;
+            height: 10px;
+            background: #22d3ee;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #22d3ee;
         }
-        @keyframes orb-spin {
-            to { transform: rotate(360deg); }
+        .robot-mouth {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            height: 14px;
+            position: relative;
+            z-index: 1;
         }
-        @keyframes core-pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,.3); }
-            50% { box-shadow: 0 0 40px rgba(99,102,241,.6); }
+        .robot-mouth span {
+            width: 6px;
+            height: 6px;
+            border-radius: 2px;
+            background: #a5f3fc;
+            box-shadow: 0 0 6px rgba(34,211,238,.7);
+            animation: mouth-talk 1s ease-in-out infinite;
+        }
+        .robot-mouth span:nth-child(2) { animation-delay: .1s; }
+        .robot-mouth span:nth-child(3) { animation-delay: .2s; }
+        .robot-mouth span:nth-child(4) { animation-delay: .3s; }
+
+        @keyframes robot-bob {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-6px) rotate(-3deg); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(-6px) rotate(3deg); }
+        }
+        @keyframes robot-halo {
+            0%, 100% { opacity: .6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.12); }
+        }
+        @keyframes antenna-wag {
+            0%, 100% { transform: translateX(-50%) rotate(-6deg); }
+            50% { transform: translateX(-50%) rotate(6deg); }
+        }
+        @keyframes antenna-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .35; }
+        }
+        @keyframes eye-blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            94%, 96% { transform: scaleY(.08); }
+        }
+        @keyframes eyes-look {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-7px); }
+            40% { transform: translateX(0); }
+            60% { transform: translateX(7px); }
+            80% { transform: translateX(0); }
+        }
+        @keyframes mouth-talk {
+            0%, 100% { transform: scaleY(.5); }
+            50% { transform: scaleY(1.4); }
         }
 
         /* ---- PROGRESS STEPS ---- */
