@@ -164,6 +164,96 @@ let analisisData = null;
 let intentosAutoRetry = 0;
 let maxIntentosAutoRetry = 3;
 
+// ===== Sistema de sonido (Web Audio API) =====
+let audioCtx = null;
+let intervaloProcesando = null;
+let sonidoActivado = false;
+
+function activarSonido() {
+    if (sonidoActivado) return;
+    sonidoActivado = true;
+    getAudioCtx();
+}
+
+function getAudioCtx() {
+    if (!audioCtx) {
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            audioCtx = new AC();
+        } catch (e) { return null; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(function () {});
+    }
+    return audioCtx;
+}
+
+function tono(freq, duracion, tipo, volumen, inicio) {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime + (inicio || 0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = tipo || 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(volumen || 0.15, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duracion);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + duracion + 0.05);
+}
+
+function sonidoInicio() {
+    tono(392, 0.09, 'square', 0.07);
+    tono(587, 0.09, 'square', 0.07, 0.1);
+    tono(784, 0.14, 'square', 0.08, 0.2);
+}
+
+function sonidoProcesando() {
+    tono(620, 0.05, 'sine', 0.04);
+    tono(930, 0.05, 'sine', 0.04, 0.07);
+}
+
+function sonidoListo() {
+    tono(523.25, 0.14, 'sine', 0.13);
+    tono(659.25, 0.14, 'sine', 0.13, 0.12);
+    tono(783.99, 0.14, 'sine', 0.13, 0.24);
+    tono(1046.5, 0.32, 'sine', 0.15, 0.36);
+}
+
+function sonidoError() {
+    tono(320, 0.18, 'sawtooth', 0.09);
+    tono(210, 0.3, 'sawtooth', 0.09, 0.18);
+}
+
+function avisoVoz(texto) {
+    try {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(texto);
+        u.lang = 'es-ES';
+        u.rate = 1;
+        u.pitch = 1.05;
+        window.speechSynthesis.speak(u);
+    } catch (e) {}
+}
+
+function iniciarSonidoProcesando() {
+    detenerSonidoProcesando();
+    sonidoProcesando();
+    intervaloProcesando = setInterval(sonidoProcesando, 1400);
+}
+
+function detenerSonidoProcesando() {
+    if (intervaloProcesando) {
+        clearInterval(intervaloProcesando);
+        intervaloProcesando = null;
+    }
+}
+
 function escapeHtml(str) {
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;')
@@ -300,6 +390,8 @@ function setPaso(stepNumber) {
 }
 
 function mostrarError(mensaje) {
+    detenerSonidoProcesando();
+    sonidoError();
     document.getElementById('loading-stage').classList.remove('active');
     document.getElementById('error-card').classList.add('active');
     document.getElementById('error-message').textContent = mensaje;
@@ -321,6 +413,9 @@ function mostrarError(mensaje) {
 }
 
 function mostrarResultados(data) {
+    detenerSonidoProcesando();
+    sonidoListo();
+    avisoVoz('Analisis completado');
     document.getElementById('loading-stage').classList.remove('active');
     document.getElementById('error-card').classList.remove('active');
     document.getElementById('resultados-wrapper').classList.add('active');
@@ -352,6 +447,8 @@ function crearParticulas() {
 }
 
 async function iniciarAnalisis(forzar = false) {
+    sonidoInicio();
+    iniciarSonidoProcesando();
     document.getElementById('loading-stage').classList.add('active');
     document.getElementById('error-card').classList.remove('active');
     document.getElementById('resultados-wrapper').classList.remove('active');
@@ -453,6 +550,9 @@ async function generarPPT() {
 
 document.getElementById('btn-reanalizar').addEventListener('click', function() { iniciarAnalisis(true); });
 document.getElementById('btn-ppt').addEventListener('click', generarPPT);
+
+window.addEventListener('click', activarSonido, { once: true });
+window.addEventListener('keydown', activarSonido, { once: true });
 
 iniciarAnalisis();
 </script>
