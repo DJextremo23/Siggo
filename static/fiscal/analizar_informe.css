@@ -114,144 +114,249 @@
 
         /* ---- ROBOT HEAD (analizando) ---- */
         .robot-head {
-            width: 96px;
-            height: 96px;
+            width: 104px;
+            height: 104px;
             position: relative;
-            margin-bottom: 28px;
-            animation: robot-bob 2.4s ease-in-out infinite;
+            margin-bottom: 40px;
+            animation: robot-bob 3s ease-in-out infinite;
         }
         .robot-head::before {
             content: '';
             position: absolute;
-            inset: -18px;
+            inset: -24px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(139,92,246,.18) 0%, rgba(139,92,246,0) 70%);
-            animation: robot-halo 2s ease-in-out infinite;
+            background: radial-gradient(circle, rgba(139,92,246,.22) 0%, rgba(139,92,246,0) 70%);
+            animation: robot-halo 2.4s ease-in-out infinite;
         }
         .robot-face {
             position: absolute;
             inset: 0;
-            background: linear-gradient(145deg, #7c3aed, #4f46e5);
-            border-radius: 22px;
+            background: linear-gradient(150deg, #4c43b8 0%, #2a246e 45%, #1b1650 100%);
+            border-radius: 26px;
             box-shadow:
-                0 0 0 4px rgba(255,255,255,.08),
-                0 0 0 7px rgba(139,92,246,.15),
-                0 18px 40px rgba(99,102,241,.45);
+                inset 0 2px 3px rgba(255,255,255,.28),
+                inset 0 -5px 10px rgba(0,0,0,.4),
+                inset 0 0 0 1px rgba(255,255,255,.04),
+                0 0 0 3px rgba(255,255,255,.06),
+                0 0 0 6px rgba(139,92,246,.14),
+                0 24px 55px rgba(27,22,80,.55);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 14px;
-            overflow: hidden;
+            overflow: visible;
         }
         .robot-face::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 45%);
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 42%);
             pointer-events: none;
+            z-index: 4;
         }
         .robot-antenna {
             position: absolute;
-            top: -30px;
+            top: -34px;
             left: 50%;
-            width: 4px;
-            height: 28px;
+            width: 5px;
+            height: 30px;
             transform: translateX(-50%);
-            background: linear-gradient(180deg, #c4b5fd, #8b5cf6);
-            border-radius: 3px;
+            background: linear-gradient(180deg, #c4b5fd, #8b5cf6 55%, #6d28d9);
+            border-radius: 4px;
             transform-origin: bottom center;
-            animation: antenna-wag 2s ease-in-out infinite;
+            box-shadow: 0 -2px 6px rgba(139,92,246,.4);
+            animation: antenna-wag 2.6s ease-in-out infinite;
         }
         .robot-antenna .antenna-tip {
             position: absolute;
-            top: -10px;
+            top: -12px;
             left: 50%;
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             transform: translateX(-50%);
-            background: #22d3ee;
+            background: radial-gradient(circle at 40% 35%, #cffafe, #22d3ee 60%, #0891b2);
             border-radius: 50%;
-            box-shadow: 0 0 12px #22d3ee, 0 0 24px rgba(34,211,238,.6);
-            animation: antenna-blink 1.2s ease-in-out infinite;
+            box-shadow: 0 0 14px #22d3ee, 0 0 30px rgba(34,211,238,.55);
+            animation: antenna-blink 1.3s ease-in-out infinite;
         }
-        .robot-eyes {
-            display: flex;
-            gap: 22px;
-            position: relative;
-            z-index: 1;
-            animation: eyes-look 4s ease-in-out infinite;
-        }
-        .robot-eye {
-            width: 26px;
+        .robot-ear {
+            position: absolute;
+            top: 50%;
+            width: 12px;
             height: 30px;
-            background: #0f0f23;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,.6), 0 0 0 2px rgba(255,255,255,.15);
-            animation: eye-blink 3.6s ease-in-out infinite;
+            transform: translateY(-50%);
+            background: linear-gradient(180deg, #4c43b8, #1b1650);
+            border-radius: 5px;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,.22), 0 6px 14px rgba(0,0,0,.3);
         }
-        .eye-pupil {
-            width: 10px;
-            height: 10px;
+        .robot-ear::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            transform: translate(-50%, -50%);
             background: #22d3ee;
             border-radius: 50%;
             box-shadow: 0 0 8px #22d3ee;
+            animation: antenna-blink 1.3s ease-in-out infinite;
+        }
+        .robot-ear.left { left: -17px; }
+        .robot-ear.right { right: -17px; }
+        .robot-screw {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #e2e8f0, #94a3b8 55%, #475569);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.6), 0 1px 2px rgba(0,0,0,.45);
+            z-index: 5;
+        }
+        .robot-screw::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 3px;
+            height: 1px;
+            background: rgba(51,65,85,.6);
+            transform: rotate(45deg);
+        }
+        .robot-screw.tl { top: 9px; left: 9px; }
+        .robot-screw.tr { top: 9px; right: 9px; }
+        .robot-screw.bl { bottom: 9px; left: 9px; }
+        .robot-screw.br { bottom: 9px; right: 9px; }
+        .robot-visor {
+            position: absolute;
+            inset: 14px 12px;
+            background: linear-gradient(180deg, #0a091c 0%, #141130 100%);
+            border-radius: 15px;
+            box-shadow: inset 0 2px 12px rgba(0,0,0,.85), inset 0 0 0 1px rgba(34,211,238,.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 11px;
+            overflow: hidden;
+        }
+        .visor-scan {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            top: 0;
+            background: linear-gradient(90deg, transparent, rgba(34,211,238,.75), transparent);
+            box-shadow: 0 0 10px rgba(34,211,238,.6);
+            animation: visor-scan 2.6s linear infinite;
+            z-index: 1;
+        }
+        .robot-eyes {
+            display: flex;
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+            animation: eyes-look 5s ease-in-out infinite;
+        }
+        .robot-eye {
+            width: 25px;
+            height: 23px;
+            background: #05040f;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 7px rgba(0,0,0,.95), 0 0 0 1px rgba(34,211,238,.28);
+            animation: eye-blink 3.8s ease-in-out infinite;
+        }
+        .eye-pupil {
+            width: 11px;
+            height: 11px;
+            background: radial-gradient(circle at 40% 35%, #a5f3fc, #22d3ee 55%, #0891b2);
+            border-radius: 50%;
+            box-shadow: 0 0 11px #22d3ee, 0 0 22px rgba(34,211,238,.5);
+            animation: pupil-shift 5s ease-in-out infinite;
         }
         .robot-mouth {
             display: flex;
-            align-items: center;
-            gap: 5px;
-            height: 14px;
+            align-items: flex-end;
+            gap: 3px;
+            height: 12px;
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
         .robot-mouth span {
-            width: 6px;
+            width: 4px;
             height: 6px;
             border-radius: 2px;
-            background: #a5f3fc;
-            box-shadow: 0 0 6px rgba(34,211,238,.7);
-            animation: mouth-talk 1s ease-in-out infinite;
+            background: linear-gradient(180deg, #4ade80, #22d3ee);
+            box-shadow: 0 0 7px rgba(34,211,238,.6);
+            animation: mouth-talk .85s ease-in-out infinite;
         }
-        .robot-mouth span:nth-child(2) { animation-delay: .1s; }
-        .robot-mouth span:nth-child(3) { animation-delay: .2s; }
-        .robot-mouth span:nth-child(4) { animation-delay: .3s; }
+        .robot-mouth span:nth-child(2) { animation-delay: .12s; }
+        .robot-mouth span:nth-child(3) { animation-delay: .24s; }
+        .robot-mouth span:nth-child(4) { animation-delay: .36s; }
+        .robot-mouth span:nth-child(5) { animation-delay: .48s; }
+        .robot-shadow {
+            position: absolute;
+            left: 50%;
+            bottom: -34px;
+            width: 72px;
+            height: 12px;
+            transform: translateX(-50%);
+            background: radial-gradient(ellipse, rgba(27,22,80,.45), transparent 70%);
+            animation: shadow-pulse 3s ease-in-out infinite;
+        }
 
         @keyframes robot-bob {
             0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-6px) rotate(-3deg); }
+            25% { transform: translateY(-7px) rotate(-2.5deg); }
             50% { transform: translateY(0) rotate(0deg); }
-            75% { transform: translateY(-6px) rotate(3deg); }
+            75% { transform: translateY(-7px) rotate(2.5deg); }
         }
         @keyframes robot-halo {
-            0%, 100% { opacity: .6; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.12); }
+            0%, 100% { opacity: .55; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.14); }
         }
         @keyframes antenna-wag {
-            0%, 100% { transform: translateX(-50%) rotate(-6deg); }
-            50% { transform: translateX(-50%) rotate(6deg); }
+            0%, 100% { transform: translateX(-50%) rotate(-5deg); }
+            50% { transform: translateX(-50%) rotate(5deg); }
         }
         @keyframes antenna-blink {
             0%, 100% { opacity: 1; }
-            50% { opacity: .35; }
+            50% { opacity: .3; }
         }
         @keyframes eye-blink {
             0%, 90%, 100% { transform: scaleY(1); }
-            94%, 96% { transform: scaleY(.08); }
+            93%, 97% { transform: scaleY(.08); }
         }
         @keyframes eyes-look {
             0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-7px); }
+            20% { transform: translateX(-6px); }
             40% { transform: translateX(0); }
-            60% { transform: translateX(7px); }
+            60% { transform: translateX(6px); }
             80% { transform: translateX(0); }
         }
+        @keyframes pupil-shift {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-2px, -1px); }
+            40% { transform: translate(0, 0); }
+            60% { transform: translate(2px, 1px); }
+            80% { transform: translate(0, 0); }
+        }
         @keyframes mouth-talk {
-            0%, 100% { transform: scaleY(.5); }
-            50% { transform: scaleY(1.4); }
+            0%, 100% { height: 4px; }
+            50% { height: 12px; }
+        }
+        @keyframes visor-scan {
+            0% { top: 4px; opacity: 0; }
+            12% { opacity: 1; }
+            88% { opacity: 1; }
+            100% { top: calc(100% - 4px); opacity: 0; }
+        }
+        @keyframes shadow-pulse {
+            0%, 100% { transform: translateX(-50%) scaleX(1); opacity: .8; }
+            50% { transform: translateX(-50%) scaleX(.8); opacity: .5; }
         }
 
         /* ---- PROGRESS STEPS ---- */
