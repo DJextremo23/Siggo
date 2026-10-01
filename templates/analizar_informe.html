@@ -189,44 +189,126 @@ function getAudioCtx() {
     return audioCtx;
 }
 
-function tono(freq, duracion, tipo, volumen, inicio) {
+let noiseBuffer = null;
+
+function getNoiseBuffer() {
+    const ctx = getAudioCtx();
+    if (!ctx) return null;
+    if (noiseBuffer) return noiseBuffer;
+    const len = ctx.sampleRate * 1.5;
+    noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < len; i++) { data[i] = Math.random() * 2 - 1; }
+    return noiseBuffer;
+}
+
+function nota(freq, duracion, o) {
+    const ctx = getAudioCtx();
+    if (!ctx) return null;
+    o = o || {};
+    const tipo = o.tipo || 'sine';
+    const volumen = o.volumen || 0.15;
+    const inicio = o.inicio || 0;
+    const attack = o.attack != null ? o.attack : 0.01;
+    const release = o.release != null ? o.release : 0.15;
+    const t = ctx.currentTime + inicio;
+    const end = t + duracion + release + 0.05;
+
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, t);
+    master.gain.linearRampToValueAtTime(volumen, t + attack);
+    master.gain.exponentialRampToValueAtTime(0.001, t + duracion + release);
+    master.connect(ctx.destination);
+
+    const osc = ctx.createOscillator();
+    osc.type = tipo;
+    osc.frequency.setValueAtTime(freq, t);
+    if (o.glideTo) { osc.frequency.exponentialRampToValueAtTime(o.glideTo, t + duracion); }
+    osc.connect(master);
+    osc.start(t);
+    osc.stop(end);
+
+    if (o.detune) {
+        const osc2 = ctx.createOscillator();
+        osc2.type = tipo;
+        osc2.frequency.setValueAtTime(freq, t);
+        if (o.glideTo) { osc2.frequency.exponentialRampToValueAtTime(o.glideTo, t + duracion); }
+        osc2.detune.value = o.detune;
+        osc2.connect(master);
+        osc2.start(t);
+        osc2.stop(end);
+    }
+    return master;
+}
+
+function ruido(duracion, o) {
     const ctx = getAudioCtx();
     if (!ctx) return;
-    const t = ctx.currentTime + (inicio || 0);
-    const osc = ctx.createOscillator();
+    const buf = getNoiseBuffer();
+    if (!buf) return;
+    o = o || {};
+    const t = ctx.currentTime + (o.inicio || 0);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = o.tipoFiltro || 'bandpass';
+    filter.frequency.setValueAtTime(o.freq || 1000, t);
+    if (o.freqTo) { filter.frequency.exponentialRampToValueAtTime(o.freqTo, t + duracion); }
+    filter.Q.value = o.q != null ? o.q : 1;
+
     const gain = ctx.createGain();
-    osc.type = tipo || 'sine';
-    osc.frequency.setValueAtTime(freq, t);
+    const volumen = o.volumen || 0.1;
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(volumen || 0.15, t + 0.01);
+    gain.gain.linearRampToValueAtTime(volumen, t + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duracion);
-    osc.connect(gain);
+
+    src.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + duracion + 0.05);
+    src.start(t);
+    src.stop(t + duracion + 0.05);
+}
+
+function campana(freq, inicio, volumen) {
+    // timbre de campana: parciales inarmónicos con decaimiento largo
+    const parciales = [1, 2.76, 5.4, 8.9];
+    const amps = [1, 0.5, 0.18, 0.06];
+    parciales.forEach(function (p, i) {
+        nota(freq * p, 1.4, { tipo: 'sine', volumen: (volumen || 0.12) * amps[i], inicio: inicio, attack: 0.002, release: 0.9 });
+    });
 }
 
 function sonidoInicio() {
-    tono(392, 0.09, 'square', 0.07);
-    tono(587, 0.09, 'square', 0.07, 0.1);
-    tono(784, 0.14, 'square', 0.08, 0.2);
+    // power-on: zumbido grave + barrido ascendente + aire
+    nota(180, 0.6, { tipo: 'sawtooth', volumen: 0.03, attack: 0.06, release: 0.3, glideTo: 60 });
+    nota(220, 0.7, { tipo: 'sine', volumen: 0.09, attack: 0.05, release: 0.35, glideTo: 880 });
+    nota(440, 0.7, { tipo: 'triangle', volumen: 0.05, attack: 0.05, release: 0.35, glideTo: 1760 });
+    ruido(0.5, { tipoFiltro: 'lowpass', freq: 300, freqTo: 2500, q: 0.7, volumen: 0.04 });
+    nota(1320, 0.15, { tipo: 'sine', volumen: 0.08, inicio: 0.7, attack: 0.01, release: 0.2 });
 }
 
 function sonidoProcesando() {
-    tono(620, 0.05, 'sine', 0.04);
-    tono(930, 0.05, 'sine', 0.04, 0.07);
+    // ping de escaneo: chasquido + tono suave descendente
+    ruido(0.05, { tipoFiltro: 'bandpass', freq: 900, freqTo: 3200, q: 12, volumen: 0.035 });
+    nota(2200, 0.06, { tipo: 'sine', volumen: 0.025, attack: 0.004, release: 0.03, glideTo: 1600, inicio: 0.01 });
 }
 
 function sonidoListo() {
-    tono(523.25, 0.14, 'sine', 0.13);
-    tono(659.25, 0.14, 'sine', 0.13, 0.12);
-    tono(783.99, 0.14, 'sine', 0.13, 0.24);
-    tono(1046.5, 0.32, 'sine', 0.15, 0.36);
+    // carrillón de campanas (C5 E5 G5 C6) + colchón cálido
+    campana(523.25, 0, 0.14);
+    campana(659.25, 0.12, 0.12);
+    campana(783.99, 0.24, 0.12);
+    campana(1046.5, 0.36, 0.14);
+    nota(261.63, 1.2, { tipo: 'triangle', volumen: 0.04, inicio: 0.36, attack: 0.3, release: 0.8 });
 }
 
 function sonidoError() {
-    tono(320, 0.18, 'sawtooth', 0.09);
-    tono(210, 0.3, 'sawtooth', 0.09, 0.18);
+    // alarma grave descendente
+    nota(392, 0.22, { tipo: 'sawtooth', volumen: 0.07, attack: 0.02, release: 0.15, glideTo: 300 });
+    nota(196, 0.3, { tipo: 'sawtooth', volumen: 0.07, inicio: 0.2, attack: 0.02, release: 0.2, glideTo: 150 });
+    ruido(0.25, { tipoFiltro: 'lowpass', freq: 400, q: 1, volumen: 0.03, inicio: 0.2 });
 }
 
 function avisoVoz(texto) {
