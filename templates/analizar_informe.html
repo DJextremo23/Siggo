@@ -190,6 +190,18 @@ function getAudioCtx() {
 }
 
 let noiseBuffer = null;
+let masterGain = null;
+
+function getMasterGain() {
+    const ctx = getAudioCtx();
+    if (!ctx) return null;
+    if (!masterGain) {
+        masterGain = ctx.createGain();
+        masterGain.gain.value = 0.5;
+        masterGain.connect(ctx.destination);
+    }
+    return masterGain;
+}
 
 function getNoiseBuffer() {
     const ctx = getAudioCtx();
@@ -218,7 +230,7 @@ function nota(freq, duracion, o) {
     master.gain.setValueAtTime(0.0001, t);
     master.gain.linearRampToValueAtTime(volumen, t + attack);
     master.gain.exponentialRampToValueAtTime(0.001, t + duracion + release);
-    master.connect(ctx.destination);
+    master.connect(getMasterGain() || ctx.destination);
 
     const osc = ctx.createOscillator();
     osc.type = tipo;
@@ -266,7 +278,7 @@ function ruido(duracion, o) {
 
     src.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getMasterGain() || ctx.destination);
     src.start(t);
     src.stop(t + duracion + 0.05);
 }
@@ -281,34 +293,33 @@ function campana(freq, inicio, volumen) {
 }
 
 function sonidoInicio() {
-    // power-on: zumbido grave + barrido ascendente + aire
-    nota(180, 0.6, { tipo: 'sawtooth', volumen: 0.03, attack: 0.06, release: 0.3, glideTo: 60 });
-    nota(220, 0.7, { tipo: 'sine', volumen: 0.09, attack: 0.05, release: 0.35, glideTo: 880 });
-    nota(440, 0.7, { tipo: 'triangle', volumen: 0.05, attack: 0.05, release: 0.35, glideTo: 1760 });
-    ruido(0.5, { tipoFiltro: 'lowpass', freq: 300, freqTo: 2500, q: 0.7, volumen: 0.04 });
-    nota(1320, 0.15, { tipo: 'sine', volumen: 0.08, inicio: 0.7, attack: 0.01, release: 0.2 });
+    // power-on suave: zumbido grave + barrido ascendente + aire
+    nota(180, 0.6, { tipo: 'sawtooth', volumen: 0.015, attack: 0.08, release: 0.3, glideTo: 60 });
+    nota(220, 0.7, { tipo: 'sine', volumen: 0.045, attack: 0.06, release: 0.35, glideTo: 880 });
+    nota(440, 0.7, { tipo: 'triangle', volumen: 0.025, attack: 0.06, release: 0.35, glideTo: 1760 });
+    ruido(0.5, { tipoFiltro: 'lowpass', freq: 300, freqTo: 2000, q: 0.7, volumen: 0.02 });
+    nota(1320, 0.15, { tipo: 'sine', volumen: 0.04, inicio: 0.7, attack: 0.02, release: 0.2 });
 }
 
 function sonidoProcesando() {
-    // ping de escaneo: chasquido + tono suave descendente
-    ruido(0.05, { tipoFiltro: 'bandpass', freq: 900, freqTo: 3200, q: 12, volumen: 0.035 });
-    nota(2200, 0.06, { tipo: 'sine', volumen: 0.025, attack: 0.004, release: 0.03, glideTo: 1600, inicio: 0.01 });
+    // ping suave de escaneo
+    ruido(0.04, { tipoFiltro: 'bandpass', freq: 900, freqTo: 2600, q: 12, volumen: 0.015 });
+    nota(1800, 0.06, { tipo: 'sine', volumen: 0.012, attack: 0.005, release: 0.03, glideTo: 1400, inicio: 0.01 });
 }
 
 function sonidoListo() {
-    // carrillón de campanas (C5 E5 G5 C6) + colchón cálido
-    campana(523.25, 0, 0.14);
-    campana(659.25, 0.12, 0.12);
-    campana(783.99, 0.24, 0.12);
-    campana(1046.5, 0.36, 0.14);
-    nota(261.63, 1.2, { tipo: 'triangle', volumen: 0.04, inicio: 0.36, attack: 0.3, release: 0.8 });
+    // carrillón suave de campanas (C5 E5 G5 C6)
+    campana(523.25, 0, 0.08);
+    campana(659.25, 0.12, 0.07);
+    campana(783.99, 0.24, 0.07);
+    campana(1046.5, 0.36, 0.08);
+    nota(261.63, 1.2, { tipo: 'triangle', volumen: 0.02, inicio: 0.36, attack: 0.4, release: 0.8 });
 }
 
 function sonidoError() {
-    // alarma grave descendente
-    nota(392, 0.22, { tipo: 'sawtooth', volumen: 0.07, attack: 0.02, release: 0.15, glideTo: 300 });
-    nota(196, 0.3, { tipo: 'sawtooth', volumen: 0.07, inicio: 0.2, attack: 0.02, release: 0.2, glideTo: 150 });
-    ruido(0.25, { tipoFiltro: 'lowpass', freq: 400, q: 1, volumen: 0.03, inicio: 0.2 });
+    // alarma discreta
+    nota(392, 0.22, { tipo: 'sawtooth', volumen: 0.035, attack: 0.03, release: 0.15, glideTo: 300 });
+    nota(196, 0.3, { tipo: 'sawtooth', volumen: 0.035, inicio: 0.2, attack: 0.03, release: 0.2, glideTo: 150 });
 }
 
 function avisoVoz(texto) {
@@ -326,7 +337,7 @@ function avisoVoz(texto) {
 function iniciarSonidoProcesando() {
     detenerSonidoProcesando();
     sonidoProcesando();
-    intervaloProcesando = setInterval(sonidoProcesando, 1400);
+    intervaloProcesando = setInterval(sonidoProcesando, 4000);
 }
 
 function detenerSonidoProcesando() {
