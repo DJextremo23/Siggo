@@ -1,73 +1,103 @@
 """
-Generador de presentación PPTX con el formato "Reporte de Guardia" (rv0).
+Generador de la presentación PPTX usando la plantilla real como molde.
 
-Reproduce la estructura y el diseño del archivo `0. Reporte PPT prueba rv0.pptx`:
-   1. Portada (fondo corporativo, supervisor, título, fecha y talleres supervisados).
-   2. Páginas de contenido (barra superior, logo, pie y número de página) rellenas
-      con la información analizada por la IA.
-   3. Cierre ("Muchas Gracias").
+Carga `PROPUESTA DE FORMATO PPT.pptx`, conserva sus elementos visuales y
+solo reemplaza el contenido dinámico proveniente del JSON de Gemini.
 
-Los recursos gráficos (fondo y logos) provienen de `static/ppt/`.
+Arquitectura:
+    EXCEL -> Gemini -> JSON (secciones) -> motor de composición -> PPT
+
+El motor usa DOS layouts de contenido definidos en la plantilla:
+    * Layout "tarjetas"  (diapositiva 2): título + 3 tarjetas oscuras + 3 fotos.
+    * Layout "resumen"   (diapositiva 3): kicker + título + indicadores + listas.
+
+La portada (diapositiva 1) y el cierre (diapositiva 4) se conservan tal cual,
+reemplazando únicamente los datos dinámicos de la portada.
 """
 
+import copy
 import os
 from io import BytesIO
 
 from pptx import Presentation
-from pptx.util import Inches, Pt
+from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.oxml.ns import qn
 
-# ── Recursos gráficos (logos corporativos OIG y diseño de fondo) ────────────
+# ── Rutas ────────────────────────────────────────────────────────────────────
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_ASSETS = os.path.join(_BASE, "static", "ppt")
-FONDO = os.path.join(_ASSETS, "fondo.png")
-LOGO_PORTADA = os.path.join(_ASSETS, "logo.png")
-LOGO_CONTENIDO = os.path.join(_ASSETS, "logo_small.jpg")
+TEMPLATE_PPTX = os.path.join(_BASE, "PROPUESTA DE FORMATO PPT.pptx")
+LOGO_CONTENIDO = os.path.join(_BASE, "static", "ppt", "logo_small.jpg")
 
-# ── Paleta y tipografía del formato rv0 ─────────────────────────────────────
-C_NAVY = RGBColor(0x10, 0x2A, 0x43)   # 102A43 fondo oscuro
-C_CONTENIDO_BG = RGBColor(0xF7, 0xFA, 0xFC)  # F7FAFC fondo de páginas de contenido
-C_TEAL = RGBColor(0x00, 0xA6, 0xA6)   # 00A6A6 barra superior / acentos
-C_GREEN = RGBColor(0x5D, 0xD3, 0x9E)  # 5DD39E acento verde
-C_WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-C_LIGHT = RGBColor(0xD8, 0xE2, 0xEA)  # D8E2EA gris claro
-C_MUTED = RGBColor(0x64, 0x74, 0x8B)  # 64748B gris apagado (pie)
-C_CARD_BG = RGBColor(0x17, 0x3A, 0x5E)  # 173A5E tarjeta portada
-C_CARD_BR = RGBColor(0x2B, 0x56, 0x7B)  # 2B567B borde tarjeta
-C_SEP = RGBColor(0xCB, 0xD5, 0xE1)     # CBD5E1 separador pie
-C_TEXT = RGBColor(0x1E, 0x29, 0x3B)     # texto contenido
-C_ZEBRA = RGBColor(0xF1, 0xF5, 0xF9)    # filas alternas tablas
-
-FONT_TITLE = "Aptos Display"
-FONT_BODY = "Aptos"
+# Índices de las diapositivas de la plantilla (0-based).
+IDX_PORTADA = 0
+IDX_TARJETAS = 1
+IDX_RESUMEN = 2
+IDX_CIERRE = 3
 
 _MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
           "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
-# Lista fija de talleres supervisados (igual a la del formato del PPT).
-TALLERES_SUPERVISADOS = ("Compresión · Generación · Movimiento de suelos / Remoción · "
-                         "Gasfitería, ductos y tanques · Energía / Montaje / Flota / "
-                         "Mecánica / Instrumentación")
+# Posiciones (en pulgadas) medidas de la plantilla.
+PORTADA_SUPERVISOR = (0.700, 2.050)
+PORTADA_TITULO = (0.650, 2.420)
+PORTADA_FECHA = (0.700, 3.280)
+PORTADA_ETIQUETA = (1.000, 4.450)
+PORTADA_TEMAS = (1.000, 4.850)
+
+TARJETAS_TITULO = (0.650, 0.340)
+TARJETAS_FOOTER = (0.650, 7.130)
+TARJETAS_PAGINA = (12.250, 7.100)
+TARJETAS_LOGO = (11.250, 0.220, 1.450, 0.350)
+TARJETAS_CARD_LEFT = [0.450, 4.690, 8.930]
+TARJETAS_CARD_TOP = 1.023
+TARJETAS_TEXT_DY = [0.147, 0.417, 0.867, 1.127]  # offset y de label/titulo/fecha/desc desde card_top
+TARJETAS_PHOTO_LEFT = [0.656, 4.847, 9.443]
+TARJETAS_PHOTO_TOP = 3.840
+TARJETAS_PHOTO_W = [3.538, 3.637, 2.923]
+TARJETAS_PHOTO_H = 2.180
+
+RESUMEN_KICKER = (0.700, 0.320)
+RESUMEN_TITULO = (0.633, 0.550)
+RESUMEN_LOGO = (11.250, 0.220, 1.450, 0.350)
+RESUMEN_KPI_LABEL = [(0.860, 1.200), (1.690, 1.200), (2.550, 1.169)]
+RESUMEN_KPI_VALUE = [(0.860, 1.338), (1.810, 1.338), (2.670, 1.338)]
+RESUMEN_PROD_IMPUTADO = (8.803, 1.371)
+RESUMEN_PROD_RECUPERADO = (8.803, 1.586)
+RESUMEN_PROD_COL1 = (6.223, 1.346)
+RESUMEN_PROD_COL2 = (7.303, 1.346)
+RESUMEN_POR_TIPO_TITULO = (0.980, 2.400)
+RESUMEN_POR_TALLER_TITULO = (0.780, 4.515)
+RESUMEN_POR_TIPO_LABEL = [(0.900, 2.820), (0.900, 3.250), (0.900, 3.680), (0.900, 4.110)]
+RESUMEN_POR_TIPO_VALUE = [(2.930, 2.820), (2.930, 3.250), (2.930, 3.680), (2.930, 4.110)]
+RESUMEN_POR_TALLER_LABEL = [(0.790, 4.955), (0.790, 5.142), (0.790, 5.325), (0.790, 5.518), (0.775, 5.713), (0.765, 5.894)]
+RESUMEN_POR_TALLER_VALUE = [(2.930, 4.975), (2.930, 5.151), (2.965, 5.319), (2.968, 5.530), (2.965, 5.713), (2.965, 5.891)]
+RESUMEN_ACT_TITULO = (4.420, 2.382)
+RESUMEN_PEND_TITULO = (4.420, 5.202)
+
+
+def _as_list(v):
+    return v if isinstance(v, list) else []
+
+
+def _as_dict(v):
+    return v if isinstance(v, dict) else {}
 
 
 def _fmt_fecha(fecha):
-    """Formatea una fecha de guardia a 'd de Mes aaaa' (o cadena vacía)."""
     if not fecha:
         return ""
     try:
-        d = fecha if hasattr(fecha, "day") else None
-        if d is None:
+        if not hasattr(fecha, "day"):
             return str(fecha)
-        return f"{d.day} de {_MESES[d.month - 1]} {d.year}"
+        return f"{fecha.day} de {_MESES[fecha.month - 1]} {fecha.year}"
     except Exception:
         return str(fecha)
 
 
 def _fmt_mes_ano(fecha):
-    """Devuelve 'Mes aaaa' para el pie de página."""
     if not fecha:
         return ""
     try:
@@ -78,138 +108,118 @@ def _fmt_mes_ano(fecha):
         return str(fecha)
 
 
-# ── Helpers de bajo nivel ───────────────────────────────────────────────────
-def _set_bg(slide, color):
-    slide.background.fill.solid()
-    slide.background.fill.fore_color.rgb = color
-
-
-def _no_line(shape):
-    shape.line.fill.background()
-
-
-def _no_shadow(shape):
-    try:
-        shape.shadow.inherit = False
-    except Exception:
-        pass
-
-
-def _rect(slide, x, y, w, h, fill, line=None, line_w=None):
-    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill
-    if line is not None:
-        shape.line.color.rgb = line
-        shape.line.width = Pt(line_w or 0.75)
+# ── Utilidades de bajo nivel sobre la plantilla cargada ─────────────────────
+def _set_text(shape, text):
+    """Reemplaza el texto de una forma conservando el formato del primer run."""
+    if text is None:
+        text = ""
+    text = str(text)
+    tf = shape.text_frame
+    while len(tf.paragraphs) > 1:
+        p = tf.paragraphs[-1]._p
+        p.getparent().remove(p)
+    para = tf.paragraphs[0]
+    runs = list(para.runs)
+    if runs:
+        runs[0].text = text
+        for r in runs[1:]:
+            r._r.getparent().remove(r._r)
     else:
-        _no_line(shape)
-    _no_shadow(shape)
-    return shape
+        r = para.add_run()
+        r.text = text
 
 
-def _rrect(slide, x, y, w, h, fill, line=None, line_w=None, radius=0.12):
-    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill
-    if line is not None:
-        shape.line.color.rgb = line
-        shape.line.width = Pt(line_w or 0.75)
-    else:
-        _no_line(shape)
-    try:
-        shape.adjustments[0] = radius
-    except Exception:
-        pass
-    _no_shadow(shape)
-    return shape
+def _set_text_at(slide, left, top, text, tol=0.06):
+    for sh in slide.shapes:
+        if not sh.has_text_frame:
+            continue
+        try:
+            l = Emu(sh.left).inches
+            t = Emu(sh.top).inches
+        except Exception:
+            continue
+        if abs(l - left) <= tol and abs(t - top) <= tol:
+            _set_text(sh, text)
+            return True
+    return False
 
 
-def _fill_opacity(shape, opacity_pct):
-    """Aplica opacidad (0-100) al relleno sólido de una forma."""
-    try:
-        spPr = shape._element.find(qn('p:spPr'))
-        sf = spPr.find(qn('a:solidFill'))
-        srgb = sf.find(qn('a:srgbClr'))
-        for a in srgb.findall(qn('a:alpha')):
-            srgb.remove(a)
-        a = srgb.makeelement(qn('a:alpha'), {'val': str(int(opacity_pct * 1000))})
-        srgb.append(a)
-    except Exception:
-        pass
+def _shapes_at(slide, left, top, tol=0.2):
+    result = []
+    for sh in slide.shapes:
+        try:
+            l = Emu(sh.left).inches
+            t = Emu(sh.top).inches
+        except Exception:
+            continue
+        if abs(l - left) <= tol and abs(t - top) <= tol:
+            result.append(sh)
+    return result
 
 
-def _line_opacity(shape, opacity_pct):
-    """Aplica opacidad (0-100) a la línea de una forma."""
-    try:
-        spPr = shape._element.find(qn('p:spPr'))
-        ln = spPr.find(qn('a:ln'))
-        sf = ln.find(qn('a:solidFill'))
-        srgb = sf.find(qn('a:srgbClr'))
-        for a in srgb.findall(qn('a:alpha')):
-            srgb.remove(a)
-        a = srgb.makeelement(qn('a:alpha'), {'val': str(int(opacity_pct * 1000))})
-        srgb.append(a)
-    except Exception:
-        pass
+def _delete_slides(prs, slides_to_delete):
+    """Elimina diapositivas de la presentación (quita su sldId y su relación).
+
+    Debe usarse SOLO después de haber añadido todas las diapositivas nuevas, para
+    no interferir con la asignación de partnames de python-pptx."""
+    partnames = {s.part.partname for s in slides_to_delete}
+    sldIdLst = prs.slides._sldIdLst
+    for el in list(sldIdLst):
+        rId = el.get(qn("r:id"))
+        rel = prs.part.rels.get(rId)
+        if rel is not None and rel.target_part.partname in partnames:
+            sldIdLst.remove(el)
+            prs.part.drop_rel(rId)
 
 
-def _picture_opacity(picture, opacity_pct):
-    """Aplica opacidad (0-100) a una imagen (alphaModFix sobre el blip)."""
-    try:
-        blip = picture._element.find(qn('p:blipFill')).find(qn('a:blip'))
-        amf = blip.makeelement(qn('a:alphaModFix'), {'amt': str(int(opacity_pct * 1000))})
-        blip.append(amf)
-    except Exception:
-        pass
+def _reorder_slides(prs, ordered_slides):
+    """Reordena las diapositivas al orden indicado (por referencia de objeto)."""
+    sldIdLst = prs.slides._sldIdLst
+    rId_to_partname = {}
+    for rId, rel in prs.part.rels.items():
+        if rel.reltype.endswith("/slide"):
+            rId_to_partname[rId] = rel.target_part.partname
+    partname_to_sldId = {}
+    for el in list(sldIdLst):
+        rId = el.get(qn("r:id"))
+        partname_to_sldId[rId_to_partname.get(rId)] = el
+    for el in list(sldIdLst):
+        sldIdLst.remove(el)
+    for slide in ordered_slides:
+        el = partname_to_sldId.get(slide.part.partname)
+        if el is not None:
+            sldIdLst.append(el)
 
 
-def _autofit_norm(tf, lnspc_reduction=10000):
-    """Aplica autoajuste 'normal' (normAutofit) al marco de texto, como el formato."""
-    try:
-        bodyPr = tf._txBody.find(qn('a:bodyPr'))
-        if bodyPr is None:
-            return
-        for tag in ('a:spAutoFit', 'a:normAutofit', 'a:noAutofit'):
-            for el in bodyPr.findall(qn(tag)):
-                bodyPr.remove(el)
-        norm = bodyPr.makeelement(qn('a:normAutofit'), {'lnSpcReduction': str(lnspc_reduction)})
-        bodyPr.append(norm)
-    except Exception:
-        pass
+def _duplicate_slide(prs, layout, shape_elements):
+    """Crea una diapositiva nueva duplicando los elementos (sin imágenes) dados."""
+    dest = prs.slides.add_slide(layout)
+    for shp in list(dest.shapes):
+        shp._element.getparent().remove(shp._element)
+    for el in shape_elements:
+        dest.shapes._spTree.append(copy.deepcopy(el))
+    return dest
 
 
-def _text(slide, x, y, w, h, text, size=13, color=C_TEXT, bold=False,
-          align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, font=FONT_BODY,
-          wrap=True, spacing=1.0):
-    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
-    tf = tb.text_frame
-    tf.word_wrap = wrap
-    tf.margin_left = 0
-    tf.margin_right = 0
-    tf.margin_top = 0
-    tf.margin_bottom = 0
-    tf.vertical_anchor = anchor
-    p = tf.paragraphs[0]
-    p.alignment = align
-    p.line_spacing = spacing
-    r = p.add_run()
-    r.text = str(text)
-    r.font.size = Pt(size)
-    r.font.color.rgb = color
-    r.font.bold = bold
-    r.font.name = font
-    return tb, tf
+def _add_logo(slide, pos):
+    x, y, w, h = pos
+    if os.path.exists(LOGO_CONTENIDO):
+        slide.shapes.add_picture(LOGO_CONTENIDO, Inches(x), Inches(y), Inches(w), Inches(h))
 
 
-def _pic(slide, path, x, y, w, h):
-    if not path or not os.path.exists(path):
-        return None
-    return slide.shapes.add_picture(path, Inches(x), Inches(y), width=Inches(w), height=Inches(h))
+def _delete_shapes_in_region(slide, x1, y1, x2, y2):
+    """Elimina las formas cuyo vértice superior-izquierdo cae dentro de la región."""
+    for shp in list(slide.shapes):
+        try:
+            l = Emu(shp.left).inches
+            t = Emu(shp.top).inches
+        except Exception:
+            continue
+        if x1 <= l <= x2 and y1 <= t <= y2:
+            shp._element.getparent().remove(shp._element)
 
 
 def _add_picture_fitted(slide, data_bytes, x, y, max_w, max_h):
-    """Inserta una imagen (desde bytes) ajustándola a un recuadro sin deformarla."""
     if not data_bytes:
         return None
     try:
@@ -228,172 +238,10 @@ def _add_picture_fitted(slide, data_bytes, x, y, max_w, max_h):
         w = h * ratio
     px = x + (max_w - w) / 2
     py = y + (max_h - h) / 2
-    return slide.shapes.add_picture(BytesIO(data_bytes), Inches(px), Inches(py), width=Inches(w), height=Inches(h))
-
-
-def _cell(cell, text, size, color, bold, fill, align=PP_ALIGN.LEFT):
-    cell.fill.solid()
-    cell.fill.fore_color.rgb = fill
-    cell.margin_left = Inches(0.04)
-    cell.margin_right = Inches(0.04)
-    cell.margin_top = Inches(0.02)
-    cell.margin_bottom = Inches(0.02)
-    cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-    tf = cell.text_frame
-    tf.word_wrap = True
-    p = tf.paragraphs[0]
-    p.alignment = align
-    r = p.add_run()
-    r.text = str(text)
-    r.font.size = Pt(size)
-    r.font.bold = bold
-    r.font.color.rgb = color
-    r.font.name = FONT_BODY
-
-
-def _add_table(slide, x, y, w, headers, rows, col_ratios, font_size=8, row_h=0.3):
-    n_rows = len(rows) + 1
-    n_cols = len(headers)
-    shape = slide.shapes.add_table(n_rows, n_cols, Inches(x), Inches(y), Inches(w), Inches(row_h * n_rows))
-    tbl = shape.table
-    tbl.first_row = False
-    tbl.horz_banding = False
-    total = sum(col_ratios)
-    for j in range(n_cols):
-        tbl.columns[j].width = Inches(w * col_ratios[j] / total)
-    for j, h in enumerate(headers):
-        _cell(tbl.cell(0, j), h, font_size, C_WHITE, True, C_NAVY)
-    for i, row in enumerate(rows):
-        fill = C_WHITE if i % 2 == 0 else C_ZEBRA
-        for j, val in enumerate(row):
-            _cell(tbl.cell(i + 1, j), val if val is not None else "", font_size, C_TEXT, False, fill)
-    tbl.rows[0].height = Inches(0.32)
-    for i in range(1, n_rows):
-        tbl.rows[i].height = Inches(row_h)
-    return shape
-
-
-# ── Bloques de diapositivas ─────────────────────────────────────────────────
-def _portada(prs, informe, titulo=None, etiqueta=None, contenido=None):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s, C_NAVY)
-
-    _pic(s, FONDO, 1.37, 0.0, 11.96, 7.5)
-    _pic(s, LOGO_PORTADA, 0.56, 0.49, 1.89, 0.41)
-
-    supervisor = (informe.get("fiscalizador") or "").strip().upper()
-    _text(s, 0.70, 2.05, 6.90, 0.28, f"SUPERVISOR. {supervisor}" if supervisor else "SUPERVISOR.",
-          11, C_GREEN, True)
-
-    _text(s, 0.65, 2.42, 8.90, 0.72, titulo or "Reporte de Guardia", 35, C_WHITE, True, font=FONT_TITLE)
-
-    fecha_str = _fmt_fecha(informe.get("fecha_guardia"))
-    _text(s, 0.70, 3.28, 4.5, 0.35, fecha_str, 17, C_LIGHT)
-
-    card = _rrect(s, 0.70, 4.25, 8.30, 1.45, C_CARD_BG, C_CARD_BR, line_w=0.5)
-    _fill_opacity(card, 88)
-    _line_opacity(card, 65)
-
-    _text(s, 1.00, 4.45, 4.0, 0.25, etiqueta or "Talleres supervisados", 11, C_GREEN, True, anchor=MSO_ANCHOR.MIDDLE)
-
-    tb_tall, tf_tall = _text(s, 1.00, 4.85, 7.65, 0.55, contenido or TALLERES_SUPERVISADOS,
-                             14, C_WHITE, anchor=MSO_ANCHOR.MIDDLE)
-    _autofit_norm(tf_tall)
-
-    _text(s, 0.70, 6.86, 1.50, 0.23, "oigperu.com", 10.5, C_LIGHT)
-    return s
-
-
-def _encabezado_contenido(s, mes_ano, num_pagina):
-    """Barra superior, logo y pie de página de una diapositiva de contenido."""
-    _rect(s, 0.0, 0.0, 13.333, 0.04, C_TEAL)
-    _pic(s, LOGO_CONTENIDO, 11.25, 0.22, 1.45, 0.35)
-    # Separador inferior del pie
-    _rect(s, 0.55, 7.05, 12.25, 0.015, C_SEP)
-    _text(s, 0.65, 7.13, 5.5, 0.20, f"Reporte de Guardia | {mes_ano}", 7.5, C_MUTED)
-    _text(s, 12.25, 7.10, 0.45, 0.20, str(num_pagina).zfill(2), 7.5, C_MUTED, align=PP_ALIGN.RIGHT)
-
-
-def _nueva_contenido(prs, mes_ano, num_pagina):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s, C_CONTENIDO_BG)
-    _encabezado_contenido(s, mes_ano, num_pagina)
-    return s
-
-
-def _titulo_contenido(s, texto):
-    _rect(s, 0.6, 0.45, 0.06, 0.42, C_TEAL)
-    _text(s, 0.82, 0.42, 12.0, 0.5, texto, 20, C_NAVY, True, font=FONT_TITLE, anchor=MSO_ANCHOR.MIDDLE)
-
-
-def _cierre(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s, C_NAVY)
-    pic = _pic(s, FONDO, 5.53, 0.0, 7.80, 5.20)
-    if pic is not None:
-        _picture_opacity(pic, 85)
-    _text(s, 0.70, 3.42, 5.5, 0.5, "Muchas Gracias", 30, C_WHITE, True, font=FONT_TITLE)
-    _text(s, 0.72, 6.92, 1.5, 0.22, "oigperu.com", 10, C_LIGHT)
-    return s
-
-
-def _incidente(slide, x, y, w, evidencia, foto_bytes):
-    """Dibuja un incidente: foto + fecha, lugar, ¿qué pasó? y descripción."""
-    card_h = 2.3
-    _rrect(slide, x, y, w, card_h, C_WHITE, C_SEP, radius=0.05)
-
-    foto_w = 2.8
-    foto_h = 1.9
-    if foto_bytes:
-        try:
-            _add_picture_fitted(slide, foto_bytes, x + 0.15, y + 0.2, foto_w, foto_h)
-        except Exception:
-            _rrect(slide, x + 0.15, y + 0.2, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
-    else:
-        _rrect(slide, x + 0.15, y + 0.2, foto_w, foto_h, C_ZEBRA, C_SEP, radius=0.05)
-
-    tx = x + 0.15 + foto_w + 0.25
-    tw = x + w - 0.15 - tx
-    fecha, lugar, que_paso, descripcion = _campo_evidencia(evidencia)
-    campos = [
-        ("Fecha", fecha),
-        ("Lugar", lugar),
-        ("¿Qué pasó?", que_paso),
-        ("Descripción de lo sucedido", descripcion),
-    ]
-    cy = y + 0.12
-    for lbl, val in campos:
-        _text(slide, tx, cy, 1.7, 0.25, lbl + ":", 9, C_TEAL, True)
-        _text(slide, tx + 1.7, cy, tw - 1.7, 0.45, val if val else "—", 9, C_TEXT, wrap=True)
-        cy += 0.5
-    return card_h
-
-
-# ── Generador principal ─────────────────────────────────────────────────────
-def _as_list(v):
-    return v if isinstance(v, list) else []
-
-
-def _as_dict(v):
-    return v if isinstance(v, dict) else {}
-
-
-def _campo_evidencia(ev):
-    """Devuelve (fecha, lugar, que_paso, descripcion) normalizados de una evidencia,
-    soportando el esquema actual y el anterior (tipo/fecha/lugar/que_paso/descripcion)."""
-    if not isinstance(ev, dict):
-        ev = {}
-    es_viejo = ("que_paso" in ev or "lugar" in ev or "fecha" in ev) \
-        and "pozo_equipo" not in ev and "hallazgos" not in ev
-    if es_viejo:
-        return (ev.get("fecha", ""), ev.get("lugar", ""),
-                ev.get("que_paso", ""), ev.get("descripcion", ""))
-    return (ev.get("fecha_hora", ""), ev.get("pozo_equipo", ""),
-            ev.get("descripcion", ""), ev.get("hallazgos", ""))
+    return slide.shapes.add_picture(BytesIO(data_bytes), Inches(px), Inches(py), Inches(w), Inches(h))
 
 
 def _imagen_por_indice(imagenes_archivo, indice):
-    """Devuelve los bytes de la imagen en la posición `indice` (1-based) o None."""
     if indice is None:
         return None
     try:
@@ -405,234 +253,24 @@ def _imagen_por_indice(imagenes_archivo, indice):
     return None
 
 
-# ── Renderizadores genéricos de secciones (el PPT es dirigido por el contenido) ──
-def _render_parrafos(prs, mes_ano, num, titulo, parrafos):
-    parrafos = _as_list(parrafos)
-    if not parrafos:
-        return num
-    s = _nueva_contenido(prs, mes_ano, num)
-    _titulo_contenido(s, titulo)
-    num += 1
-    y = 1.35
-    for p in parrafos:
-        p = str(p)
-        n_lineas = max(1, (len(p) // 110) + 1)
-        alto = n_lineas * 0.30 + 0.15
-        if y + alto > 6.9:
-            s = _nueva_contenido(prs, mes_ano, num)
-            _titulo_contenido(s, titulo)
-            num += 1
-            y = 1.35
-        _text(s, 0.6, y, 12.1, alto, p, 13, C_TEXT, wrap=True, spacing=1.15)
-        y += alto + 0.1
-    return num
-
-
-def _render_lista(prs, mes_ano, num, titulo, items):
-    items = _as_list(items)
-    if not items:
-        return num
-    s = _nueva_contenido(prs, mes_ano, num)
-    _titulo_contenido(s, titulo)
-    num += 1
-    y = 1.35
-    for it in items:
-        it = str(it)
-        n_lineas = max(1, (len(it) // 100) + 1)
-        alto = n_lineas * 0.28 + 0.15
-        if y + alto > 6.9:
-            s = _nueva_contenido(prs, mes_ano, num)
-            _titulo_contenido(s, titulo)
-            num += 1
-            y = 1.35
-        _text(s, 0.8, y, 0.25, 0.3, "•", 13, C_TEAL, True)
-        _text(s, 1.1, y, 11.5, alto, it, 13, C_TEXT, wrap=True, spacing=1.1)
-        y += alto + 0.08
-    return num
-
-
-def _render_tabla(prs, mes_ano, num, titulo, columnas, filas):
-    columnas = [str(c) for c in _as_list(columnas)]
-    filas = _as_list(filas)
-    if not columnas or not filas:
-        return num
-    filas = [[str(v) if v is not None else "" for v in _as_list(f)] for f in filas]
-    ratios = [1.0] * len(columnas)
-    filas_por_pagina = 14
-    chunks = [filas[i:i + filas_por_pagina] for i in range(0, len(filas), filas_por_pagina)]
-    for chunk in chunks:
-        s = _nueva_contenido(prs, mes_ano, num)
-        _titulo_contenido(s, titulo)
-        num += 1
-        _add_table(s, 0.6, 1.35, 12.1, columnas, chunk, ratios, font_size=8, row_h=0.3)
-    return num
-
-
-def _render_indicadores(prs, mes_ano, num, titulo, indicadores):
-    indicadores = _as_list(indicadores)
-    if not indicadores:
-        return num
-    por_slide = 4
-    chunks = [indicadores[i:i + por_slide] for i in range(0, len(indicadores), por_slide)]
-    for chunk in chunks:
-        s = _nueva_contenido(prs, mes_ano, num)
-        _titulo_contenido(s, titulo)
-        num += 1
-        for i, ind in enumerate(chunk):
-            ind = _as_dict(ind)
-            col = i % 2
-            fila = i // 2
-            x = 0.6 + col * 6.2
-            y = 1.6 + fila * 1.7
-            nombre = ind.get("nombre") or "Indicador"
-            valor = ind.get("valor") or "—"
-            unidad = ind.get("unidad") or ""
-            _rrect(s, x, y, 5.9, 1.25, C_ZEBRA, C_SEP, radius=0.08)
-            _text(s, x + 0.2, y + 0.2, 5.5, 0.3, nombre, 10, C_MUTED, True)
-            _text(s, x + 0.2, y + 0.55, 5.5, 0.4, f"{valor} {unidad}".strip(), 18, C_NAVY, True)
-    return num
-
-
-def _render_evidencias(prs, mes_ano, num, titulo, evidencias, imagenes_archivo):
-    evidencias = _as_list(evidencias)
-    if not evidencias:
-        return num
-
-    # Agrupar por el tipo/clasificación real de cada evidencia (preservando orden).
-    grupos = {}
-    for ev in evidencias:
-        ev = _as_dict(ev)
-        tipo = (ev.get("tipo") or "").strip()
-        if not tipo:
-            tipo = "Alerta de Seguridad"
-        grupos.setdefault(tipo, []).append(ev)
-
-    s = _nueva_contenido(prs, mes_ano, num)
-    _titulo_contenido(s, titulo)
-    num += 1
-    cursor_y = 1.15
-    for tipo in grupos:
-        items = grupos[tipo]
-        need_subtitulo = 0.55 + 2.4 * len(items)
-        if cursor_y + need_subtitulo > 6.85:
-            s = _nueva_contenido(prs, mes_ano, num)
-            _titulo_contenido(s, titulo)
-            num += 1
-            cursor_y = 1.15
-        _rrect(s, 0.6, cursor_y, 12.1, 0.4, C_NAVY, None, radius=0.06)
-        _text(s, 0.75, cursor_y + 0.05, 11.8, 0.3, tipo.upper(), 11, C_WHITE, True, anchor=MSO_ANCHOR.MIDDLE)
-        cursor_y += 0.55
-        for ev in items:
-            foto = _imagen_por_indice(imagenes_archivo, ev.get("imagen_indice"))
-            if cursor_y + 2.4 > 6.85:
-                s = _nueva_contenido(prs, mes_ano, num)
-                _titulo_contenido(s, titulo)
-                num += 1
-                cursor_y = 1.15
-            _incidente(s, 0.6, cursor_y, 12.1, ev, foto)
-            cursor_y += 2.4
-    return num
-
-
-def _render_seccion(prs, mes_ano, num, seccion, imagenes_archivo):
-    seccion = _as_dict(seccion)
-    titulo = (seccion.get("titulo") or "Sección").strip() or "Sección"
-    tipo = (seccion.get("tipo") or "parrafos").strip().lower()
-    if tipo == "tabla":
-        return _render_tabla(prs, mes_ano, num, titulo,
-                             seccion.get("columnas"), seccion.get("filas"))
-    if tipo == "indicadores":
-        return _render_indicadores(prs, mes_ano, num, titulo, seccion.get("indicadores"))
-    if tipo == "lista":
-        return _render_lista(prs, mes_ano, num, titulo, seccion.get("items"))
-    if tipo == "evidencias":
-        return _render_evidencias(prs, mes_ano, num, titulo,
-                                  seccion.get("evidencias"), imagenes_archivo)
-    return _render_parrafos(prs, mes_ano, num, titulo, seccion.get("parrafos"))
-
-
-def _render_secciones(prs, mes_ano, num, secciones, imagenes_archivo):
-    for sec in secciones:
-        num = _render_seccion(prs, mes_ano, num, sec, imagenes_archivo)
-    return num
-
-
-def _secciones_desde_registro(reg):
-    """Construye una lista de `secciones` dinámicas a partir de `registro_guardia`.
-
-    Se usa cuando el resultado (por ejemplo, cacheado con un prompt anterior) no
-    trae `secciones`: se convierte la transcripción fiel en secciones para poder
-    renderizar por la MISMA ruta dinámica, sin requerir re-análisis manual."""
-    secciones = []
-    cabecera = _as_dict(reg.get("cabecera"))
-    talleres = _as_list(reg.get("talleres"))
-    evidencias = _as_list(reg.get("evidencias"))
-    pendientes_reg = _as_list(reg.get("pendientes"))
-
-    cabecera_items = [
-        ("Producción OIL (BPD)", cabecera.get("produccion_oil_bpd")),
-        ("Prod. Perdida imputada", cabecera.get("prod_perdida_imputada")),
-        ("Producción GAS (MPC)", cabecera.get("produccion_gas_mpc")),
-        ("Producción recuperada", cabecera.get("produccion_recuperada")),
-    ]
-    indicadores = [{"nombre": lbl, "valor": val, "unidad": ""}
-                   for lbl, val in cabecera_items if val not in (None, "")]
-    if indicadores:
-        secciones.append({"titulo": "Producción", "tipo": "indicadores", "indicadores": indicadores})
-
-    if evidencias:
-        secciones.append({"titulo": "Seguridad y Medio Ambiente", "tipo": "evidencias", "evidencias": evidencias})
-
-    campos_taller = ["item", "pozo", "bateria", "produccion_bopd", "requerimiento", "estado",
-                     "fecha_ejecucion", "tipo", "relevante", "cuadrilla", "actividad_ejecutada"]
-    head_taller = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado",
-                   "Fecha", "Tipo", "Relev.", "Cuadrilla", "Actividad Ejecutada"]
-    for t in talleres:
-        t = _as_dict(t)
-        filas = _as_list(t.get("filas"))
-        if not filas:
-            continue
-        nombre = t.get("taller") or "Taller"
-        rows = [[_as_dict(f).get(c, "") for c in campos_taller] for f in filas]
-        secciones.append({"titulo": nombre, "tipo": "tabla", "columnas": head_taller, "filas": rows})
-
-    campos_pend = ["item", "pozo", "bateria", "produccion_bopd", "requerimiento", "estado",
-                   "fecha_ejecucion", "actividad_ejecutada"]
-    head_pend = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado", "Fecha", "Actividad Ejecutada"]
-    for p in pendientes_reg:
-        p = _as_dict(p)
-        filas = _as_list(p.get("filas"))
-        if not filas:
-            continue
-        nombre = p.get("taller") or "Pendientes"
-        rows = [[_as_dict(f).get(c, "") for c in campos_pend] for f in filas]
-        secciones.append({"titulo": f"{nombre} — Pendientes", "tipo": "tabla", "columnas": head_pend, "filas": rows})
-
-    return secciones
-
-
-def generar_informe_ppt(informe, data, imagenes_archivo=None):
-    """Construye la presentación con el formato rv0.
-
-    El PPT es dirigido por `data.secciones` (contenido estructurado que entrega
-    Gemini). Si `secciones` no existe (resultado cacheado previo), se deriva
-    automáticamente de `registro_guardia`. La identidad visual es siempre la misma."""
-    imagenes_archivo = imagenes_archivo or []
-    data = data or {}
-
-    prs = Presentation()
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
-
-    reg = _as_dict(data.get("registro_guardia"))
+# ── Relleno de la portada ────────────────────────────────────────────────────
+def _fill_portada(slide, informe, data):
     portada = _as_dict(data.get("portada"))
-    secciones = _as_list(data.get("secciones"))
+    reg = _as_dict(data.get("registro_guardia"))
 
-    mes_ano = _fmt_mes_ano(informe.get("fecha_guardia"))
+    supervisor = (informe.get("fiscalizador") or "").strip().upper()
+    _set_text_at(slide, *PORTADA_SUPERVISOR,
+                 f"SUPERVISOR. {supervisor}" if supervisor else "SUPERVISOR.")
 
-    # Datos dinámicos de la portada (sin contenido fijo del informe de ejemplo).
     titulo = portada.get("titulo") or "Reporte de Guardia"
+    _set_text_at(slide, *PORTADA_TITULO, titulo)
+
+    fecha = _fmt_fecha(informe.get("fecha_guardia"))
+    _set_text_at(slide, *PORTADA_FECHA, fecha)
+
     etiqueta = portada.get("etiqueta") or "Talleres supervisados"
+    _set_text_at(slide, *PORTADA_ETIQUETA, etiqueta)
+
     temas = _as_list(portada.get("temas"))
     if not temas:
         nombres = []
@@ -645,15 +283,291 @@ def generar_informe_ppt(informe, data, imagenes_archivo=None):
             if n and n not in nombres:
                 nombres.append(n)
         temas = nombres
-    contenido_portada = " · ".join(temas) if temas else TALLERES_SUPERVISADOS
+    if temas:
+        _set_text_at(slide, *PORTADA_TEMAS, " · ".join(temas))
 
-    _portada(prs, informe, titulo, etiqueta, contenido_portada)
 
+# ── Layout "tarjetas" (evidencias / incidentes) ─────────────────────────────
+def _evidencia_titulo(ev):
+    ev = _as_dict(ev)
+    t = (ev.get("titulo") or "").strip()
+    if not t:
+        t = (ev.get("pozo_equipo") or "").strip()
+    if not t:
+        t = (ev.get("descripcion") or "").strip()[:60]
+    return t
+
+
+def _evidencia_fecha(ev):
+    ev = _as_dict(ev)
+    return ev.get("fecha_hora") or ev.get("fecha") or ""
+
+
+def _evidencia_descripcion(ev):
+    ev = _as_dict(ev)
+    partes = []
+    if ev.get("descripcion"):
+        partes.append(str(ev["descripcion"]))
+    if ev.get("hallazgos"):
+        partes.append(str(ev["hallazgos"]))
+    return "\n".join(partes)
+
+
+def _fill_tarjetas(slide, titulo, evidencias, fotos, mes_ano, num):
+    _set_text_at(slide, *TARJETAS_TITULO, titulo)
+    _set_text_at(slide, *TARJETAS_FOOTER, f"Reporte de Guardia | {mes_ano}".strip(" |"))
+    _set_text_at(slide, *TARJETAS_PAGINA, str(num).zfill(2))
+    _add_logo(slide, TARJETAS_LOGO)
+
+    for i in range(3):
+        card_left = TARJETAS_CARD_LEFT[i]
+        ev = evidencias[i] if i < len(evidencias) else None
+        foto = fotos[i] if i < len(fotos) else None
+
+        # Rellenar los 4 textos de la tarjeta.
+        label_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[0]
+        titulo_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[1]
+        fecha_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[2]
+        desc_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[3]
+
+        if ev is None:
+            _set_text_at(slide, card_left + 0.200, label_top, "")
+            _set_text_at(slide, card_left + 0.200, titulo_top, "")
+            _set_text_at(slide, card_left + 0.200, fecha_top, "")
+            _set_text_at(slide, card_left + 0.200, desc_top, "")
+            continue
+
+        ev = _as_dict(ev)
+        _set_text_at(slide, card_left + 0.200, label_top,
+                     (ev.get("tipo") or ev.get("clasificacion") or "").upper())
+        _set_text_at(slide, card_left + 0.200, titulo_top, _evidencia_titulo(ev))
+        _set_text_at(slide, card_left + 0.200, fecha_top, _evidencia_fecha(ev))
+        _set_text_at(slide, card_left + 0.200, desc_top, _evidencia_descripcion(ev))
+
+        if foto:
+            _add_picture_fitted(slide, foto,
+                                TARJETAS_PHOTO_LEFT[i], TARJETAS_PHOTO_TOP,
+                                TARJETAS_PHOTO_W[i], TARJETAS_PHOTO_H)
+
+
+def _render_evidencias(prs, tarjetas_layout, tarjetas_shapes, mes_ano, num, titulo, evidencias, imagenes_archivo):
+    evidencias = _as_list(evidencias)
+    if not evidencias:
+        return num
+    por_slide = 3
+    for i in range(0, len(evidencias), por_slide):
+        chunk = evidencias[i:i + por_slide]
+        fotos = []
+        for ev in chunk:
+            fotos.append(_imagen_por_indice(imagenes_archivo, _as_dict(ev).get("imagen_indice")))
+        slide = _duplicate_slide(prs, tarjetas_layout, tarjetas_shapes)
+        _fill_tarjetas(slide, titulo, chunk, fotos, mes_ano, num)
+        num += 1
+    return num
+
+
+# ── Layout "resumen" (indicadores y listas) ─────────────────────────────────
+def _add_items(slide, x, y, items, size=11, color=RGBColor(0x10, 0x2A, 0x43)):
+    """Añade ítems de lista con el estilo de la plantilla dentro de una tarjeta."""
+    items = _as_list(items)
+    for it in items:
+        tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(7.8), Inches(0.4))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        r = p.add_run()
+        r.text = "• " + str(it)
+        r.font.size = Pt(size)
+        r.font.name = "Aptos"
+        r.font.color.rgb = color
+        y += 0.32
+
+
+def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
+    _set_text_at(slide, *RESUMEN_TITULO, titulo)
+    _set_text_at(slide, *TARJETAS_FOOTER, f"Reporte de Guardia | {mes_ano}".strip(" |"))
+    _set_text_at(slide, *TARJETAS_PAGINA, str(num).zfill(2))
+    _add_logo(slide, RESUMEN_LOGO)
+
+    # Indicadores (máx. 3)
+    indicadores = _as_list(seccion.get("indicadores"))
+    for i in range(3):
+        ind = _as_dict(indicadores[i]) if i < len(indicadores) else {}
+        nombre = ind.get("nombre") or ""
+        valor = ind.get("valor") if ind.get("valor") not in (None, "") else ""
+        _set_text_at(slide, *RESUMEN_KPI_LABEL[i], nombre.upper())
+        _set_text_at(slide, *RESUMEN_KPI_VALUE[i], str(valor))
+
+    # Producción (PRODUCCIÓN + PROD. PERDIDA). Se oculta si no hay datos.
+    produccion = _as_dict(seccion.get("produccion"))
+    if not any(produccion.values()):
+        produccion = _as_dict(data.get("produccion"))
+    if not any(produccion.values()):
+        produccion = _as_dict(_as_dict(data.get("registro_guardia")).get("cabecera"))
+    oil = produccion.get("produccion_oil_bpd")
+    gas = produccion.get("produccion_gas_mpc")
+    imputado = produccion.get("prod_perdida_imputada")
+    recuperado = produccion.get("produccion_recuperada")
+
+    hay_produccion = any(v not in (None, "") for v in (oil, gas, imputado, recuperado))
+    if hay_produccion:
+        _set_text_at(slide, *RESUMEN_PROD_COL1, f"Bls\n{oil if oil not in (None, '') else '—'}")
+        _set_text_at(slide, *RESUMEN_PROD_COL2, f"Mpc\n{gas if gas not in (None, '') else '—'}")
+        _set_text_at(slide, *RESUMEN_PROD_IMPUTADO,
+                     f"Imputado: {imputado}" if imputado not in (None, "") else "Imputado: —")
+        _set_text_at(slide, *RESUMEN_PROD_RECUPERADO,
+                     f"Recuperado: {recuperado}" if recuperado not in (None, "") else "Recuperado: —")
+    else:
+        # Ocultar las tarjetas PRODUCCIÓN y PROD. PERDIDA (sin datos de producción).
+        _delete_shapes_in_region(slide, 6.0, 1.0, 10.9, 2.0)
+
+    # Distribución por tipo
+    tipos = _as_list(seccion.get("tipos"))
+    if tipos:
+        _set_text_at(slide, *RESUMEN_POR_TIPO_TITULO, "POR TIPO")
+    for i, pos in enumerate(RESUMEN_POR_TIPO_LABEL):
+        item = _as_dict(tipos[i]) if i < len(tipos) else {}
+        nombre = item.get("nombre") or ""
+        valor = item.get("valor") or ""
+        pct = item.get("porcentaje") or ""
+        if pct:
+            valor = f"{valor} ({pct})"
+        _set_text_at(slide, *pos, nombre)
+        _set_text_at(slide, *RESUMEN_POR_TIPO_VALUE[i], valor)
+
+    # Distribución por taller
+    talleres = _as_list(seccion.get("talleres"))
+    if talleres:
+        _set_text_at(slide, *RESUMEN_POR_TALLER_TITULO, "POR TALLER")
+    for i, pos in enumerate(RESUMEN_POR_TALLER_LABEL):
+        item = _as_dict(talleres[i]) if i < len(talleres) else {}
+        nombre = item.get("nombre") or ""
+        valor = item.get("valor") or ""
+        _set_text_at(slide, *pos, nombre)
+        _set_text_at(slide, *RESUMEN_POR_TALLER_VALUE[i], valor)
+
+    # Actividades relevantes
+    actividades = _as_list(seccion.get("actividades"))
+    if actividades:
+        _set_text_at(slide, *RESUMEN_ACT_TITULO, "Actividades relevantes:")
+        _add_items(slide, 4.60, 2.80, actividades)
+
+    # Pendientes relevantes
+    pendientes = _as_list(seccion.get("pendientes"))
+    if pendientes:
+        _set_text_at(slide, *RESUMEN_PEND_TITULO, "Pendientes (relevantes):")
+        _add_items(slide, 4.60, 5.60, pendientes)
+
+
+def _render_resumen(prs, resumen_layout, resumen_shapes, mes_ano, num, seccion, data):
+    slide = _duplicate_slide(prs, resumen_layout, resumen_shapes)
+    titulo = seccion.get("titulo") or "Resumen ejecutivo"
+    _fill_resumen(slide, titulo, seccion, data, mes_ano, num)
+    return num + 1
+
+
+# ── Derivar secciones desde registro_guardia (respaldo de caché viejo) ──────
+def _secciones_desde_registro(data):
+    reg = _as_dict(data.get("registro_guardia"))
+    secciones = []
+
+    cabecera = _as_dict(reg.get("cabecera"))
+    talleres = _as_list(reg.get("talleres"))
+    evidencias = _as_list(reg.get("evidencias"))
+    pendientes_reg = _as_list(reg.get("pendientes"))
+
+    indicadores = []
+    for lbl, key in (("Producción OIL (BPD)", "produccion_oil_bpd"),
+                     ("Prod. Perdida imputada", "prod_perdida_imputada"),
+                     ("Producción GAS (MPC)", "produccion_gas_mpc"),
+                     ("Producción recuperada", "produccion_recuperada")):
+        v = cabecera.get(key)
+        if v not in (None, ""):
+            indicadores.append({"nombre": lbl, "valor": v})
+
+    if indicadores or talleres or pendientes_reg:
+        secciones.append({
+            "titulo": "Resumen ejecutivo",
+            "tipo": "resumen",
+            "indicadores": indicadores[:3],
+            "talleres": [{"nombre": _as_dict(t).get("taller") or "", "valor": ""} for t in talleres],
+            "actividades": [],
+            "pendientes": [],
+        })
+
+    if evidencias:
+        secciones.append({
+            "titulo": "Seguridad y Medio Ambiente",
+            "tipo": "evidencias",
+            "evidencias": evidencias,
+        })
+
+    return secciones
+
+
+# ── Generador principal ─────────────────────────────────────────────────────
+def generar_informe_ppt(informe, data, imagenes_archivo=None):
+    """Genera la presentación a partir de la plantilla real y el contenido de Gemini."""
+    imagenes_archivo = imagenes_archivo or []
+    data = data or {}
+
+    if not os.path.exists(TEMPLATE_PPTX):
+        raise FileNotFoundError(f"Plantilla PPT no encontrada: {TEMPLATE_PPTX}")
+
+    prs = Presentation(TEMPLATE_PPTX)
+    slides = list(prs.slides)
+    if len(slides) < 4:
+        raise ValueError("La plantilla debe tener al menos 4 diapositivas (portada, contenido x2, cierre).")
+
+    portada = slides[IDX_PORTADA]
+    tarjetas_src = slides[IDX_TARJETAS]
+    resumen_src = slides[IDX_RESUMEN]
+    cierre = slides[IDX_CIERRE]
+
+    # Capturar el layout y los elementos (sin imágenes) de las 2 diapositivas de contenido.
+    tarjetas_layout = tarjetas_src.slide_layout
+    tarjetas_shapes = [copy.deepcopy(sh._element) for sh in tarjetas_src.shapes
+                       if sh.shape_type != MSO_SHAPE_TYPE.PICTURE]
+    resumen_layout = resumen_src.slide_layout
+    resumen_shapes = [copy.deepcopy(sh._element) for sh in resumen_src.shapes
+                      if sh.shape_type != MSO_SHAPE_TYPE.PICTURE]
+
+    _fill_portada(portada, informe, data)
+
+    secciones = _as_list(data.get("secciones"))
     if not secciones:
-        secciones = _secciones_desde_registro(reg)
+        secciones = _secciones_desde_registro(data)
 
-    num = _render_secciones(prs, mes_ano, 2, secciones, imagenes_archivo)
+    mes_ano = _fmt_mes_ano(informe.get("fecha_guardia"))
 
-    _cierre(prs)
+    # Construir todas las diapositivas de contenido (siempre duplicando la plantilla,
+    # nunca reutilizando en sitio), en el orden de las secciones.
+    num = 2
+    contenido = []
+    for sec in secciones:
+        sec = _as_dict(sec)
+        tipo = (sec.get("tipo") or "resumen").strip().lower()
+        if tipo == "evidencias":
+            evidencias = _as_list(sec.get("evidencias"))
+            titulo = sec.get("titulo") or "Seguridad y Medio Ambiente"
+            for i in range(0, len(evidencias), 3):
+                chunk = evidencias[i:i + 3]
+                slide = _duplicate_slide(prs, tarjetas_layout, tarjetas_shapes)
+                fotos = [_imagen_por_indice(imagenes_archivo, _as_dict(ev).get("imagen_indice")) for ev in chunk]
+                _fill_tarjetas(slide, titulo, chunk, fotos, mes_ano, num)
+                num += 1
+                contenido.append(slide)
+        else:
+            slide = _duplicate_slide(prs, resumen_layout, resumen_shapes)
+            titulo = sec.get("titulo") or "Resumen ejecutivo"
+            _fill_resumen(slide, titulo, sec, data, mes_ano, num)
+            num += 1
+            contenido.append(slide)
+
+    # Eliminar las dos diapositivas de contenido originales de la plantilla.
+    _delete_slides(prs, [tarjetas_src, resumen_src])
+
+    # Reordenar: portada -> contenido -> cierre.
+    _reorder_slides(prs, [portada] + contenido + [cierre])
 
     return prs

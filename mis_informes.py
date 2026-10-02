@@ -745,6 +745,167 @@ def exportar_informes_excel():
 # FUNCIONES AUXILIARES PARA ANÁLISIS CON IA
 # ==========================================
 
+def _extraer_estructura_xlsx(archivo_obj):
+    """Extrae y estructura localmente el contenido de un XLSX.
+
+    Produce una representación compacta (títulos, tablas detectadas y textos
+    sueltos por hoja, más referencias de imágenes) para que Gemini reciba
+    información ya organizada y no gaste tiempo interpretando celdas sueltas.
+
+    Devuelve un dict con 'hojas' e 'imagenes'. Imprime métricas de extracción.
+    """
+    import time as _time
+    from openpyxl import load_workbook
+    from openpyxl.utils import get_column_letter
+
+    t0 = _time.time()
+    ruta = archivo_obj.get("ruta_archivo")
+    wb = load_workbook(ruta, data_only=True)
+
+    hojas = []
+    imagenes = []
+    total_celdas_raw = 0
+    total_caracteres_raw = 0
+    total_filas = 0
+
+    def _es_numero(v):
+        try:
+            float(str(v).replace(",", ".").strip())
+            return True
+        except (ValueError, TypeError):
+            return False
+
+    for nombre_hoja in wb.sheetnames:
+        ws = wb[nombre_hoja]
+
+        # Referencias de imágenes (hoja + celda de anclaje).
+        for img in getattr(ws, "_images", []):
+            celda = ""
+            try:
+                anchor = getattr(img, "anchor", None)
+                src = getattr(anchor, "_from", None) if anchor is not None else None
+                if src is not None:
+                    col = int(getattr(src, "col", 0) or 0) + 1
+                    row = int(getattr(src, "row", 0) or 0) + 1
+                    celda = f"{get_column_letter(col)}{row}"
+            except Exception:
+                celda = ""
+            imagenes.append({"id": f"img_{len(imagenes) + 1}", "hoja": nombre_hoja, "celda": celda})
+
+        # Filas no vacías: (nº fila, [(col, valor), ...], resaltada_en_amarillo)
+        filas = []
+        for fila in ws.iter_rows():
+            celdas = []
+            fila_amarilla = False
+            for c in fila:
+                if c.value is None:
+                    continue
+                val = str(c.value).strip().replace("\n", " ")
+                if val == "":
+                    continue
+                total_celdas_raw += 1
+                total_caracteres_raw += len(val)
+                celdas.append((c.column, val))
+                try:
+                    f = c.fill
+                    if f is not None and f.patternType == "solid":
+                        rgb = getattr(f.fgColor, "rgb", None)
+                        if isinstance(rgb, str) and rgb.upper() in ("FFFFFF00", "00FFFF00"):
+                            fila_amarilla = True
+                except Exception:
+                    pass
+            if celdas:
+                total_filas += 1
+                filas.append((fila[0].row, celdas, fila_amarilla))
+
+        titulo = None
+        esquemas = []
+        tablas = []
+        textos = []
+        tabla = None
+
+        def _esquema_idx(encabezados):
+            for i, e in enumerate(esquemas):
+                if e == encabezados:
+                    return i
+            esquemas.append(encabezados)
+            return len(esquemas) - 1
+
+        def _cerrar():
+            nonlocal tabla
+            if tabla and tabla["registros"]:
+                idx = _esquema_idx(tabla["encabezados"])
+                tablas.append({"fila": tabla["fila"], "esquema": idx, "registros": tabla["registros"]})
+            tabla = None
+
+        def _es_encabezado(celdas):
+            # Encabezado: varias celdas y ninguna es numérica.
+            return len(celdas) >= 2 and all(not _es_numero(v) for _, v in celdas)
+
+        def _es_cabecera_produccion(celdas):
+            # La cabecera de producción son pares "etiqueta: valor" (pocas celdas con ':').
+            return len(celdas) <= 2 and any(":" in v for _, v in celdas)
+
+        for row_num, celdas, amarillo in filas:
+            if len(celdas) == 1:
+                val = celdas[0][1]
+                # Fila de una sola celda numérica con tabla abierta => registro (columna ítem).
+                if tabla is not None and _es_numero(val):
+                    fila_vals = [""] * len(tabla["encabezados"])
+                    col = celdas[0][0]
+                    if col in tabla["cols"]:
+                        fila_vals[tabla["cols"].index(col)] = val
+                    else:
+                        fila_vals[0] = val
+                    while fila_vals and fila_vals[-1] == "":
+                        fila_vals.pop()
+                    tabla["registros"].append(fila_vals)
+                    continue
+                _cerrar()
+                if titulo is None:
+                    titulo = val
+                else:
+                    textos.append({"celda": f"{get_column_letter(celdas[0][0])}{row_num}", "contenido": val})
+            elif _es_encabezado(celdas) and not _es_cabecera_produccion(celdas):
+                _cerrar()
+                enc = [v for _, v in celdas]
+                if amarillo:
+                    enc[0] = "[CRITICO-AMARILLO] " + enc[0]
+                tabla = {"fila": row_num, "encabezados": enc, "cols": [c for c, _ in celdas], "registros": []}
+            elif tabla is not None:
+                fila_vals = [""] * len(tabla["encabezados"])
+                for col, v in celdas:
+                    if col in tabla["cols"]:
+                        fila_vals[tabla["cols"].index(col)] = v
+                    else:
+                        fila_vals.append(v)
+                if amarillo and fila_vals:
+                    fila_vals[0] = "[CRITICO-AMARILLO] " + fila_vals[0]
+                while fila_vals and fila_vals[-1] == "":
+                    fila_vals.pop()
+                tabla["registros"].append(fila_vals)
+            else:
+                textos.append({"celda": f"{get_column_letter(celdas[0][0])}{row_num}",
+                               "contenido": " | ".join(v for _, v in celdas)})
+        _cerrar()
+
+        hojas.append({"hoja": nombre_hoja, "titulo": titulo, "esquemas": esquemas, "tablas": tablas, "textos": textos})
+
+    resultado = {"hojas": hojas, "imagenes": imagenes}
+    compacto = json.dumps(resultado, ensure_ascii=False)
+
+    print(f"[IA] Hojas detectadas: {len(hojas)}")
+    print(f"[IA] Celdas procesadas: {total_celdas_raw}")
+    print(f"[IA] Filas útiles: {total_filas}")
+    print(f"[IA] Tablas detectadas: {sum(len(h['tablas']) for h in hojas)}")
+    print(f"[IA] Imágenes detectadas: {len(imagenes)}")
+    print(f"[IA] Caracteres antes de limpieza: {total_caracteres_raw}")
+    print(f"[IA] Caracteres después de limpieza: {len(compacto)}")
+    print(f"[IA] Tiempo extracción local: {_time.time() - t0:.2f}s")
+
+    return resultado
+
+
 def _extraer_texto_archivo(archivo_obj):
     """Extrae texto de PDF, DOCX o XLSX y lo devuelve como string."""
     ext = archivo_obj["extension"].lower()
@@ -855,32 +1016,7 @@ def _extraer_texto_archivo(archivo_obj):
 
     elif ext in ("xlsx", "xlsm"):
         try:
-            from openpyxl import load_workbook
-            from openpyxl.utils import get_column_letter
-            wb = load_workbook(ruta, data_only=True)
-            for nombre_hoja in wb.sheetnames:
-                ws = wb[nombre_hoja]
-                texto += f"\n===== HOJA: {nombre_hoja} =====\n"
-                for fila in ws.iter_rows():
-                    celdas = []
-                    fila_amarilla = False
-                    for c in fila:
-                        if c.value is None:
-                            continue
-                        valor = str(c.value).replace("\n", " / ")
-                        # Incluir coordenadas (columna+fila) para trazabilidad
-                        celdas.append(f"{get_column_letter(c.column)}{c.row}={valor}")
-                        try:
-                            f = c.fill
-                            if f is not None and f.patternType == "solid":
-                                rgb = getattr(f.fgColor, "rgb", None)
-                                if isinstance(rgb, str) and rgb.upper() in ("FFFFFF00", "00FFFF00"):
-                                    fila_amarilla = True
-                        except Exception:
-                            pass
-                    if celdas:
-                        marca = "[CRITICO-AMARILLO] " if fila_amarilla else ""
-                        texto += marca + " | ".join(celdas) + "\n"
+            texto = json.dumps(_extraer_estructura_xlsx(archivo_obj), ensure_ascii=False)
         except Exception as e:
             texto = f"[Error al extraer texto del XLSX: {str(e)}]"
 
@@ -1107,6 +1243,7 @@ def _normalizar_evidencia(ev, indice):
         "n_evidencia": ev.get("n_evidencia") or (indice + 1),
         "item_ref": ev.get("item_ref", ""),
         "pozo_equipo": pozo_equipo,
+        "titulo": ev.get("titulo", ""),
         "descripcion": descripcion,
         "hallazgos": hallazgos,
         "accion_tomada": ev.get("accion_tomada", ""),
@@ -1193,6 +1330,10 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
               .replace("<<<FORMATO_REPORTE>>>", _cargar_formato_reporte())
               .replace("<<<CONTENIDO>>>", texto[:max_input_chars]))
 
+    print(f"[IA] Tamaño aproximado enviado a Gemini: {len(prompt)} caracteres")
+
+    t_inicio_gemini = time.time()
+
     # Limitar la cantidad de imágenes enviadas para no exceder el tamaño/latencia.
     imagenes = imagenes[:max_imagenes]
 
@@ -1236,6 +1377,7 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                         continue
                     break
 
+                print(f"[IA] Tiempo llamada Gemini: {time.time() - t_inicio_gemini:.2f}s")
                 return resultado
 
             except json.JSONDecodeError as e:
