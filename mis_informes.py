@@ -1307,27 +1307,36 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
     # Eliminar duplicados manteniendo el orden
     modelos = list(dict.fromkeys(modelos_fallback))
 
-    client = genai.Client(api_key=api_key, http_options={"timeout": 120000})
+    timeout_ms = int(os.getenv("GEMINI_TIMEOUT_MS", "120000"))
+    client = genai.Client(api_key=api_key, http_options={"timeout": timeout_ms})
 
     # Límites configurables por entorno para controlar el costo/latencia de Gemini.
     max_input_chars = int(os.getenv("GEMINI_MAX_INPUT_CHARS", "60000"))
     max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "20000"))
     max_imagenes = int(os.getenv("GEMINI_MAX_IMAGENES", "8"))
 
+    # Thinking desactivado por defecto (GEMINI_THINKING=0): la interpretación de
+    # contenido ya estructurado no necesita razonamiento profundo; prioriza velocidad.
+    thinking_activo = os.getenv("GEMINI_THINKING", "0").strip().lower() not in ("", "0", "false", "no")
+
     # Configuración de generación para reducir latencia: salida forzada como JSON
-    # válido (evita reintentos por JSON inválido), temperatura baja y límite de
-    # tokens para que la respuesta no se extienda innecesariamente.
-    config_gen = genai.types.GenerateContentConfig(
+    # válido (evita reintentos por JSON inválido), temperatura baja y límite de tokens.
+    config_kwargs = dict(
         temperature=0.2,
         max_output_tokens=max_output_tokens,
         response_mime_type="application/json",
     )
+    if not thinking_activo:
+        try:
+            config_kwargs["thinking_config"] = genai.types.ThinkingConfig(thinking_budget=0)
+        except Exception:
+            pass
+
+    config_gen = genai.types.GenerateContentConfig(**config_kwargs)
 
     prompt = (_cargar_pront()
               .replace("<<<TITULO>>>", titulo or "")
               .replace("<<<DESCRIPCION>>>", descripcion or "")
-              .replace("<<<FORMATO>>>", _cargar_formato())
-              .replace("<<<FORMATO_REPORTE>>>", _cargar_formato_reporte())
               .replace("<<<CONTENIDO>>>", texto[:max_input_chars]))
 
     print(f"[IA] Tamaño aproximado enviado a Gemini: {len(prompt)} caracteres")
@@ -1361,14 +1370,25 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
     for modelo in modelos:
         for intento in range(1, max_intentos_por_modelo + 1):
             try:
+                t_solicitud = time.time()
                 respuesta = client.models.generate_content(
                     model=modelo,
                     contents=contents,
                     config=config_gen,
                 )
+                t_respuesta = time.time()
                 texto_respuesta = (respuesta.text or "").strip()
 
+                # Métricas de uso (tokens de entrada/salida) cuando están disponibles.
+                try:
+                    uso = respuesta.usage_metadata
+                    tokens_entrada = getattr(uso, "prompt_token_count", None)
+                    tokens_salida = getattr(uso, "candidates_token_count", None)
+                except Exception:
+                    tokens_entrada = tokens_salida = None
+
                 resultado = _extraer_json_respuesta(texto_respuesta)
+                t_parseo = time.time()
                 if resultado is None:
                     print(f"[IA] {modelo}: respuesta sin JSON válido (intento {intento}/{max_intentos_por_modelo})")
                     ultimo_error = "La IA devolvió una respuesta no válida."
@@ -1377,7 +1397,14 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                         continue
                     break
 
-                print(f"[IA] Tiempo llamada Gemini: {time.time() - t_inicio_gemini:.2f}s")
+                print(f"[IA] Modelo utilizado: {modelo}")
+                print(f"[IA] Caracteres enviados: {len(prompt)}")
+                print(f"[IA] Imágenes enviadas: {len(imagenes)}")
+                print(f"[IA] Tokens de entrada: {tokens_entrada}")
+                print(f"[IA] Tokens de salida: {tokens_salida}")
+                print(f"[IA] Tiempo solicitud->respuesta Gemini: {t_respuesta - t_solicitud:.2f}s")
+                print(f"[IA] Tiempo parseo JSON: {t_parseo - t_respuesta:.4f}s")
+                print(f"[IA] Tiempo total llamada Gemini: {t_parseo - t_inicio_gemini:.2f}s")
                 return resultado
 
             except json.JSONDecodeError as e:
@@ -1559,8 +1586,14 @@ def analizar_informe_api(id_informe):
         if not os.path.exists(ruta):
             return jsonify({"error": "El archivo no existe en el servidor"}), 404
 
-        # Extraer texto del archivo
+        import time as _time
+
+        t_inicio_total = _time.time()
+
+        # Extraer texto (y estructura) del archivo
+        t_extraccion = _time.time()
         texto = _extraer_texto_archivo(informe)
+        t_extraccion_fin = _time.time()
 
         if not texto:
             return jsonify({"error": "No se pudo extraer texto del archivo"}), 400
@@ -1568,14 +1601,26 @@ def analizar_informe_api(id_informe):
         if texto.startswith("[Error"):
             return jsonify({"error": texto}), 500
 
-        # Analizar con Gemini (incluyendo las imágenes incrustadas, si las hay)
+        # Extraer las imágenes incrustadas (referencias, no se envían todas por defecto)
+        t_imagenes = _time.time()
         imagenes = _extraer_imagenes_archivo(informe)
+        t_imagenes_fin = _time.time()
+
+        # Analizar con Gemini
+        t_gemini = _time.time()
         resultado = _analizar_con_gemini(
             texto,
             informe["titulo"] or "",
             informe["descripcion"] or "",
             imagenes
         )
+        t_gemini_fin = _time.time()
+
+        print("[PERFORMANCE]")
+        print(f"[PERFORMANCE] Extracción Excel: {t_extraccion_fin - t_extraccion:.2f}s")
+        print(f"[PERFORMANCE] Extracción imágenes: {t_imagenes_fin - t_imagenes:.2f}s")
+        print(f"[PERFORMANCE] Llamada Gemini (total): {t_gemini_fin - t_gemini:.2f}s")
+        print(f"[PERFORMANCE] TOTAL: {t_gemini_fin - t_inicio_total:.2f}s")
 
         # Guardar en caché si el análisis fue exitoso (sin error)
         if not resultado.get("error"):

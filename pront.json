@@ -20,9 +20,8 @@ Siempre basado **exclusivamente** en los datos del documento. El documento es la
 
 # 1. FORMATO DE ENTRADA (EXCEL)
 
-El documento es un **Reporte de Guardia de mantenimiento**. Su estructura de referencia es:
-
-<<<FORMATO>>>
+El documento es un **Reporte de Guardia de mantenimiento**. El sistema ya lo extrajo y
+estructuró; tu entrada es la información organizada (no el Excel crudo).
 
 Reglas de lectura:
 
@@ -56,9 +55,8 @@ Reglas de lectura:
 
 # 2. FORMATO DE SALIDA (REPORTE / PPT)
 
-Los datos que produzcas alimentan un **Reporte de Guardia** (vista web) y una presentación PPT:
-
-<<<FORMATO_REPORTE>>>
+Tus datos alimentan un **Reporte de Guardia** (vista web) y una presentación PPT cuyo
+diseño visual ya está definido (no debes describirlo ni diseñarlo).
 
 Debes entregar:
 
