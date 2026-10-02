@@ -434,6 +434,12 @@
 }
 .resultados-wrapper.active { display: flex; }
 
+#dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
 .completado-banner {
     display: flex;
     align-items: center;

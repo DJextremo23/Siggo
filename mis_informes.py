@@ -1312,7 +1312,7 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
 
     # Límites configurables por entorno para controlar el costo/latencia de Gemini.
     max_input_chars = int(os.getenv("GEMINI_MAX_INPUT_CHARS", "60000"))
-    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "20000"))
+    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "12000"))
     max_imagenes = int(os.getenv("GEMINI_MAX_IMAGENES", "8"))
 
     # Thinking desactivado por defecto (GEMINI_THINKING=0): la interpretación de

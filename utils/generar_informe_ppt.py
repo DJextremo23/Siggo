@@ -70,6 +70,7 @@ RESUMEN_PROD_COL1 = (6.223, 1.346)
 RESUMEN_PROD_COL2 = (7.303, 1.346)
 RESUMEN_POR_TIPO_TITULO = (0.980, 2.400)
 RESUMEN_POR_TALLER_TITULO = (0.780, 4.515)
+RESUMEN_POR_TALLER_HEAD = (0.780, 4.790)
 RESUMEN_POR_TIPO_LABEL = [(0.900, 2.820), (0.900, 3.250), (0.900, 3.680), (0.900, 4.110)]
 RESUMEN_POR_TIPO_VALUE = [(2.930, 2.820), (2.930, 3.250), (2.930, 3.680), (2.930, 4.110)]
 RESUMEN_POR_TALLER_LABEL = [(0.790, 4.955), (0.790, 5.142), (0.790, 5.325), (0.790, 5.518), (0.775, 5.713), (0.765, 5.894)]
@@ -324,18 +325,20 @@ def _fill_tarjetas(slide, titulo, evidencias, fotos, mes_ano, num):
         ev = evidencias[i] if i < len(evidencias) else None
         foto = fotos[i] if i < len(fotos) else None
 
+        if ev is None:
+            # Eliminar la tarjeta (y su zona de foto) para no dejar cajas oscuras vacías.
+            _delete_shapes_in_region(slide, card_left - 0.05, TARJETAS_CARD_TOP - 0.05,
+                                     card_left + 3.95, TARJETAS_CARD_TOP + 2.55)
+            _delete_shapes_in_region(slide, TARJETAS_PHOTO_LEFT[i] - 0.05, TARJETAS_PHOTO_TOP - 0.05,
+                                     TARJETAS_PHOTO_LEFT[i] + TARJETAS_PHOTO_W[i] + 0.05,
+                                     TARJETAS_PHOTO_TOP + TARJETAS_PHOTO_H + 0.05)
+            continue
+
         # Rellenar los 4 textos de la tarjeta.
         label_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[0]
         titulo_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[1]
         fecha_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[2]
         desc_top = TARJETAS_CARD_TOP + TARJETAS_TEXT_DY[3]
-
-        if ev is None:
-            _set_text_at(slide, card_left + 0.200, label_top, "")
-            _set_text_at(slide, card_left + 0.200, titulo_top, "")
-            _set_text_at(slide, card_left + 0.200, fecha_top, "")
-            _set_text_at(slide, card_left + 0.200, desc_top, "")
-            continue
 
         ev = _as_dict(ev)
         _set_text_at(slide, card_left + 0.200, label_top,
@@ -423,8 +426,9 @@ def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
 
     # Distribución por tipo
     tipos = _as_list(seccion.get("tipos"))
-    if tipos:
-        _set_text_at(slide, *RESUMEN_POR_TIPO_TITULO, "POR TIPO")
+    _set_text_at(slide, *RESUMEN_POR_TIPO_TITULO, "POR TIPO")
+    # Eliminar las barras de ejemplo de "POR TIPO" (no se actualizan dinámicamente).
+    _delete_shapes_in_region(slide, 0.85, 2.98, 2.60, 4.35)
     for i, pos in enumerate(RESUMEN_POR_TIPO_LABEL):
         item = _as_dict(tipos[i]) if i < len(tipos) else {}
         nombre = item.get("nombre") or ""
@@ -437,8 +441,8 @@ def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
 
     # Distribución por taller
     talleres = _as_list(seccion.get("talleres"))
-    if talleres:
-        _set_text_at(slide, *RESUMEN_POR_TALLER_TITULO, "POR TALLER")
+    _set_text_at(slide, *RESUMEN_POR_TALLER_TITULO, "POR TALLER")
+    _set_text_at(slide, *RESUMEN_POR_TALLER_HEAD, "TALLER")
     for i, pos in enumerate(RESUMEN_POR_TALLER_LABEL):
         item = _as_dict(talleres[i]) if i < len(talleres) else {}
         nombre = item.get("nombre") or ""
