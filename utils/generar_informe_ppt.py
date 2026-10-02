@@ -90,6 +90,20 @@ def _as_dict(v):
     return v if isinstance(v, dict) else {}
 
 
+def _truncate(text, max_chars):
+    """Recorta texto a un máximo de caracteres con elipsis visible.
+
+    Se usa para que el contenido dinámico respete la capacidad del bloque
+    visual sin reducir la fuente ni superponerse."""
+    text = str(text or "")
+    if len(text) <= max_chars:
+        return text
+    recortado = text[:max_chars - 1].rstrip()
+    if len(recortado) < len(text):
+        print(f"[PPT] Texto truncado a {max_chars} caracteres (se conserva en el JSON).")
+    return recortado + "…"
+
+
 def _fmt_fecha(fecha):
     if not fecha:
         return ""
@@ -300,8 +314,7 @@ def _fill_portada(slide, informe, data):
             if n and n not in nombres:
                 nombres.append(n)
         temas = nombres
-    if temas:
-        _set_text_at(slide, *PORTADA_TEMAS, " · ".join(temas))
+    _set_text_at(slide, *PORTADA_TEMAS, " · ".join(temas))
 
 
 # ── Layout "tarjetas" (evidencias / incidentes) ─────────────────────────────
@@ -312,12 +325,12 @@ def _evidencia_titulo(ev):
         t = (ev.get("pozo_equipo") or "").strip()
     if not t:
         t = (ev.get("descripcion") or "").strip()[:60]
-    return t
+    return _truncate(t, 60)
 
 
 def _evidencia_fecha(ev):
     ev = _as_dict(ev)
-    return ev.get("fecha_hora") or ev.get("fecha") or ""
+    return _truncate(ev.get("fecha_hora") or ev.get("fecha") or "", 48)
 
 
 def _evidencia_descripcion(ev):
@@ -327,7 +340,7 @@ def _evidencia_descripcion(ev):
         partes.append(str(ev["descripcion"]))
     if ev.get("hallazgos"):
         partes.append(str(ev["hallazgos"]))
-    return "\n".join(partes)
+    return _truncate("\n".join(partes), 380)
 
 
 def _fill_tarjetas(slide, titulo, evidencias, fotos, mes_ano, num):
@@ -387,16 +400,16 @@ def _render_evidencias(prs, tarjetas_layout, tarjetas_shapes, mes_ano, num, titu
 
 
 # ── Layout "resumen" (indicadores y listas) ─────────────────────────────────
-def _add_items(slide, x, y, items, size=11, color=RGBColor(0x10, 0x2A, 0x43)):
+def _add_items(slide, x, y, items, size=11, color=RGBColor(0x10, 0x2A, 0x43), max_items=6, max_chars=80):
     """Añade ítems de lista con el estilo de la plantilla dentro de una tarjeta."""
     items = _as_list(items)
-    for it in items:
+    for it in items[:max_items]:
         tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(7.8), Inches(0.4))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
         r = p.add_run()
-        r.text = "• " + str(it)
+        r.text = "• " + _truncate(str(it), max_chars)
         r.font.size = Pt(size)
         r.font.name = "Aptos"
         r.font.color.rgb = color
@@ -476,13 +489,13 @@ def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
     actividades = _as_list(seccion.get("actividades"))
     if actividades:
         _set_text_at(slide, *RESUMEN_ACT_TITULO, "Actividades relevantes:")
-        _add_items(slide, 4.60, 2.80, actividades)
+        _add_items(slide, 4.60, 2.80, actividades, max_items=5)
 
     # Pendientes relevantes
     pendientes = _as_list(seccion.get("pendientes"))
     if pendientes:
         _set_text_at(slide, *RESUMEN_PEND_TITULO, "Pendientes (relevantes):")
-        _add_items(slide, 4.60, 5.60, pendientes)
+        _add_items(slide, 4.60, 5.60, pendientes, max_items=3)
 
 
 def _render_resumen(prs, resumen_layout, resumen_shapes, mes_ano, num, seccion, data):
@@ -596,4 +609,18 @@ def generar_informe_ppt(informe, data, imagenes_archivo=None):
     # Reordenar: portada -> contenido -> cierre.
     _reorder_slides(prs, [portada] + contenido + [cierre])
 
+    _validar(prs)
+
     return prs
+
+
+def _validar(prs):
+    """Valida tamaños de fuente mínimos y registra advertencias (no bloquea)."""
+    for idx, slide in enumerate(prs.slides, 1):
+        for sh in slide.shapes:
+            if not sh.has_text_frame:
+                continue
+            for para in sh.text_frame.paragraphs:
+                for r in para.runs:
+                    if r.text.strip() and r.font.size is not None and r.font.size.pt < 6.0:
+                        print(f"[PPT WARNING] Slide {idx}: fuente {r.font.size.pt:.1f}pt en '{r.text[:40]}'")
