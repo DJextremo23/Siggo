@@ -274,7 +274,7 @@ def _add_table(slide, x, y, w, headers, rows, col_ratios, font_size=8, row_h=0.3
 
 
 # ── Bloques de diapositivas ─────────────────────────────────────────────────
-def _portada(prs, informe, talleres_supervisados=None):
+def _portada(prs, informe, titulo=None, etiqueta=None, contenido=None):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _set_bg(s, C_NAVY)
 
@@ -285,7 +285,7 @@ def _portada(prs, informe, talleres_supervisados=None):
     _text(s, 0.70, 2.05, 6.90, 0.28, f"SUPERVISOR. {supervisor}" if supervisor else "SUPERVISOR.",
           11, C_GREEN, True)
 
-    _text(s, 0.65, 2.42, 8.90, 0.72, "Reporte de Guardia", 35, C_WHITE, True, font=FONT_TITLE)
+    _text(s, 0.65, 2.42, 8.90, 0.72, titulo or "Reporte de Guardia", 35, C_WHITE, True, font=FONT_TITLE)
 
     fecha_str = _fmt_fecha(informe.get("fecha_guardia"))
     _text(s, 0.70, 3.28, 4.5, 0.35, fecha_str, 17, C_LIGHT)
@@ -294,9 +294,9 @@ def _portada(prs, informe, talleres_supervisados=None):
     _fill_opacity(card, 88)
     _line_opacity(card, 65)
 
-    _text(s, 1.00, 4.45, 4.0, 0.25, "Talleres supervisados", 11, C_GREEN, True, anchor=MSO_ANCHOR.MIDDLE)
+    _text(s, 1.00, 4.45, 4.0, 0.25, etiqueta or "Talleres supervisados", 11, C_GREEN, True, anchor=MSO_ANCHOR.MIDDLE)
 
-    tb_tall, tf_tall = _text(s, 1.00, 4.85, 7.65, 0.55, talleres_supervisados or TALLERES_SUPERVISADOS,
+    tb_tall, tf_tall = _text(s, 1.00, 4.85, 7.65, 0.55, contenido or TALLERES_SUPERVISADOS,
                              14, C_WHITE, anchor=MSO_ANCHOR.MIDDLE)
     _autofit_norm(tf_tall)
 
@@ -369,55 +369,6 @@ def _incidente(slide, x, y, w, evidencia, foto_bytes):
     return card_h
 
 
-def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
-    """Construye la hoja 'Seguridad y Medio Ambiente': agrupa los incidentes
-    por su categoría real (tipo) y dibuja cada uno con su fotografía."""
-    total = max(len(evidencias), len(imagenes_archivo))
-    if total == 0:
-        return num
-
-    entradas = []
-    for i in range(total):
-        ev = evidencias[i] if i < len(evidencias) else {}
-        foto = imagenes_archivo[i].get("bytes") if i < len(imagenes_archivo) else None
-        entradas.append((ev, foto))
-
-    # Agrupar por el tipo/clasificación real de cada evidencia (preservando orden).
-    grupos = {}
-    for ev, foto in entradas:
-        tipo = (ev.get("tipo") or "").strip()
-        if not tipo:
-            tipo = "Alerta de Seguridad"
-        grupos.setdefault(tipo, []).append((ev, foto))
-
-    s = None
-    cursor_y = 0.0
-    for tipo in grupos:
-        items = grupos[tipo]
-        need_subtitulo = 0.55 + (2.4 if items else 0.0)
-        if s is None or cursor_y + need_subtitulo > 6.85:
-            s = _nueva_contenido(prs, mes_ano, num)
-            _titulo_contenido(s, "Seguridad y Medio Ambiente")
-            num += 1
-            cursor_y = 1.15
-        _rrect(s, 0.6, cursor_y, 12.1, 0.4, C_NAVY, None, radius=0.06)
-        _text(s, 0.75, cursor_y + 0.05, 11.8, 0.3, tipo.upper(), 11, C_WHITE, True, anchor=MSO_ANCHOR.MIDDLE)
-        cursor_y += 0.55
-        for (ev, foto) in items:
-            if s is None or cursor_y + 2.4 > 6.85:
-                s = _nueva_contenido(prs, mes_ano, num)
-                _titulo_contenido(s, "Seguridad y Medio Ambiente")
-                num += 1
-                cursor_y = 1.15
-            _incidente(s, 0.6, cursor_y, 12.1, ev, foto)
-            cursor_y += 2.4
-    if s is None:
-        s = _nueva_contenido(prs, mes_ano, num)
-        _titulo_contenido(s, "Seguridad y Medio Ambiente")
-        num += 1
-    return num
-
-
 # ── Generador principal ─────────────────────────────────────────────────────
 def _as_list(v):
     return v if isinstance(v, list) else []
@@ -441,8 +392,231 @@ def _campo_evidencia(ev):
             ev.get("descripcion", ""), ev.get("hallazgos", ""))
 
 
-def generar_reporte_ppt(informe, data, imagenes_archivo=None):
-    """Construye la presentación con el formato rv0 rellena con los datos de la IA."""
+def _imagen_por_indice(imagenes_archivo, indice):
+    """Devuelve los bytes de la imagen en la posición `indice` (1-based) o None."""
+    if indice is None:
+        return None
+    try:
+        i = int(indice) - 1
+    except (TypeError, ValueError):
+        return None
+    if 0 <= i < len(imagenes_archivo):
+        return imagenes_archivo[i].get("bytes")
+    return None
+
+
+# ── Renderizadores genéricos de secciones (el PPT es dirigido por el contenido) ──
+def _render_parrafos(prs, mes_ano, num, titulo, parrafos):
+    parrafos = _as_list(parrafos)
+    if not parrafos:
+        return num
+    s = _nueva_contenido(prs, mes_ano, num)
+    _titulo_contenido(s, titulo)
+    num += 1
+    y = 1.35
+    for p in parrafos:
+        p = str(p)
+        n_lineas = max(1, (len(p) // 110) + 1)
+        alto = n_lineas * 0.30 + 0.15
+        if y + alto > 6.9:
+            s = _nueva_contenido(prs, mes_ano, num)
+            _titulo_contenido(s, titulo)
+            num += 1
+            y = 1.35
+        _text(s, 0.6, y, 12.1, alto, p, 13, C_TEXT, wrap=True, spacing=1.15)
+        y += alto + 0.1
+    return num
+
+
+def _render_lista(prs, mes_ano, num, titulo, items):
+    items = _as_list(items)
+    if not items:
+        return num
+    s = _nueva_contenido(prs, mes_ano, num)
+    _titulo_contenido(s, titulo)
+    num += 1
+    y = 1.35
+    for it in items:
+        it = str(it)
+        n_lineas = max(1, (len(it) // 100) + 1)
+        alto = n_lineas * 0.28 + 0.15
+        if y + alto > 6.9:
+            s = _nueva_contenido(prs, mes_ano, num)
+            _titulo_contenido(s, titulo)
+            num += 1
+            y = 1.35
+        _text(s, 0.8, y, 0.25, 0.3, "•", 13, C_TEAL, True)
+        _text(s, 1.1, y, 11.5, alto, it, 13, C_TEXT, wrap=True, spacing=1.1)
+        y += alto + 0.08
+    return num
+
+
+def _render_tabla(prs, mes_ano, num, titulo, columnas, filas):
+    columnas = [str(c) for c in _as_list(columnas)]
+    filas = _as_list(filas)
+    if not columnas or not filas:
+        return num
+    filas = [[str(v) if v is not None else "" for v in _as_list(f)] for f in filas]
+    ratios = [1.0] * len(columnas)
+    filas_por_pagina = 14
+    chunks = [filas[i:i + filas_por_pagina] for i in range(0, len(filas), filas_por_pagina)]
+    for chunk in chunks:
+        s = _nueva_contenido(prs, mes_ano, num)
+        _titulo_contenido(s, titulo)
+        num += 1
+        _add_table(s, 0.6, 1.35, 12.1, columnas, chunk, ratios, font_size=8, row_h=0.3)
+    return num
+
+
+def _render_indicadores(prs, mes_ano, num, titulo, indicadores):
+    indicadores = _as_list(indicadores)
+    if not indicadores:
+        return num
+    por_slide = 4
+    chunks = [indicadores[i:i + por_slide] for i in range(0, len(indicadores), por_slide)]
+    for chunk in chunks:
+        s = _nueva_contenido(prs, mes_ano, num)
+        _titulo_contenido(s, titulo)
+        num += 1
+        for i, ind in enumerate(chunk):
+            ind = _as_dict(ind)
+            col = i % 2
+            fila = i // 2
+            x = 0.6 + col * 6.2
+            y = 1.6 + fila * 1.7
+            nombre = ind.get("nombre") or "Indicador"
+            valor = ind.get("valor") or "—"
+            unidad = ind.get("unidad") or ""
+            _rrect(s, x, y, 5.9, 1.25, C_ZEBRA, C_SEP, radius=0.08)
+            _text(s, x + 0.2, y + 0.2, 5.5, 0.3, nombre, 10, C_MUTED, True)
+            _text(s, x + 0.2, y + 0.55, 5.5, 0.4, f"{valor} {unidad}".strip(), 18, C_NAVY, True)
+    return num
+
+
+def _render_evidencias(prs, mes_ano, num, titulo, evidencias, imagenes_archivo):
+    evidencias = _as_list(evidencias)
+    if not evidencias:
+        return num
+
+    # Agrupar por el tipo/clasificación real de cada evidencia (preservando orden).
+    grupos = {}
+    for ev in evidencias:
+        ev = _as_dict(ev)
+        tipo = (ev.get("tipo") or "").strip()
+        if not tipo:
+            tipo = "Alerta de Seguridad"
+        grupos.setdefault(tipo, []).append(ev)
+
+    s = _nueva_contenido(prs, mes_ano, num)
+    _titulo_contenido(s, titulo)
+    num += 1
+    cursor_y = 1.15
+    for tipo in grupos:
+        items = grupos[tipo]
+        need_subtitulo = 0.55 + 2.4 * len(items)
+        if cursor_y + need_subtitulo > 6.85:
+            s = _nueva_contenido(prs, mes_ano, num)
+            _titulo_contenido(s, titulo)
+            num += 1
+            cursor_y = 1.15
+        _rrect(s, 0.6, cursor_y, 12.1, 0.4, C_NAVY, None, radius=0.06)
+        _text(s, 0.75, cursor_y + 0.05, 11.8, 0.3, tipo.upper(), 11, C_WHITE, True, anchor=MSO_ANCHOR.MIDDLE)
+        cursor_y += 0.55
+        for ev in items:
+            foto = _imagen_por_indice(imagenes_archivo, ev.get("imagen_indice"))
+            if cursor_y + 2.4 > 6.85:
+                s = _nueva_contenido(prs, mes_ano, num)
+                _titulo_contenido(s, titulo)
+                num += 1
+                cursor_y = 1.15
+            _incidente(s, 0.6, cursor_y, 12.1, ev, foto)
+            cursor_y += 2.4
+    return num
+
+
+def _render_seccion(prs, mes_ano, num, seccion, imagenes_archivo):
+    seccion = _as_dict(seccion)
+    titulo = (seccion.get("titulo") or "Sección").strip() or "Sección"
+    tipo = (seccion.get("tipo") or "parrafos").strip().lower()
+    if tipo == "tabla":
+        return _render_tabla(prs, mes_ano, num, titulo,
+                             seccion.get("columnas"), seccion.get("filas"))
+    if tipo == "indicadores":
+        return _render_indicadores(prs, mes_ano, num, titulo, seccion.get("indicadores"))
+    if tipo == "lista":
+        return _render_lista(prs, mes_ano, num, titulo, seccion.get("items"))
+    if tipo == "evidencias":
+        return _render_evidencias(prs, mes_ano, num, titulo,
+                                  seccion.get("evidencias"), imagenes_archivo)
+    return _render_parrafos(prs, mes_ano, num, titulo, seccion.get("parrafos"))
+
+
+def _render_secciones(prs, mes_ano, num, secciones, imagenes_archivo):
+    for sec in secciones:
+        num = _render_seccion(prs, mes_ano, num, sec, imagenes_archivo)
+    return num
+
+
+def _secciones_desde_registro(reg):
+    """Construye una lista de `secciones` dinámicas a partir de `registro_guardia`.
+
+    Se usa cuando el resultado (por ejemplo, cacheado con un prompt anterior) no
+    trae `secciones`: se convierte la transcripción fiel en secciones para poder
+    renderizar por la MISMA ruta dinámica, sin requerir re-análisis manual."""
+    secciones = []
+    cabecera = _as_dict(reg.get("cabecera"))
+    talleres = _as_list(reg.get("talleres"))
+    evidencias = _as_list(reg.get("evidencias"))
+    pendientes_reg = _as_list(reg.get("pendientes"))
+
+    cabecera_items = [
+        ("Producción OIL (BPD)", cabecera.get("produccion_oil_bpd")),
+        ("Prod. Perdida imputada", cabecera.get("prod_perdida_imputada")),
+        ("Producción GAS (MPC)", cabecera.get("produccion_gas_mpc")),
+        ("Producción recuperada", cabecera.get("produccion_recuperada")),
+    ]
+    indicadores = [{"nombre": lbl, "valor": val, "unidad": ""}
+                   for lbl, val in cabecera_items if val not in (None, "")]
+    if indicadores:
+        secciones.append({"titulo": "Producción", "tipo": "indicadores", "indicadores": indicadores})
+
+    if evidencias:
+        secciones.append({"titulo": "Seguridad y Medio Ambiente", "tipo": "evidencias", "evidencias": evidencias})
+
+    campos_taller = ["item", "pozo", "bateria", "produccion_bopd", "requerimiento", "estado",
+                     "fecha_ejecucion", "tipo", "relevante", "cuadrilla", "actividad_ejecutada"]
+    head_taller = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado",
+                   "Fecha", "Tipo", "Relev.", "Cuadrilla", "Actividad Ejecutada"]
+    for t in talleres:
+        t = _as_dict(t)
+        filas = _as_list(t.get("filas"))
+        if not filas:
+            continue
+        nombre = t.get("taller") or "Taller"
+        rows = [[_as_dict(f).get(c, "") for c in campos_taller] for f in filas]
+        secciones.append({"titulo": nombre, "tipo": "tabla", "columnas": head_taller, "filas": rows})
+
+    campos_pend = ["item", "pozo", "bateria", "produccion_bopd", "requerimiento", "estado",
+                   "fecha_ejecucion", "actividad_ejecutada"]
+    head_pend = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado", "Fecha", "Actividad Ejecutada"]
+    for p in pendientes_reg:
+        p = _as_dict(p)
+        filas = _as_list(p.get("filas"))
+        if not filas:
+            continue
+        nombre = p.get("taller") or "Pendientes"
+        rows = [[_as_dict(f).get(c, "") for c in campos_pend] for f in filas]
+        secciones.append({"titulo": f"{nombre} — Pendientes", "tipo": "tabla", "columnas": head_pend, "filas": rows})
+
+    return secciones
+
+
+def generar_informe_ppt(informe, data, imagenes_archivo=None):
+    """Construye la presentación con el formato rv0.
+
+    El PPT es dirigido por `data.secciones` (contenido estructurado que entrega
+    Gemini). Si `secciones` no existe (resultado cacheado previo), se deriva
+    automáticamente de `registro_guardia`. La identidad visual es siempre la misma."""
     imagenes_archivo = imagenes_archivo or []
     data = data or {}
 
@@ -451,103 +625,35 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     prs.slide_height = Inches(7.5)
 
     reg = _as_dict(data.get("registro_guardia"))
-    cabecera = _as_dict(reg.get("cabecera"))
-    talleres = _as_list(reg.get("talleres"))
-    evidencias = _as_list(reg.get("evidencias"))
-    pendientes_reg = _as_list(reg.get("pendientes"))
+    portada = _as_dict(data.get("portada"))
+    secciones = _as_list(data.get("secciones"))
 
     mes_ano = _fmt_mes_ano(informe.get("fecha_guardia"))
 
-    # Talleres supervisados dinámicos (a partir de lo realmente encontrado en el análisis).
-    nombres_talleres = []
-    for t in talleres:
-        n = (_as_dict(t).get("taller") or "").strip()
-        if n and n not in nombres_talleres:
-            nombres_talleres.append(n)
-    for p in pendientes_reg:
-        n = (_as_dict(p).get("taller") or "").strip()
-        if n and n not in nombres_talleres:
-            nombres_talleres.append(n)
-    talleres_supervisados = " · ".join(nombres_talleres) if nombres_talleres else TALLERES_SUPERVISADOS
+    # Datos dinámicos de la portada (sin contenido fijo del informe de ejemplo).
+    titulo = portada.get("titulo") or "Reporte de Guardia"
+    etiqueta = portada.get("etiqueta") or "Talleres supervisados"
+    temas = _as_list(portada.get("temas"))
+    if not temas:
+        nombres = []
+        for t in _as_list(reg.get("talleres")):
+            n = (_as_dict(t).get("taller") or "").strip()
+            if n and n not in nombres:
+                nombres.append(n)
+        for p in _as_list(reg.get("pendientes")):
+            n = (_as_dict(p).get("taller") or "").strip()
+            if n and n not in nombres:
+                nombres.append(n)
+        temas = nombres
+    contenido_portada = " · ".join(temas) if temas else TALLERES_SUPERVISADOS
 
-    # 1) Portada
-    _portada(prs, informe, talleres_supervisados)
+    _portada(prs, informe, titulo, etiqueta, contenido_portada)
 
-    # 2) Seguridad y Medio Ambiente (segunda hoja)
-    num = _seccion_seguridad(prs, mes_ano, 2, evidencias, imagenes_archivo)
+    if not secciones:
+        secciones = _secciones_desde_registro(reg)
 
-    # 3) Producción (resumen del formato)
-    cabecera_items = [
-        ("Producción OIL (BPD)", cabecera.get("produccion_oil_bpd")),
-        ("Prod. Perdida imputada", cabecera.get("prod_perdida_imputada")),
-        ("Producción GAS (MPC)", cabecera.get("produccion_gas_mpc")),
-        ("Producción recuperada", cabecera.get("produccion_recuperada")),
-    ]
-    if any(v not in (None, "") for _, v in cabecera_items):
-        s = _nueva_contenido(prs, mes_ano, num)
-        _titulo_contenido(s, "Producción")
-        num += 1
-        for i, (lbl, val) in enumerate(cabecera_items):
-            col = i % 2
-            fila = i // 2
-            x = 0.6 + col * 6.2
-            y = 1.6 + fila * 1.7
-            _rrect(s, x, y, 5.9, 1.25, C_ZEBRA, C_SEP, radius=0.08)
-            _text(s, x + 0.2, y + 0.2, 5.5, 0.3, lbl, 10, C_MUTED, True)
-            _text(s, x + 0.2, y + 0.55, 5.5, 0.4, str(val if val not in (None, "") else "—"), 18, C_NAVY, True)
+    num = _render_secciones(prs, mes_ano, 2, secciones, imagenes_archivo)
 
-    # 4) Talleres (tablas)
-    COLS_TALLER = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado",
-                   "Fecha", "Tipo", "Relev.", "Cuadrilla", "Actividad Ejecutada"]
-    RATIOS_TALLER = [0.5, 1.3, 1.0, 0.9, 2.6, 0.8, 1.0, 0.9, 0.7, 0.9, 2.8]
-    campos_taller = ["item", "pozo", "bateria", "produccion_bopd", "requerimiento", "estado",
-                     "fecha_ejecucion", "tipo", "relevante", "cuadrilla", "actividad_ejecutada"]
-
-    s_actual = None
-    cursor_y = 0.0
-    for t in talleres:
-        t = _as_dict(t)
-        filas = _as_list(t.get("filas"))
-        if not filas:
-            continue
-        nombre = t.get("taller") or "Taller"
-        rows = [[_as_dict(f).get(c, "") for c in campos_taller] for f in filas]
-        alto_necesario = 0.5 + 0.32 + len(rows) * 0.32
-        if s_actual is None or cursor_y + alto_necesario > 6.85:
-            s_actual = _nueva_contenido(prs, mes_ano, num)
-            _titulo_contenido(s_actual, "Trabajos de Guardia — Talleres")
-            num += 1
-            cursor_y = 1.15
-        _text(s_actual, 0.6, cursor_y, 8.0, 0.3, nombre.upper(), 12, C_TEAL, True)
-        _add_table(s_actual, 0.6, cursor_y + 0.35, 12.1, COLS_TALLER, rows, RATIOS_TALLER, font_size=7, row_h=0.3)
-        cursor_y += 0.5 + 0.32 + len(rows) * 0.30 + 0.25
-
-    # 5) Pendientes
-    if pendientes_reg:
-        COLS_PEND = ["Ítem", "Pozo", "Batería", "Prod (bopd)", "Requerimiento", "Estado", "Fecha", "Actividad Ejecutada"]
-        RATIOS_PEND = [0.5, 1.4, 1.0, 1.0, 3.0, 0.9, 1.1, 3.0]
-        campos_pend = ["item", "pozo", "bateria", "produccion_bopd", "requerimiento", "estado",
-                       "fecha_ejecucion", "actividad_ejecutada"]
-        s_actual = None
-        cursor_y = 0.0
-        for p in pendientes_reg:
-            p = _as_dict(p)
-            filas = _as_list(p.get("filas"))
-            if not filas:
-                continue
-            nombre = p.get("taller") or "Pendientes"
-            rows = [[_as_dict(f).get(c, "") for c in campos_pend] for f in filas]
-            alto_necesario = 0.5 + 0.32 + len(rows) * 0.32
-            if s_actual is None or cursor_y + alto_necesario > 6.85:
-                s_actual = _nueva_contenido(prs, mes_ano, num)
-                _titulo_contenido(s_actual, "Trabajos Pendientes")
-                num += 1
-                cursor_y = 1.15
-            _text(s_actual, 0.6, cursor_y, 8.0, 0.3, nombre.upper(), 12, C_GREEN, True)
-            _add_table(s_actual, 0.6, cursor_y + 0.35, 12.1, COLS_PEND, rows, RATIOS_PEND, font_size=8, row_h=0.3)
-            cursor_y += 0.5 + 0.32 + len(rows) * 0.30 + 0.25
-
-    # 6) Cierre
     _cierre(prs)
 
     return prs

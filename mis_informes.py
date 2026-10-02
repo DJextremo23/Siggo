@@ -1557,8 +1557,8 @@ def generar_ppt_analisis(id_informe):
         })
 
         # Generar la presentación con el formato "Reporte de Guardia" (rv0)
-        from utils.generar_reporte_ppt import generar_reporte_ppt
-        prs = generar_reporte_ppt(informe, data, imagenes_archivo)
+        from utils.generar_informe_ppt import generar_informe_ppt
+        prs = generar_informe_ppt(informe, data, imagenes_archivo)
 
         # ── Guardar presentación en memoria y enviar como descarga ──
         output = BytesIO()

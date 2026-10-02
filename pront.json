@@ -43,8 +43,11 @@ Los datos que produzcas alimentan un **Reporte de Guardia** (vista web) y una pr
 
 Debes entregar:
 
-1. **`registro_guardia`**: la transcripción estructurada y fiel del documento (es lo que consume directamente el generador de PPT y la tabla web). Debe estar SIEMPRE completa.
-2. **Campos de análisis**: resumen, indicadores, narrativa, inconsistencias, datos faltantes y trazabilidad (el "cerebro" del análisis).
+1. **`secciones`**: la lista DINÁMICA de diapositivas de contenido que alimenta directamente el generador de PPT. NO impongas secciones fijas: cada diapositiva debe corresponder a información que realmente exista en el documento.
+2. **`registro_guardia`**: la transcripción estructurada y fiel del documento (es lo que consume la tabla web y sirve de respaldo). Debe estar SIEMPRE completa.
+3. **Campos de análisis**: resumen, indicadores, narrativa, inconsistencias, datos faltantes y trazabilidad (el "cerebro" del análisis).
+
+> El generador de PPT solo define **CÓMO SE VE** (estilo visual, tablas, indicadores, imágenes). TÚ defines **QUÉ SE MUESTRA Y EN QUÉ ORDEN** a través de `secciones`.
 
 ---
 
@@ -157,6 +160,11 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
     "hojas": [],
     "observaciones": ""
   },
+  "portada": {
+    "titulo": "Reporte de Guardia",
+    "etiqueta": "",
+    "temas": []
+  },
   "resumen_general": {
     "sintesis": "",
     "aspectos_destacados": [],
@@ -224,6 +232,34 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
   "trazabilidad": [
     {"dato": "", "hoja": "", "fila": "", "columna": "", "celda": "", "registro": "", "imagen": ""}
   ],
+  "secciones": [
+    {
+      "titulo": "Resumen de actividades",
+      "tipo": "parrafos",
+      "parrafos": []
+    },
+    {
+      "titulo": "Trabajos ejecutados",
+      "tipo": "tabla",
+      "columnas": [],
+      "filas": []
+    },
+    {
+      "titulo": "Indicadores",
+      "tipo": "indicadores",
+      "indicadores": []
+    },
+    {
+      "titulo": "Actividades relevantes",
+      "tipo": "lista",
+      "items": []
+    },
+    {
+      "titulo": "Evidencias",
+      "tipo": "evidencias",
+      "evidencias": []
+    }
+  ],
   "registro_guardia": {
     "cabecera": {
       "produccion_oil_bpd": "",
@@ -256,6 +292,7 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
 ## INSTRUCCIONES DE LLENADO
 
 - **`documento`**: metadatos y lista de hojas reales del documento.
+- **`portada`**: datos dinámicos de la portada. `titulo` es el título grande (si no aplica, usa `"Reporte de Guardia"`). `etiqueta` es el rótulo de la tarjeta (ej. `"Talleres supervisados"`, `"Temas del informe"`; `""` si no aplica). `temas` es la lista de temas/talleres realmente presentes (se unen con ` · `).
 - **`resumen_general`**: síntesis narrativa del informe (qué se hizo, qué destacó, conclusión general). `aspectos_destacados` es una lista de frases cortas.
 - **`indicadores`**: solo los que puedas calcular con datos reales. Si no puedes calcularlos, no los incluyas o usa `"valor": "No especificado en el documento"` indicando el motivo en `metodo_calculo`. Cada uno con su `origen`.
 - **`produccion`**: valores de producción extraídos de la cabecera, más un breve `analisis` narrativo si hay datos suficientes.
@@ -269,7 +306,17 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
 - **`datos_faltantes`**: campos/registros que faltan. `[]` si no hay.
 - **`observaciones`** y **`datos_extraidos`**: notas libres relevantes y listado resumido de qué se extrajo.
 - **`trazabilidad`**: referencias hoja/fila/columna/celda de los datos más importantes (indicadores, inconsistencias, evidencias).
-- **`registro_guardia`** (SIEMPRE completo, es lo que alimenta el PPT):
+- **`secciones`** (es lo que conduce el PPT, NO impongas secciones fijas):
+  * Es la lista ORDENADA de diapositivas de contenido que realmente corresponden al documento analizado. Construye SOLO las secciones que tengan información real; no crees secciones vacías ni copie secciones de un informe de referencia.
+  * Cada sección tiene un `titulo` dinámico (según lo que exista) y un `tipo`, que puede ser:
+    - `parrafos`: contenido narrativo. Usa `parrafos` (lista de cadenas).
+    - `lista`: ítems breves (ej. actividades/pendientes relevantes). Usa `items` (lista de cadenas).
+    - `tabla`: datos tabulares. Usa `columnas` (lista de encabezados) y `filas` (lista de listas de celdas, en el MISMO orden que `columnas`).
+    - `indicadores`: cifras clave. Usa `indicadores` (lista de `{nombre, valor, unidad}`).
+    - `evidencias`: fotografías/incidentes. Usa `evidencias` (lista de objetos con los campos de evidencia: n_evidencia, item_ref, pozo_equipo, descripcion, hallazgos, accion_tomada, responsable, fecha_hora, tipo, imagen, imagen_indice).
+  * El orden de `secciones` es el orden en que se mostrarán en el PPT. Empieza por un resumen (si hay contenido), luego lo más importante y termina con pendientes/observaciones según existan.
+  * Ejemplos de títulos dinámicos: `"Resumen de actividades"`, `"Estado de órdenes"`, `"Trabajos ejecutados"`, `"Equipos intervenidos"`, `"Producción"`, `"Incidentes"`, `"Evidencias"`. NO uses obligatoriamente `"Seguridad y Medio Ambiente"`, `"Producción"`, `"Por Tipo"`, `"Por Taller"`, `"Sustracción"` ni `"Incidente Ambiental"` salvo que el documento realmente los contenga.
+- **`registro_guardia`** (SIEMPRE completo, es la transcripción fiel que alimenta la vista web):
   * `cabecera`: Producción OIL, Prod. Perdida imputada, Producción GAS y Producción recuperada. `""` si no aparecen.
   * `talleres`: lista ORDENADA de secciones. Cada una con `filas` (solo filas con datos). Campos: item, pozo, bateria, produccion_bopd, requerimiento, estado, fecha_ejecucion, tipo, relevante, cuadrilla, actividad_ejecutada. Omite talleres inexistentes.
   * `evidencias`: filas de IMÁGENES / SEGURIDAD Y MEDIO AMBIENTE con: n_evidencia, item_ref, pozo_equipo, descripcion (Descripción del Incidente), hallazgos, accion_tomada, responsable, fecha_hora, tipo (clasificación), imagen (referencia), imagen_indice. Devuelve `[]` si no hay.
