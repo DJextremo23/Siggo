@@ -615,12 +615,40 @@ def generar_informe_ppt(informe, data, imagenes_archivo=None):
 
 
 def _validar(prs):
-    """Valida tamaños de fuente mínimos y registra advertencias (no bloquea)."""
+    """Valida la presentación tras generarla: fuentes mínimas y superposiciones de texto.
+
+    No bloquea la entrega; registra `[PPT WARNING]` para detectar texto ilegible,
+    montado o heredado. Las superposiciones y fuentes muy pequeñas indican que hay
+    que dividir contenido en más diapositivas (no encoger más)."""
     for idx, slide in enumerate(prs.slides, 1):
+        textos = []
         for sh in slide.shapes:
             if not sh.has_text_frame:
+                continue
+            txt = sh.text_frame.text.strip()
+            if not txt:
+                continue
+            try:
+                box = (Emu(sh.left).inches, Emu(sh.top).inches,
+                       Emu(sh.left).inches + Emu(sh.width).inches,
+                       Emu(sh.top).inches + Emu(sh.height).inches)
+            except Exception:
                 continue
             for para in sh.text_frame.paragraphs:
                 for r in para.runs:
                     if r.text.strip() and r.font.size is not None and r.font.size.pt < 6.0:
                         print(f"[PPT WARNING] Slide {idx}: fuente {r.font.size.pt:.1f}pt en '{r.text[:40]}'")
+            textos.append((txt, box))
+
+        for i in range(len(textos)):
+            for j in range(i + 1, len(textos)):
+                ta, tb = textos[i][0], textos[j][0]
+                # Ignorar textos muy cortos (números/etiquetas) para evitar falsos positivos
+                # por cajas de texto anchas con texto alineado a la izquierda.
+                if len(ta) < 6 or len(tb) < 6:
+                    continue
+                a, b = textos[i][1], textos[j][1]
+                ix = min(a[2], b[2]) - max(a[0], b[0])
+                iy = min(a[3], b[3]) - max(a[1], b[1])
+                if ix > 0.4 and iy > 0.2:
+                    print(f"[PPT WARNING] Slide {idx}: superposición entre '{ta[:30]}' y '{tb[:30]}'")
