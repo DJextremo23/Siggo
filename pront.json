@@ -204,28 +204,6 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
     "analisis": "",
     "observaciones": ""
   },
-  "trabajos": [
-    {
-      "taller": "",
-      "pozo": "",
-      "bateria": "",
-      "produccion_bopd": "",
-      "requerimiento": "",
-      "estado": "",
-      "estado_descripcion": "",
-      "fecha_ejecucion": "",
-      "tipo": "",
-      "tipo_descripcion": "",
-      "relevante": "",
-      "cuadrilla": "",
-      "actividad_ejecutada": "",
-      "narrativa": "",
-      "origen": {"hoja": "", "fila": "", "columna": ""}
-    }
-  ],
-  "tipos_trabajo": [
-    {"tipo": "", "descripcion": "", "cantidad": "", "origen": ""}
-  ],
   "actividades_relevantes": [
     {"taller": "", "pozo": "", "actividad": "", "justificacion": "", "origen": {"hoja": "", "fila": ""}}
   ],
@@ -245,7 +223,6 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
     {"campo": "", "ubicacion": "", "detalle": ""}
   ],
   "observaciones": [],
-  "datos_extraidos": [],
   "trazabilidad": [
     {"dato": "", "hoja": "", "fila": "", "columna": "", "celda": "", "registro": "", "imagen": ""}
   ],
@@ -303,15 +280,13 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
 - **`resumen_general`**: síntesis narrativa del informe (qué se hizo, qué destacó, conclusión general). `aspectos_destacados` es una lista de frases cortas.
 - **`indicadores`**: solo los que puedas calcular con datos reales. Si no puedes calcularlos, no los incluyas o usa `"valor": "No especificado en el documento"` indicando el motivo en `metodo_calculo`. Cada uno con su `origen`.
 - **`produccion`**: valores de producción extraídos de la cabecera, más un breve `analisis` narrativo si hay datos suficientes.
-- **`trabajos`**: lista aplanada de TODOS los trabajos de guardia (una entrada por fila con datos), con su `narrativa` y su `origen` (hoja/fila/columna).
-- **`tipos_trabajo`**: distribución por tipo con cantidad, cuando sea calculable.
 - **`actividades_relevantes`**: solo las marcadas como relevantes, con justificación basada en el documento.
 - **`pendientes_relevantes`**: síntesis de los pendientes, con su origen.
 - **`seguridad_medio_ambiente`**: solo si hay datos reales. Devuelve `[]` si no hay.
 - **`evidencias`**: cada evidencia fotográfica con sus columnas reales (N Evid., Ítem Ref., Pozo/Equipo, Descripción del Incidente, Hallazgos, Acción Tomada, Responsable, Fecha/Hora) más `imagen`/`imagen_indice` (referencia a la imagen adjunta) y una `clasificacion` (seguridad/ambiente/mantenimiento/producción/daño/evidencia, solo si hay evidencia suficiente).
 - **`inconsistencias`**: lista de problemas detectados con el valor original. `[]` si no hay.
 - **`datos_faltantes`**: campos/registros que faltan. `[]` si no hay.
-- **`observaciones`** y **`datos_extraidos`**: notas libres relevantes y listado resumido de qué se extrajo.
+- **`observaciones`**: notas libres relevantes.
 - **`trazabilidad`**: referencias hoja/fila/columna/celda de los datos más importantes (indicadores, inconsistencias, evidencias).
 - **`secciones`** (es lo que conduce el PPT, NO impongas secciones fijas):
   * Es la lista ORDENADA de diapositivas de contenido que realmente corresponden al documento analizado. Construye SOLO las secciones que tengan información real; no crees secciones vacías ni copies secciones de un informe de referencia.
@@ -334,6 +309,7 @@ Responde **ÚNICAMENTE** con un JSON válido (sin markdown, sin texto adicional,
 ## REGLAS FINALES
 
 - Respeta los nombres de campos EXACTAMENTE como se indican.
-- No dejes secciones vacías innecesarias: usa `[]`, `""` o `null` según el tipo.
+- **Omite las claves vacías** (listas vacías, cadenas vacías y objetos sin valores) para reducir el tamaño de la respuesta, EXCEPTO `registro_guardia` (que debe ir SIEMPRE completo) y `secciones` (que debe listar las secciones reales).
 - Si un valor no existe, usa `""` (texto) o `null` (numérico/objeto) o `[]` (lista). No inventes.
 - Toda cifra calculada debe explicar su procedencia; toda inconsistencia debe conservar el valor original.
+- Responde de forma concisa: no repitas el contenido del documento, no expliques tu proceso ni agregues texto fuera del JSON.
