@@ -274,7 +274,7 @@ def _add_table(slide, x, y, w, headers, rows, col_ratios, font_size=8, row_h=0.3
 
 
 # ── Bloques de diapositivas ─────────────────────────────────────────────────
-def _portada(prs, informe):
+def _portada(prs, informe, talleres_supervisados=None):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _set_bg(s, C_NAVY)
 
@@ -296,8 +296,8 @@ def _portada(prs, informe):
 
     _text(s, 1.00, 4.45, 4.0, 0.25, "Talleres supervisados", 11, C_GREEN, True, anchor=MSO_ANCHOR.MIDDLE)
 
-    tb_tall, tf_tall = _text(s, 1.00, 4.85, 7.65, 0.55, TALLERES_SUPERVISADOS, 14, C_WHITE,
-                             anchor=MSO_ANCHOR.MIDDLE)
+    tb_tall, tf_tall = _text(s, 1.00, 4.85, 7.65, 0.55, talleres_supervisados or TALLERES_SUPERVISADOS,
+                             14, C_WHITE, anchor=MSO_ANCHOR.MIDDLE)
     _autofit_norm(tf_tall)
 
     _text(s, 0.70, 6.86, 1.50, 0.23, "oigperu.com", 10.5, C_LIGHT)
@@ -354,11 +354,12 @@ def _incidente(slide, x, y, w, evidencia, foto_bytes):
 
     tx = x + 0.15 + foto_w + 0.25
     tw = x + w - 0.15 - tx
+    fecha, lugar, que_paso, descripcion = _campo_evidencia(evidencia)
     campos = [
-        ("Fecha", evidencia.get("fecha", "")),
-        ("Lugar", evidencia.get("lugar", "")),
-        ("¿Qué pasó?", evidencia.get("que_paso", "")),
-        ("Descripción de lo sucedido", evidencia.get("descripcion", "")),
+        ("Fecha", fecha),
+        ("Lugar", lugar),
+        ("¿Qué pasó?", que_paso),
+        ("Descripción de lo sucedido", descripcion),
     ]
     cy = y + 0.12
     for lbl, val in campos:
@@ -369,27 +370,29 @@ def _incidente(slide, x, y, w, evidencia, foto_bytes):
 
 
 def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
-    """Construye la hoja 'Seguridad y Medio Ambiente': tres subtítulos
-    (Alerta de Seguridad / Incidente Ambiental / Sustracción) y sus incidentes."""
-    TIPOS = ["Alerta de Seguridad", "Incidente Ambiental", "Sustracción"]
-
+    """Construye la hoja 'Seguridad y Medio Ambiente': agrupa los incidentes
+    por su categoría real (tipo) y dibuja cada uno con su fotografía."""
     total = max(len(evidencias), len(imagenes_archivo))
+    if total == 0:
+        return num
+
     entradas = []
     for i in range(total):
         ev = evidencias[i] if i < len(evidencias) else {}
         foto = imagenes_archivo[i].get("bytes") if i < len(imagenes_archivo) else None
         entradas.append((ev, foto))
 
-    grupos = {t: [] for t in TIPOS}
+    # Agrupar por el tipo/clasificación real de cada evidencia (preservando orden).
+    grupos = {}
     for ev, foto in entradas:
         tipo = (ev.get("tipo") or "").strip()
-        if tipo not in grupos:
-            tipo = TIPOS[0]
-        grupos[tipo].append((ev, foto))
+        if not tipo:
+            tipo = "Alerta de Seguridad"
+        grupos.setdefault(tipo, []).append((ev, foto))
 
     s = None
     cursor_y = 0.0
-    for tipo in TIPOS:
+    for tipo in grupos:
         items = grupos[tipo]
         need_subtitulo = 0.55 + (2.4 if items else 0.0)
         if s is None or cursor_y + need_subtitulo > 6.85:
@@ -416,6 +419,28 @@ def _seccion_seguridad(prs, mes_ano, num, evidencias, imagenes_archivo):
 
 
 # ── Generador principal ─────────────────────────────────────────────────────
+def _as_list(v):
+    return v if isinstance(v, list) else []
+
+
+def _as_dict(v):
+    return v if isinstance(v, dict) else {}
+
+
+def _campo_evidencia(ev):
+    """Devuelve (fecha, lugar, que_paso, descripcion) normalizados de una evidencia,
+    soportando el esquema actual y el anterior (tipo/fecha/lugar/que_paso/descripcion)."""
+    if not isinstance(ev, dict):
+        ev = {}
+    es_viejo = ("que_paso" in ev or "lugar" in ev or "fecha" in ev) \
+        and "pozo_equipo" not in ev and "hallazgos" not in ev
+    if es_viejo:
+        return (ev.get("fecha", ""), ev.get("lugar", ""),
+                ev.get("que_paso", ""), ev.get("descripcion", ""))
+    return (ev.get("fecha_hora", ""), ev.get("pozo_equipo", ""),
+            ev.get("descripcion", ""), ev.get("hallazgos", ""))
+
+
 def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     """Construye la presentación con el formato rv0 rellena con los datos de la IA."""
     imagenes_archivo = imagenes_archivo or []
@@ -425,16 +450,28 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
 
-    reg = data.get("registro_guardia") or {}
-    cabecera = reg.get("cabecera") or {}
-    talleres = reg.get("talleres") or []
-    evidencias = reg.get("evidencias") or []
-    pendientes_reg = reg.get("pendientes") or []
+    reg = _as_dict(data.get("registro_guardia"))
+    cabecera = _as_dict(reg.get("cabecera"))
+    talleres = _as_list(reg.get("talleres"))
+    evidencias = _as_list(reg.get("evidencias"))
+    pendientes_reg = _as_list(reg.get("pendientes"))
 
     mes_ano = _fmt_mes_ano(informe.get("fecha_guardia"))
 
+    # Talleres supervisados dinámicos (a partir de lo realmente encontrado en el análisis).
+    nombres_talleres = []
+    for t in talleres:
+        n = (_as_dict(t).get("taller") or "").strip()
+        if n and n not in nombres_talleres:
+            nombres_talleres.append(n)
+    for p in pendientes_reg:
+        n = (_as_dict(p).get("taller") or "").strip()
+        if n and n not in nombres_talleres:
+            nombres_talleres.append(n)
+    talleres_supervisados = " · ".join(nombres_talleres) if nombres_talleres else TALLERES_SUPERVISADOS
+
     # 1) Portada
-    _portada(prs, informe)
+    _portada(prs, informe, talleres_supervisados)
 
     # 2) Seguridad y Medio Ambiente (segunda hoja)
     num = _seccion_seguridad(prs, mes_ano, 2, evidencias, imagenes_archivo)
@@ -469,11 +506,12 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
     s_actual = None
     cursor_y = 0.0
     for t in talleres:
-        filas = t.get("filas") or []
+        t = _as_dict(t)
+        filas = _as_list(t.get("filas"))
         if not filas:
             continue
         nombre = t.get("taller") or "Taller"
-        rows = [[f.get(c, "") for c in campos_taller] for f in filas]
+        rows = [[_as_dict(f).get(c, "") for c in campos_taller] for f in filas]
         alto_necesario = 0.5 + 0.32 + len(rows) * 0.32
         if s_actual is None or cursor_y + alto_necesario > 6.85:
             s_actual = _nueva_contenido(prs, mes_ano, num)
@@ -493,11 +531,12 @@ def generar_reporte_ppt(informe, data, imagenes_archivo=None):
         s_actual = None
         cursor_y = 0.0
         for p in pendientes_reg:
-            filas = p.get("filas") or []
+            p = _as_dict(p)
+            filas = _as_list(p.get("filas"))
             if not filas:
                 continue
             nombre = p.get("taller") or "Pendientes"
-            rows = [[f.get(c, "") for c in campos_pend] for f in filas]
+            rows = [[_as_dict(f).get(c, "") for c in campos_pend] for f in filas]
             alto_necesario = 0.5 + 0.32 + len(rows) * 0.32
             if s_actual is None or cursor_y + alto_necesario > 6.85:
                 s_actual = _nueva_contenido(prs, mes_ano, num)

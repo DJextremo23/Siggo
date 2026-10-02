@@ -856,6 +856,7 @@ def _extraer_texto_archivo(archivo_obj):
     elif ext in ("xlsx", "xlsm"):
         try:
             from openpyxl import load_workbook
+            from openpyxl.utils import get_column_letter
             wb = load_workbook(ruta, data_only=True)
             for nombre_hoja in wb.sheetnames:
                 ws = wb[nombre_hoja]
@@ -864,8 +865,11 @@ def _extraer_texto_archivo(archivo_obj):
                     celdas = []
                     fila_amarilla = False
                     for c in fila:
-                        valor = str(c.value).replace("\n", " / ") if c.value is not None else ""
-                        celdas.append(valor)
+                        if c.value is None:
+                            continue
+                        valor = str(c.value).replace("\n", " / ")
+                        # Incluir coordenadas (columna+fila) para trazabilidad
+                        celdas.append(f"{get_column_letter(c.column)}{c.row}={valor}")
                         try:
                             f = c.fill
                             if f is not None and f.patternType == "solid":
@@ -874,7 +878,7 @@ def _extraer_texto_archivo(archivo_obj):
                                     fila_amarilla = True
                         except Exception:
                             pass
-                    if any(c for c in celdas):
+                    if celdas:
                         marca = "[CRITICO-AMARILLO] " if fila_amarilla else ""
                         texto += marca + " | ".join(celdas) + "\n"
         except Exception as e:
@@ -1076,6 +1080,66 @@ def _extraer_json_respuesta(texto):
     return None
 
 
+def _normalizar_evidencia(ev, indice):
+    """Normaliza una evidencia a la estructura canónica actual, soportando también
+    el esquema anterior (tipo/fecha/lugar/que_paso/descripcion)."""
+    if not isinstance(ev, dict):
+        ev = {}
+
+    # Esquema anterior: usa fecha/lugar/que_paso/descripcion en lugar de los
+    # campos actuales. Se detecta por presencia de las claves antiguas y ausencia
+    # de las nuevas.
+    es_viejo = ("que_paso" in ev or "lugar" in ev or "fecha" in ev) \
+        and "pozo_equipo" not in ev and "hallazgos" not in ev
+
+    if es_viejo:
+        descripcion = ev.get("que_paso", "")
+        hallazgos = ev.get("descripcion", "")
+        fecha_hora = ev.get("fecha", "")
+        pozo_equipo = ev.get("lugar", "")
+    else:
+        descripcion = ev.get("descripcion", "")
+        hallazgos = ev.get("hallazgos", "")
+        fecha_hora = ev.get("fecha_hora", "")
+        pozo_equipo = ev.get("pozo_equipo", "")
+
+    return {
+        "n_evidencia": ev.get("n_evidencia") or (indice + 1),
+        "item_ref": ev.get("item_ref", ""),
+        "pozo_equipo": pozo_equipo,
+        "descripcion": descripcion,
+        "hallazgos": hallazgos,
+        "accion_tomada": ev.get("accion_tomada", ""),
+        "responsable": ev.get("responsable", ""),
+        "fecha_hora": fecha_hora,
+        "tipo": ev.get("tipo", ""),
+        "imagen": ev.get("imagen", ""),
+        "imagen_indice": ev.get("imagen_indice"),
+    }
+
+
+def _normalizar_resultado(resultado):
+    """Adapta resultados cacheados con esquemas anteriores al esquema actual.
+
+    Normaliza las evidencias (dentro de registro_guardia y a nivel superior) para
+    que tanto la vista web como el generador de PPT reciban siempre la estructura
+    canónica, sin importar con qué prompt se generó originalmente."""
+    if not isinstance(resultado, dict):
+        return resultado
+
+    reg = resultado.get("registro_guardia")
+    if isinstance(reg, dict):
+        evs = reg.get("evidencias")
+        if isinstance(evs, list):
+            reg["evidencias"] = [_normalizar_evidencia(e, i) for i, e in enumerate(evs)]
+
+    evs_top = resultado.get("evidencias")
+    if isinstance(evs_top, list):
+        resultado["evidencias"] = [_normalizar_evidencia(e, i) for i, e in enumerate(evs_top)]
+
+    return resultado
+
+
 def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
     """Envía el texto (y opcionalmente las imágenes del documento) a Gemini y
     devuelve la respuesta estructurada. Prueba múltiples modelos en cascada si
@@ -1108,12 +1172,17 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
 
     client = genai.Client(api_key=api_key, http_options={"timeout": 120000})
 
+    # Límites configurables por entorno para controlar el costo/latencia de Gemini.
+    max_input_chars = int(os.getenv("GEMINI_MAX_INPUT_CHARS", "60000"))
+    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "20000"))
+    max_imagenes = int(os.getenv("GEMINI_MAX_IMAGENES", "8"))
+
     # Configuración de generación para reducir latencia: salida forzada como JSON
     # válido (evita reintentos por JSON inválido), temperatura baja y límite de
-    # tokens para que el "resumen" no se extienda innecesariamente.
+    # tokens para que la respuesta no se extienda innecesariamente.
     config_gen = genai.types.GenerateContentConfig(
         temperature=0.2,
-        max_output_tokens=20000,
+        max_output_tokens=max_output_tokens,
         response_mime_type="application/json",
     )
 
@@ -1122,10 +1191,10 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
               .replace("<<<DESCRIPCION>>>", descripcion or "")
               .replace("<<<FORMATO>>>", _cargar_formato())
               .replace("<<<FORMATO_REPORTE>>>", _cargar_formato_reporte())
-              .replace("<<<CONTENIDO>>>", texto[:30000]))
+              .replace("<<<CONTENIDO>>>", texto[:max_input_chars]))
 
     # Limitar la cantidad de imágenes enviadas para no exceder el tamaño/latencia.
-    imagenes = imagenes[:8]
+    imagenes = imagenes[:max_imagenes]
 
     # Construir el contenido multimodal: texto + imágenes adjuntas en orden.
     contents = [genai.types.Part.from_text(text=prompt)]
@@ -1342,7 +1411,7 @@ def analizar_informe_api(id_informe):
             cache = informe["resultado_analisis"]
             if isinstance(cache, str):
                 cache = _json.loads(cache)
-            return jsonify(cache)
+            return jsonify(_normalizar_resultado(cache))
 
         ruta = informe["ruta_archivo"]
         if not os.path.exists(ruta):
