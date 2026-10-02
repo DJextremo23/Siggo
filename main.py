@@ -190,6 +190,26 @@ def no_cache(resp):
         resp.headers["Expires"] = "0"
     return resp
 
+
+# ── Medicion de rendimiento por request (diagnóstico) ────────────────────────
+import time as _time_prof
+
+
+@app.before_request
+def _perf_inicio():
+    request._perf_t0 = _time_prof.time()
+
+
+@app.after_request
+def _perf_log(resp):
+    try:
+        dt = _time_prof.time() - getattr(request, "_perf_t0", _time_prof.time())
+        if dt >= 0.5:
+            print(f"[PERF] {request.method} {request.path} -> {dt:.2f}s ({resp.status_code})")
+    except Exception:
+        pass
+    return resp
+
 # -----------------------------------------------
 # Conexión a la base de datos (singleton)
 # -----------------------------------------------

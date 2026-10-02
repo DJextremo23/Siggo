@@ -558,49 +558,11 @@ async function iniciarAnalisis(forzar) {
             mostrarError(resp.error);
             return;
         }
-
-        // Resultado completo (caché) o compatibilidad con respuesta directa.
-        if (resp && resp.estado === 'completado' && resp.resultado) {
-            pasosCompletos();
-            mostrarResultados(resp.resultado);
-            return;
-        }
-        if (resp && !resp.estado) {
-            pasosCompletos();
-            mostrarResultados(resp);
-            return;
-        }
-
-        // El análisis corre en segundo plano: consultar el estado.
-        await pollEstado();
+        pasosCompletos();
+        mostrarResultados(resp);
     } catch (err) {
         mostrarError('Error de conexión: ' + err.message);
     }
-}
-
-async function pollEstado() {
-    const estadoUrl = '/analizar_informe/' + INFORME_ID + '/estado';
-    for (let i = 0; i < 120; i++) {
-        await new Promise(function (r) { setTimeout(r, 1500); });
-        try {
-            const r = await fetch(estadoUrl);
-            const st = await r.json();
-            if (st.estado === 'completado' && st.resultado) {
-                pasosCompletos();
-                mostrarResultados(st.resultado);
-                return;
-            }
-            if (st.estado === 'error') {
-                mostrarError(st.error || 'Error durante el análisis');
-                return;
-            }
-            setPaso(5);
-            document.getElementById('loading-sub').textContent = 'Generando resultados…';
-        } catch (e) {
-            // Error transitorio de red: reintentar en el siguiente ciclo.
-        }
-    }
-    mostrarError('El análisis está tardando demasiado. Inténtalo de nuevo.');
 }
 
 // ==================== GENERAR PPT ====================

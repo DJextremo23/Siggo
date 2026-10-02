@@ -19,7 +19,6 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import os
 import json
 import re
-import threading
 from dotenv import load_dotenv
 from limiter_instance import limiter
 
@@ -35,12 +34,6 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # Crear carpeta de subidas si no existe
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ── Trabajos de análisis en segundo plano (evita bloquear el servidor) ──────
-# Clave: id_informe. Valor: {"estado": "procesando"|"completado"|"error",
-#                            "resultado": {...}}
-_ANALISIS_JOBS = {}
-_ANALISIS_LOCK = threading.Lock()
 
 
 # ==========================================
@@ -1537,85 +1530,13 @@ def analizar_informe(id_informe):
         if conn is not None: conn.close()
 
 
-def _fetch_informe(cursor, id_informe, perfil, id_usuario):
-    """Obtiene el informe autorizado (admin o dueño). Devuelve None si no existe."""
-    if perfil == "admin":
-        cursor.execute("""
-            SELECT i.*, g.fecha_guardia
-            FROM informes i
-            INNER JOIN guardias g ON i.id_guardia = g.id_guardia
-            WHERE i.id_informe = %s AND i.estado = 'activo'
-        """, (id_informe,))
-    else:
-        cursor.execute("""
-            SELECT i.*, g.fecha_guardia
-            FROM informes i
-            INNER JOIN guardias g ON i.id_guardia = g.id_guardia
-            WHERE i.id_informe = %s AND i.id_usuario = %s AND i.estado = 'activo'
-        """, (id_informe, id_usuario))
-    return cursor.fetchone()
-
-
-def _ejecutar_analisis(id_informe, informe):
-    """Ejecuta el análisis (extracción + Gemini) en segundo plano y cachea el resultado.
-
-    Se ejecuta en un hilo independiente para no bloquear el servidor. Al terminar,
-    deja el resultado en `_ANALISIS_JOBS` (y en la BD si fue exitoso)."""
-    import time as _time
-    t_inicio = _time.time()
-
-    try:
-        ruta = informe.get("ruta_archivo")
-        if not ruta or not os.path.exists(ruta):
-            resultado = {"error": "El archivo no existe en el servidor"}
-        else:
-            texto = _extraer_texto_archivo(informe)
-            if not texto:
-                resultado = {"error": "No se pudo extraer texto del archivo"}
-            elif texto.startswith("[Error"):
-                resultado = {"error": texto}
-            else:
-                imagenes = _extraer_imagenes_archivo(informe)
-                resultado = _analizar_con_gemini(
-                    texto,
-                    informe.get("titulo") or "",
-                    informe.get("descripcion") or "",
-                    imagenes
-                )
-    except Exception as e:
-        resultado = {"error": f"Error inesperado: {str(e)}"}
-
-    # Cachear en BD si el análisis fue exitoso.
-    if not resultado.get("error"):
-        try:
-            conn = conexion()
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE informes SET resultado_analisis = %s WHERE id_informe = %s",
-                (json.dumps(resultado, ensure_ascii=False), id_informe)
-            )
-            conn.commit()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            print(f"[ADVERTENCIA] No se pudo cachear el analisis (informe {id_informe}): {e}")
-
-    with _ANALISIS_LOCK:
-        _ANALISIS_JOBS[id_informe] = {
-            "estado": "error" if resultado.get("error") else "completado",
-            "resultado": resultado,
-        }
-
-    print(f"[PERFORMANCE] Análisis en segundo plano terminado: {_time.time() - t_inicio:.2f}s")
-
-
 @informe_bp.route("/analizar_informe/<int:id_informe>/api")
 @limiter.limit("5 per minute")
 def analizar_informe_api(id_informe):
-    """Inicia el análisis en segundo plano (no bloquea el servidor).
+    """API que extrae texto, llama a Gemini y devuelve JSON.
 
-    Devuelve el resultado cacheado si existe (sin forzar), o `{"estado": "procesando"}`
-    mientras el análisis corre en un hilo. El frontend consulta `/estado` para el progreso."""
+    Usa cache en BD: solo llama a Gemini si no hay resultado previo o si se
+    fuerza (?force=1). El resultado se guarda únicamente en la base de datos."""
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
     perfil = session.get("perfil_activo")
@@ -1629,11 +1550,27 @@ def analizar_informe_api(id_informe):
     try:
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
-        informe = _fetch_informe(cursor, id_informe, perfil, session.get("id_usuario"))
+
+        if perfil == "admin":
+            cursor.execute("""
+                SELECT i.*, g.fecha_guardia
+                FROM informes i
+                INNER JOIN guardias g ON i.id_guardia = g.id_guardia
+                WHERE i.id_informe = %s AND i.estado = 'activo'
+            """, (id_informe,))
+        else:
+            cursor.execute("""
+                SELECT i.*, g.fecha_guardia
+                FROM informes i
+                INNER JOIN guardias g ON i.id_guardia = g.id_guardia
+                WHERE i.id_informe = %s AND i.id_usuario = %s AND i.estado = 'activo'
+            """, (id_informe, session["id_usuario"]))
+        informe = cursor.fetchone()
+
         if not informe:
             return jsonify({"error": "Informe no encontrado"}), 404
 
-        # Ruta rápida: servir desde caché si ya existe y no se fuerza re-análisis.
+        # Servir desde caché (BD) si existe y no se fuerza re-análisis.
         if not forzar and informe.get("resultado_analisis"):
             import json as _json
             cache = informe["resultado_analisis"]
@@ -1641,61 +1578,46 @@ def analizar_informe_api(id_informe):
                 cache = _json.loads(cache)
             return jsonify(_normalizar_resultado(cache))
 
-        # Evitar lanzar un análisis duplicado para el mismo informe.
-        with _ANALISIS_LOCK:
-            job = _ANALISIS_JOBS.get(id_informe)
-            if job and job["estado"] == "procesando":
-                return jsonify({"estado": "procesando"})
+        ruta = informe["ruta_archivo"]
+        if not os.path.exists(ruta):
+            return jsonify({"error": "El archivo no existe en el servidor"}), 404
 
-        with _ANALISIS_LOCK:
-            _ANALISIS_JOBS[id_informe] = {"estado": "procesando", "resultado": None}
+        import time as _time
+        t_inicio_total = _time.time()
 
-        threading.Thread(target=_ejecutar_analisis, args=(id_informe, dict(informe)), daemon=True).start()
+        texto = _extraer_texto_archivo(informe)
+        if not texto:
+            return jsonify({"error": "No se pudo extraer texto del archivo"}), 400
+        if texto.startswith("[Error"):
+            return jsonify({"error": texto}), 500
 
-        return jsonify({"estado": "procesando"})
+        imagenes = _extraer_imagenes_archivo(informe)
+
+        resultado = _analizar_con_gemini(
+            texto,
+            informe["titulo"] or "",
+            informe["descripcion"] or "",
+            imagenes
+        )
+
+        print(f"[PERFORMANCE] Análisis total: {_time.time() - t_inicio_total:.2f}s")
+
+        # Guardar en caché (BD) si el análisis fue exitoso.
+        if not resultado.get("error"):
+            try:
+                cursor.execute(
+                    "UPDATE informes SET resultado_analisis = %s WHERE id_informe = %s",
+                    (json.dumps(resultado, ensure_ascii=False), id_informe)
+                )
+                conn.commit()
+            except Exception as e:
+                print(f"[ADVERTENCIA] No se pudo guardar el analisis en cache (informe {id_informe}): {e}")
+
+        return jsonify(resultado)
 
     finally:
         if cursor is not None: cursor.close()
         if conn is not None: conn.close()
-
-
-@informe_bp.route("/analizar_informe/<int:id_informe>/estado")
-def analizar_informe_estado(id_informe):
-    """Devuelve el estado del análisis (procesando/completado/error) y el resultado."""
-    if "usuario" not in session:
-        return jsonify({"error": "No autorizado"}), 401
-    perfil = session.get("perfil_activo")
-    if perfil not in ("fiscalizador", "admin"):
-        return jsonify({"error": "Acceso no autorizado"}), 403
-
-    with _ANALISIS_LOCK:
-        job = _ANALISIS_JOBS.get(id_informe)
-
-    if job:
-        if job["estado"] == "completado":
-            return jsonify({"estado": "completado", "resultado": _normalizar_resultado(job["resultado"])})
-        if job["estado"] == "error":
-            return jsonify({"estado": "error", "error": (job["resultado"] or {}).get("error", "Error")})
-        return jsonify({"estado": "procesando"})
-
-    # Sin job en memoria: comprobar el caché en BD.
-    conn = None
-    cursor = None
-    try:
-        conn = conexion()
-        cursor = conn.cursor(dictionary=True)
-        informe = _fetch_informe(cursor, id_informe, perfil, session.get("id_usuario"))
-        if informe and informe.get("resultado_analisis"):
-            import json as _json
-            cache = informe["resultado_analisis"]
-            if isinstance(cache, str):
-                cache = _json.loads(cache)
-            return jsonify({"estado": "completado", "resultado": _normalizar_resultado(cache)})
-    finally:
-        if cursor is not None: cursor.close()
-        if conn is not None: conn.close()
-
-    return jsonify({"estado": "procesando"})
 
 
 @informe_bp.route("/analizar_informe/<int:id_informe>/imagen/<int:indice>")

@@ -31,6 +31,14 @@ Crear un archivo .env (o variables del sistema) con:
 - DB_PASSWORD       (obligatoria)  clave de la base de datos
 - DB_NAME           (opcional)     ejemplo: guardiaoig         (default: guardiaoig)
 - DB_PORT           (opcional)     ejemplo: 3306               (default: 3306)
+
+NOTA RAILWAY: si la app se despliega en Railway con el plugin "MySQL", Railway
+inyecta automaticamente MYSQLHOST, MYSQLPORT, MYSQLUSER, MYSQLPASSWORD y
+MYSQLDATABASE. El modulo "conexion.py" lee esas variables como respaldo de DB_*,
+por lo que NO hace falta definir DB_* manualmente (usara mysql.railway.internal
+por red interna, que es lo mas rapido). Para desarrollo LOCAL contra la misma BD
+de Railway, define en .env el host publico (altaria.proxy.rlwy.net) y puerto 55443.
+
 - DB_TIMEZONE       (opcional)     ejemplo: -05:00             (default: -05:00)
 - FORCE_HTTPS       (recomendado)  true                        (default: false)
 - PORT              (opcional)     ejemplo: 5000               (default: 8080)
