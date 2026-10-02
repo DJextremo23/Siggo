@@ -77,6 +77,9 @@ RESUMEN_POR_TALLER_LABEL = [(0.790, 4.955), (0.790, 5.142), (0.790, 5.325), (0.7
 RESUMEN_POR_TALLER_VALUE = [(2.930, 4.975), (2.930, 5.151), (2.965, 5.319), (2.968, 5.530), (2.965, 5.713), (2.965, 5.891)]
 RESUMEN_ACT_TITULO = (4.420, 2.382)
 RESUMEN_PEND_TITULO = (4.420, 5.202)
+RESUMEN_PROD_TITULO = (6.223, 1.166)
+RESUMEN_PROD_PERDIDA_TITULO = (8.783, 1.166)
+RESUMEN_POR_TALLER_CANT = (3.055, 4.790)
 
 
 def _as_list(v):
@@ -128,6 +131,19 @@ def _set_text(shape, text):
     else:
         r = para.add_run()
         r.text = text
+
+
+def _clear_text(slide):
+    """Blanquea el texto de todas las formas (conserva formas, posiciones y formato).
+
+    Se usa al duplicar una diapositiva de la plantilla para eliminar TODO el
+    contenido de ejemplo antes de insertar únicamente los datos del JSON."""
+    for sh in slide.shapes:
+        if sh.has_text_frame:
+            try:
+                _set_text(sh, "")
+            except Exception:
+                pass
 
 
 def _set_text_at(slide, left, top, text, tol=0.06):
@@ -315,6 +331,7 @@ def _evidencia_descripcion(ev):
 
 
 def _fill_tarjetas(slide, titulo, evidencias, fotos, mes_ano, num):
+    _clear_text(slide)
     _set_text_at(slide, *TARJETAS_TITULO, titulo)
     _set_text_at(slide, *TARJETAS_FOOTER, f"Reporte de Guardia | {mes_ano}".strip(" |"))
     _set_text_at(slide, *TARJETAS_PAGINA, str(num).zfill(2))
@@ -387,6 +404,8 @@ def _add_items(slide, x, y, items, size=11, color=RGBColor(0x10, 0x2A, 0x43)):
 
 
 def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
+    _clear_text(slide)
+    _set_text_at(slide, *RESUMEN_KICKER, "")
     _set_text_at(slide, *RESUMEN_TITULO, titulo)
     _set_text_at(slide, *TARJETAS_FOOTER, f"Reporte de Guardia | {mes_ano}".strip(" |"))
     _set_text_at(slide, *TARJETAS_PAGINA, str(num).zfill(2))
@@ -414,6 +433,8 @@ def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
 
     hay_produccion = any(v not in (None, "") for v in (oil, gas, imputado, recuperado))
     if hay_produccion:
+        _set_text_at(slide, *RESUMEN_PROD_TITULO, "PRODUCCIÓN")
+        _set_text_at(slide, *RESUMEN_PROD_PERDIDA_TITULO, "PROD. PERDIDA")
         _set_text_at(slide, *RESUMEN_PROD_COL1, f"Bls\n{oil if oil not in (None, '') else '—'}")
         _set_text_at(slide, *RESUMEN_PROD_COL2, f"Mpc\n{gas if gas not in (None, '') else '—'}")
         _set_text_at(slide, *RESUMEN_PROD_IMPUTADO,
@@ -443,6 +464,7 @@ def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
     talleres = _as_list(seccion.get("talleres"))
     _set_text_at(slide, *RESUMEN_POR_TALLER_TITULO, "POR TALLER")
     _set_text_at(slide, *RESUMEN_POR_TALLER_HEAD, "TALLER")
+    _set_text_at(slide, *RESUMEN_POR_TALLER_CANT, "CANT.")
     for i, pos in enumerate(RESUMEN_POR_TALLER_LABEL):
         item = _as_dict(talleres[i]) if i < len(talleres) else {}
         nombre = item.get("nombre") or ""
