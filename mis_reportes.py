@@ -276,6 +276,7 @@ def mis_reportes():
         cursor.execute(f"""
             SELECT
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(f.descripcion,'—') AS feriado,
 
                 CASE
@@ -434,6 +435,7 @@ def exportar_pdf():
         cursor.execute(f"""
             SELECT
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(f.descripcion,'—') AS feriado,
 
                 CASE
@@ -481,9 +483,10 @@ def exportar_pdf():
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
 
-    columnas = ["Fecha", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
+    columnas = ["Fecha", "Tipo", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
     filas = [[
         _fecha(d["fecha_guardia"]),
+        "Soporte" if d["tipo"] == "soporte" else "Guardia",
         d["feriado"] or "\u2014",
         d["asistencia"] or "\u2014",
         _fecha(d["fecha_compensacion"]) or "\u2014",
@@ -559,6 +562,7 @@ def exportar_excel():
         cursor.execute(f"""
             SELECT
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(f.descripcion,'—') AS feriado,
 
                 CASE
@@ -591,11 +595,12 @@ def exportar_excel():
     wb = Workbook()
     ws = wb.active
     ws.title = "Detalle"
-    columnas = ["Fecha", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
+    columnas = ["Fecha", "Tipo", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Detalle de Guardias")
     for d in detalle:
         ws.append([
             _fecha(d["fecha_guardia"]),
+            "Soporte" if d["tipo"] == "soporte" else "Guardia",
             d["feriado"] or "",
             d["asistencia"] or "",
             _fecha(d["fecha_compensacion"]),

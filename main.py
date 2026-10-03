@@ -448,6 +448,7 @@ def compensaciones_admin():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 u.foto,
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(a.estado,'sin registro') AS asistencia,
                 c.fecha_compensacion,
                 c.observacion,
@@ -2103,6 +2104,9 @@ def agregar_guardia():
 
     id_usuario = request.form.get("id_usuario", "").strip()
     fecha_guardia = request.form.get("fecha_guardia", "").strip()
+    tipo = request.form.get("tipo", "guardia").strip()
+    if tipo not in ("guardia", "soporte"):
+        tipo = "guardia"
 
     if not id_usuario or not fecha_guardia:
         flash("Todos los campos son obligatorios", "error")
@@ -2137,9 +2141,9 @@ def agregar_guardia():
             return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
         cursor.execute("""
-            INSERT INTO guardias (id_usuario, fecha_guardia)
-            VALUES (%s, %s)
-        """, (id_usuario, fecha_guardia))
+            INSERT INTO guardias (id_usuario, fecha_guardia, tipo)
+            VALUES (%s, %s, %s)
+        """, (id_usuario, fecha_guardia, tipo))
 
         cursor.execute("""
             UPDATE guardias
@@ -2203,6 +2207,9 @@ def editar_guardia(id):
 
             id_usuario = request.form.get("id_usuario", "").strip()
             fecha_guardia = request.form.get("fecha_guardia", "").strip()
+            tipo = request.form.get("tipo", "guardia").strip()
+            if tipo not in ("guardia", "soporte"):
+                tipo = "guardia"
 
             if not id_usuario or not fecha_guardia:
                 flash("Todos los campos son obligatorios", "error")
@@ -2238,9 +2245,9 @@ def editar_guardia(id):
             try:
                 cursor.execute("""
                     UPDATE guardias
-                    SET id_usuario=%s, fecha_guardia=%s
+                    SET id_usuario=%s, fecha_guardia=%s, tipo=%s
                     WHERE id_guardia=%s
-                """, (id_usuario, fecha_guardia, id))
+                """, (id_usuario, fecha_guardia, tipo, id))
 
                 cursor.execute("""
                     UPDATE guardias
@@ -2798,6 +2805,7 @@ def mis_compensaciones():
         SELECT
             c.id_compensacion,
             g.fecha_guardia,
+            g.tipo,
             c.fecha_compensacion,
             c.observacion,
             g.id_usuario,
@@ -3042,6 +3050,7 @@ def mis_guardias():
             SELECT
                 g.id_guardia,
                 g.fecha_guardia,
+                g.tipo,
 
                 CASE
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')

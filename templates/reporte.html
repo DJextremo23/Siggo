@@ -294,6 +294,7 @@
 <tr>
   <th>Fiscalizador</th>
   <th>Fecha</th>
+  <th>Tipo</th>
   <th>Feriado</th>
   <th>Asistencia</th>
   <th>Compensación</th>
@@ -308,6 +309,14 @@
 
 <td data-label="Fiscalizador"><strong>{{ d.fiscalizador }}</strong></td>
 <td data-label="Fecha"><strong>{{ d.fecha_guardia|fecha }}</strong></td>
+
+<td data-label="Tipo">
+{% if d.tipo == 'soporte' %}
+<span class="tipo-badge soporte">Soporte</span>
+{% else %}
+<span class="tipo-badge guardia">Guardia</span>
+{% endif %}
+</td>
 
 <td data-label="Feriado">
 {% if d.feriado_descripcion != '—' %}

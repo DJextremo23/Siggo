@@ -639,3 +639,24 @@ button,
     -webkit-tap-highlight-color: transparent;
 }
 
+/* Badge de tipo de guardia (Guardia / Soporte) */
+.tipo-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tipo-badge.guardia {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.tipo-badge.soporte {
+    background: #f5f3ff;
+    color: #6d28d9;
+}
+

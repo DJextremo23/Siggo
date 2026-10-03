@@ -205,6 +205,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Fecha</th>
+                    <th>Tipo</th>
                     <th>Día</th>
                     <th>Estado</th>
                     <th>Compensación</th>
@@ -230,6 +231,14 @@
                             </svg>
                             {{ d.fecha_guardia|fecha }}
                         </span>
+                    </td>
+
+                    <td data-label="Tipo">
+                        {% if d.tipo == 'soporte' %}
+                            <span class="tipo-badge soporte">Soporte</span>
+                        {% else %}
+                            <span class="tipo-badge guardia">Guardia</span>
+                        {% endif %}
                     </td>
 
                     <td data-label="Día">
@@ -293,7 +302,7 @@
 
                 {% else %}
                 <tr>
-                    <td colspan="5" class="empty-state">
+                    <td colspan="6" class="empty-state">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="display:block;margin:0 auto 8px;">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>

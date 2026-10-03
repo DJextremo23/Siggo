@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS guardias (
     id_usuario INT NOT NULL,
     fecha_guardia DATE NOT NULL,
     id_feriado INT DEFAULT NULL,
+    tipo ENUM('guardia', 'soporte') NOT NULL DEFAULT 'guardia',
     UNIQUE KEY uq_guardia (id_usuario, fecha_guardia),
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_feriado) REFERENCES feriados(id_feriado) ON DELETE SET NULL
@@ -141,6 +142,7 @@ SELECT
      WHERE ur.id_usuario = u.id_usuario) AS roles,
     g.id_guardia,
     g.fecha_guardia,
+    g.tipo,
     CASE
         WHEN LOWER(COALESCE(a.estado, '')) = 'asistio' THEN 'realizada'
         WHEN LOWER(COALESCE(a.estado, '')) = 'falta' THEN 'cancelada'

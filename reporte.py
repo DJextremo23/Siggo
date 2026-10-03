@@ -262,6 +262,7 @@ def reporte():
             SELECT 
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(f.descripcion, '—') AS feriado_descripcion,
                 CASE 
                     WHEN a.estado = 'asistio' THEN '✔ Asistió'
@@ -598,6 +599,7 @@ def exportar_detalle_fecha_pdf():
             SELECT 
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(f.descripcion, '—') AS feriado_descripcion,
                 CASE 
                     WHEN a.estado = 'asistio' THEN '✔ Asistió'
@@ -642,10 +644,11 @@ def exportar_detalle_fecha_pdf():
     if partes:
         elementos.append(Paragraph(" | ".join(partes), estilos['subtitulo']))
 
-    columnas = ["Fiscalizador", "Fecha", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
+    columnas = ["Fiscalizador", "Fecha", "Tipo", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
     filas = [[
         d["fiscalizador"],
         _fecha(d["fecha_guardia"]),
+        "Soporte" if d["tipo"] == "soporte" else "Guardia",
         d["feriado_descripcion"],
         d["asistencia"],
         _fecha(d["fecha_compensacion"]) or "\u2014",
@@ -695,6 +698,7 @@ def exportar_detalle_fecha_excel():
             SELECT 
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 g.fecha_guardia,
+                g.tipo,
                 COALESCE(f.descripcion, '—') AS feriado_descripcion,
                 CASE 
                     WHEN a.estado = 'asistio' THEN '✔ Asistió'
@@ -724,12 +728,13 @@ def exportar_detalle_fecha_excel():
     wb = Workbook()
     ws = wb.active
     ws.title = "Detalle Fecha"
-    columnas = ["Fiscalizador", "Fecha", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
+    columnas = ["Fiscalizador", "Fecha", "Tipo", "Feriado", "Asistencia", "Compensación", "Estado", "Observaciones"]
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Detalle de Guardias")
     for d in detalle:
         ws.append([
             d["fiscalizador"],
             _fecha(d["fecha_guardia"]),
+            "Soporte" if d["tipo"] == "soporte" else "Guardia",
             d["feriado_descripcion"],
             d["asistencia"],
             _fecha(d["fecha_compensacion"]),

@@ -149,6 +149,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Fecha Guardia</th>
+                    <th>Tipo</th>
                     <th>Día</th>
                     <th>Fecha Compensación</th>
                     <th>Estado</th>
@@ -177,6 +178,14 @@
                             </svg>
                             {{ c.fecha_guardia|fecha }}
                         </span>
+                    </td>
+
+                    <td data-label="Tipo">
+                        {% if c.tipo == 'soporte' %}
+                            <span class="tipo-badge soporte">Soporte</span>
+                        {% else %}
+                            <span class="tipo-badge guardia">Guardia</span>
+                        {% endif %}
                     </td>
 
                     <td data-label="Día">
