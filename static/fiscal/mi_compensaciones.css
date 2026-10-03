@@ -365,6 +365,18 @@ tr:hover{
     gap:6px;
 }
 
+.badge-dia{
+    display:inline-flex;
+    align-items:center;
+    background:#eff6ff;
+    color:var(--azul);
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    white-space:nowrap;
+}
+
 /* ================= ACCIONES ================= */
 .th-acciones{
     text-align:center;

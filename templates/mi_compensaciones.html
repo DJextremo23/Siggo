@@ -149,6 +149,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Fecha Guardia</th>
+                    <th>Día</th>
                     <th>Fecha Compensación</th>
                     <th>Estado</th>
                     <th>Observaciones</th>
@@ -176,6 +177,14 @@
                             </svg>
                             {{ c.fecha_guardia|fecha }}
                         </span>
+                    </td>
+
+                    <td data-label="Día">
+                        {% if c.es_feriado %}
+                            <span class="badge-dia" style="background: #fffbeb; color: #92400e;" title="{{ c.feriado }}">{{ c.dia_semana }} (Feriado)</span>
+                        {% else %}
+                            <span class="badge-dia">{{ c.dia_semana }}</span>
+                        {% endif %}
                     </td>
 
                     <td data-label="Fecha Compensación">

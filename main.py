@@ -311,10 +311,10 @@ def administrador():
         cursor.execute("SELECT COUNT(*) AS total FROM guardias WHERE YEAR(fecha_guardia) = YEAR(CURDATE())")
         total_guardias = cursor.fetchone()["total"]
 
-        cursor.execute("SELECT COUNT(*) AS total FROM informes WHERE estado = 'activo' AND YEAR(fecha_subida) = YEAR(CURDATE())")
+        cursor.execute("SELECT COUNT(*) AS total FROM informes i INNER JOIN guardias g ON i.id_guardia = g.id_guardia WHERE i.estado = 'activo' AND YEAR(g.fecha_guardia) = YEAR(CURDATE())")
         total_informes = cursor.fetchone()["total"]
 
-        cursor.execute("SELECT COUNT(*) AS total FROM compensaciones WHERE YEAR(fecha_compensacion) = YEAR(CURDATE())")
+        cursor.execute("SELECT COUNT(*) AS total FROM compensaciones c INNER JOIN guardias g ON c.id_guardia = g.id_guardia WHERE YEAR(g.fecha_guardia) = YEAR(CURDATE())")
         total_compensaciones = cursor.fetchone()["total"]
 
         # Resumen operativo: métricas operativas del año (feriados, asistencias, faltas, pendientes)
@@ -2616,9 +2616,23 @@ def asistencia():
         else:
             d['dia_semana'] = str(fecha) if fecha else '—'
 
+    # Totales KPI del año actual (independientes de los filtros de la tabla)
+    cursor.execute("""
+        SELECT
+            COALESCE(SUM(CASE WHEN asistencia = 'asistio' THEN 1 ELSE 0 END), 0) AS asistencias,
+            COALESCE(SUM(CASE WHEN asistencia = 'falta' THEN 1 ELSE 0 END), 0) AS faltas,
+            COALESCE(SUM(CASE WHEN asistencia = 'justificado' THEN 1 ELSE 0 END), 0) AS justificadas,
+            COALESCE(SUM(CASE WHEN asistencia = 'sin registro' THEN 1 ELSE 0 END), 0) AS pendientes
+        FROM resumen_guardias
+        WHERE id_usuario = %s
+          AND YEAR(fecha_guardia) = YEAR(CURDATE())
+    """, (session["id_usuario"],))
+    kpi = cursor.fetchone()
+
     return render_template(
         "asistencia.html",
-        datos=datos
+        datos=datos,
+        kpi=kpi
     )
 # ---------- FIN ASISTENCIA ----------
 
@@ -2788,12 +2802,15 @@ def mis_compensaciones():
             c.observacion,
             g.id_usuario,
             u.nombre,
-            u.apellidos
+            u.apellidos,
+            f.descripcion AS feriado
         FROM compensaciones c
         INNER JOIN guardias g
             ON c.id_guardia = g.id_guardia
         INNER JOIN usuarios u
             ON g.id_usuario = u.id_usuario
+        LEFT JOIN feriados f
+            ON g.id_feriado = f.id_feriado
         WHERE g.id_usuario = %s
     """
 
@@ -2822,6 +2839,12 @@ def mis_compensaciones():
     from datetime import date
     hoy = date.today()
     for c in datos:
+        fecha = c['fecha_guardia']
+        if isinstance(fecha, date):
+            c['dia_semana'] = DIAS_ES[fecha.weekday()]
+        else:
+            c['dia_semana'] = str(fecha) if fecha else '—'
+        c['es_feriado'] = c.get('feriado') is not None
         if c['fecha_compensacion'] and c['fecha_compensacion'] <= hoy:
             c['estado'] = 'usado'
         else:
