@@ -197,7 +197,7 @@ body {
 
 .filtro-form {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     align-items: flex-end;
     flex-wrap: wrap;
 }
@@ -206,7 +206,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-width: 170px;
+    min-width: 120px;
     flex: 1;
 }
 
@@ -247,6 +247,7 @@ body {
 
 .filtro-input {
     flex: 1;
+    min-width: 0;
     border: none;
     outline: none;
     background: transparent;

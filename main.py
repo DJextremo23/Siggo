@@ -376,6 +376,7 @@ def administrador():
             INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             WHERE g.fecha_guardia >= CURDATE()
+              AND g.tipo = 'guardia'
             ORDER BY g.fecha_guardia ASC
             LIMIT 5
         """)
@@ -437,6 +438,7 @@ def compensaciones_admin():
     desde = request.args.get("desde", "").strip()
     hasta = request.args.get("hasta", "").strip()
     estado_filtro = request.args.get("estado", "").strip()
+    tipo = request.args.get("tipo", "").strip()
 
     cursor = None
     try:
@@ -491,6 +493,10 @@ def compensaciones_admin():
         elif estado_filtro:
             sql += " AND a.estado = %s "
             params.append(estado_filtro)
+
+        if tipo:
+            sql += " AND g.tipo = %s "
+            params.append(tipo)
 
         if id_usuario:
             sql += " AND g.id_usuario = %s "
@@ -2025,6 +2031,7 @@ def ver_guardias():
     fecha_desde = request.args.get("fecha_desde", "").strip()
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     asistencia = request.args.get("asistencia", "").strip()
+    tipo = request.args.get("tipo", "").strip()
 
     # =========================
     # 1. GUARDIAS
@@ -2043,6 +2050,10 @@ def ver_guardias():
     if fecha_hasta:
         sql += " AND rg.fecha_guardia <= %s "
         params.append(fecha_hasta)
+
+    if tipo:
+        sql += " AND rg.tipo = %s "
+        params.append(tipo)
 
     if asistencia:
         if asistencia == "pendiente":
@@ -2502,6 +2513,7 @@ def asistencia_admin():
     fecha_desde = request.args.get("fecha_desde", "").strip()
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     asistencia = request.args.get("asistencia", "").strip()
+    tipo = request.args.get("tipo", "").strip()
 
     try:
         # =========================
@@ -2521,6 +2533,10 @@ def asistencia_admin():
         if fecha_hasta:
             sql += " AND rg.fecha_guardia <= %s "
             params.append(fecha_hasta)
+
+        if tipo:
+            sql += " AND rg.tipo = %s "
+            params.append(tipo)
 
         if asistencia:
             if asistencia == "pendiente":
