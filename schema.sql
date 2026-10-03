@@ -142,6 +142,7 @@ SELECT
             'Domingo', 'Lunes', 'Martes', 'Miércoles',
             'Jueves', 'Viernes', 'Sábado')
     END AS tipo_dia,
+    f.descripcion AS feriado,
     COALESCE(a.estado, 'sin registro') AS asistencia
 FROM guardias g
 LEFT JOIN feriados f ON g.id_feriado = f.id_feriado

@@ -457,7 +457,8 @@ def compensaciones_admin():
                     ELSE ELT(DAYOFWEEK(g.fecha_guardia),
                         'Domingo','Lunes','Martes','Miércoles',
                         'Jueves','Viernes','Sábado')
-                END AS tipo_dia
+                END AS tipo_dia,
+                f.descripcion AS feriado
             FROM guardias g
             LEFT JOIN usuarios u
                 ON g.id_usuario = u.id_usuario
@@ -1813,7 +1814,7 @@ def inicio():
 
         # 🔥 Obtener datos desde la vista correcta
         cursor.execute("""
-            SELECT id_guardia, fecha_guardia, tipo_dia, asistencia
+            SELECT id_guardia, fecha_guardia, tipo_dia, feriado, asistencia
             FROM resumen_guardias
             WHERE id_usuario = (
                 SELECT id_usuario FROM usuarios WHERE usuario = %s
@@ -2642,6 +2643,7 @@ def mi_asistencia():
             id_guardia,
             fecha_guardia,
             tipo_dia,
+            feriado,
             asistencia
         FROM resumen_guardias
         WHERE id_usuario = %s
@@ -3038,6 +3040,8 @@ def mis_guardias():
                         'Domingo','Lunes','Martes','Miércoles',
                         'Jueves','Viernes','Sábado')
                 END AS tipo_dia,
+
+                f.descripcion AS feriado,
 
                 CASE
                     WHEN LOWER(COALESCE(a.estado, '')) IN ('asistio')

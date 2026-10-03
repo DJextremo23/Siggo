@@ -289,7 +289,7 @@
 
                             <td data-label="Día">
                                 {% if g.tipo_dia and g.tipo_dia|upper == 'FERIADO' %}
-                                    <span class="badge-dia" style="background: #fef3c7; color: #92400e;">
+                                    <span class="badge-dia" style="background: #fef3c7; color: #92400e;" title="{{ g.feriado }}">
                                         {{ g.dia_semana }} (Feriado)
                                     </span>
                                 {% else %}

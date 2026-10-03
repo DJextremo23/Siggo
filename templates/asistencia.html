@@ -234,7 +234,7 @@
 
                     <td data-label="Día">
                         {% if d.tipo_dia and d.tipo_dia|upper == 'FERIADO' %}
-                            <span class="badge badge-feriado">{{ d.dia_semana }} (Feriado)</span>
+                            <span class="badge badge-feriado" title="{{ d.feriado }}">{{ d.dia_semana }} (Feriado)</span>
                         {% else %}
                             <span class="badge badge-dia">{{ d.dia_semana }}</span>
                         {% endif %}
