@@ -1300,8 +1300,8 @@ tbody tr:hover {
 }
 
 .prox-dia-semana.feriado {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: #ffffff;
+    background: #fffbeb;
+    color: #92400e;
 }
 
 .ver-todas-btn {
