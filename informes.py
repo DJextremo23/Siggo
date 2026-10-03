@@ -33,7 +33,6 @@ def admin_informes():
     # Parámetros de filtro opcionales
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
-    tipo = request.args.get("tipo")
     anio = request.args.get("anio")
     titulo = request.args.get("titulo")
     id_usuario = request.args.get("id_usuario")
@@ -73,10 +72,6 @@ def admin_informes():
         if fecha_hasta:
             sql += " AND g.fecha_guardia <= %s"
             params.append(fecha_hasta)
-
-        if tipo:
-            sql += " AND i.tipo_archivo = %s"
-            params.append(tipo)
 
         if anio:
             sql += " AND YEAR(g.fecha_guardia) = %s"

@@ -52,7 +52,6 @@ def mis_informes():
 
     fecha_desde = request.args.get("fecha_desde")
     fecha_hasta = request.args.get("fecha_hasta")
-    tipo = request.args.get("tipo")
     anio = request.args.get("anio")
     titulo = request.args.get("titulo")
 
@@ -85,11 +84,6 @@ def mis_informes():
         if fecha_hasta:
             sql += " AND g.fecha_guardia <= %s "
             parametros.append(fecha_hasta)
-
-        # FILTRO TIPO
-        if tipo:
-            sql += " AND i.tipo_archivo = %s "
-            parametros.append(tipo)
 
         # FILTRO AÑO
         if anio:

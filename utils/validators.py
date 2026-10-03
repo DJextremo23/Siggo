@@ -3,12 +3,10 @@
 import re
 import os
 
-ALLOWED_EXTENSIONS = {"xlsx", "xlsm", "pdf", "docx"}
+ALLOWED_EXTENSIONS = {"xlsx", "xlsm"}
 MIME_MAP = {
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "xlsm": "application/vnd.ms-excel.sheet.macroEnabled.12",
-    "pdf": "application/pdf",
-    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "png": "image/png",
     "jpg": "image/jpeg",
     "jpeg": "image/jpeg",
@@ -35,10 +33,8 @@ def validar_mime_real(file_bytes, extension):
 
     magic = file_bytes[:12]
 
-    if extension in ("xlsx", "xlsm", "docx"):
+    if extension in ("xlsx", "xlsm"):
         return magic[:4] in (b"PK\x03\x04", b"PK\0\0")
-    elif extension == "pdf":
-        return magic[:4] == b"%PDF"
     elif extension in ("png", "jpg", "jpeg", "jfif", "gif", "webp"):
         if extension == "png":
             return magic[:8] == b"\x89PNG\r\n\x1a\n"
