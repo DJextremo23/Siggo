@@ -2681,6 +2681,7 @@ def mi_asistencia():
             fecha_guardia,
             tipo_dia,
             feriado,
+            tipo,
             asistencia
         FROM resumen_guardias
         WHERE id_usuario = %s

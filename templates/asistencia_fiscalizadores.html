@@ -92,6 +92,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Fecha</th>
+                        <th>Tipo</th>
                         <th>Día</th>
                         <th>Estado</th>
                         <th>Acción</th>
@@ -120,6 +121,15 @@
                             </svg>
                             {{ d.fecha_guardia|fecha }}
                         </span>
+                    </td>
+
+                    <!-- COLUMNA TIPO -->
+                    <td data-label="Tipo">
+                        {% if d.tipo == 'soporte' %}
+                            <span class="tipo-badge soporte">Soporte</span>
+                        {% else %}
+                            <span class="tipo-badge guardia">Guardia</span>
+                        {% endif %}
                     </td>
 
                     <!-- COLUMNA DÍA -->
@@ -226,7 +236,7 @@
                 {% else %}
 
                 <tr>
-                    <td colspan="5" class="empty">
+                    <td colspan="6" class="empty">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                             <line x1="16" y1="2" x2="16" y2="6"/>
