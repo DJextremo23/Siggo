@@ -133,17 +133,32 @@ CREATE TABLE IF NOT EXISTS dispositivos_confiables (
 -- ── VISTA: resumen_guardias ──
 CREATE OR REPLACE VIEW resumen_guardias AS
 SELECT
-    g.id_guardia,
     g.id_usuario,
+    CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador,
+    (SELECT GROUP_CONCAT(r.nombre_rol ORDER BY r.nombre_rol SEPARATOR ', ')
+     FROM usuarios_roles ur
+     JOIN roles r ON r.id_rol = ur.id_rol
+     WHERE ur.id_usuario = u.id_usuario) AS roles,
+    g.id_guardia,
     g.fecha_guardia,
+    CASE
+        WHEN LOWER(COALESCE(a.estado, '')) = 'asistio' THEN 'realizada'
+        WHEN LOWER(COALESCE(a.estado, '')) = 'falta' THEN 'cancelada'
+        WHEN LOWER(COALESCE(a.estado, '')) = 'justificado' THEN 'justificada'
+        ELSE 'programada'
+    END AS estado_guardia,
     CASE
         WHEN f.id_feriado IS NOT NULL THEN 'FERIADO'
         ELSE ELT(DAYOFWEEK(g.fecha_guardia),
             'Domingo', 'Lunes', 'Martes', 'Miércoles',
             'Jueves', 'Viernes', 'Sábado')
     END AS tipo_dia,
-    f.descripcion AS feriado,
-    COALESCE(a.estado, 'sin registro') AS asistencia
+    COALESCE(a.estado, 'sin registro') AS asistencia,
+    c.fecha_compensacion,
+    c.estado AS estado_compensacion,
+    f.descripcion AS feriado
 FROM guardias g
-LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
-LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia;
+LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
+LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
+LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+LEFT JOIN feriados f ON g.id_feriado = f.id_feriado;
