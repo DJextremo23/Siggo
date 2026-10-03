@@ -187,7 +187,7 @@
                 </svg>
             </div>
             <div class="kpi-info">
-                <h4>Total Guardias</h4>
+                <h4>Total Guardias del año</h4>
                 <p class="kpi-number">{{ datos | length }}</p>
             </div>
         </div>
@@ -200,7 +200,7 @@
                 </svg>
             </div>
             <div class="kpi-info">
-                <h4>Asistencias</h4>
+                <h4>Asistencias del año</h4>
                 <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','asistio') | list | length }}</p>
             </div>
         </div>
@@ -213,7 +213,7 @@
                 </svg>
             </div>
             <div class="kpi-info">
-                <h4>Faltas</h4>
+                <h4>Faltas del año</h4>
                 <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','falta') | list | length }}</p>
             </div>
         </div>
@@ -226,7 +226,7 @@
                 </svg>
             </div>
             <div class="kpi-info">
-                <h4>Asistencias pendientes</h4>
+                <h4>Asistencias pendientes del año</h4>
                 <p class="kpi-number">{{ datos | selectattr('asistencia','equalto','sin registro') | list | length }}</p>
             </div>
         </div>

@@ -1299,6 +1299,11 @@ tbody tr:hover {
     flex-shrink: 0;
 }
 
+.prox-dia-semana.feriado {
+    background: #fffbeb;
+    color: #92400e;
+}
+
 .ver-todas-btn {
     display: inline-flex;
     align-items: center;

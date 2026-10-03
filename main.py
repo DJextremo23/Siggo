@@ -370,15 +370,18 @@ def administrador():
 
         # Próximas guardias programadas (fechas futuras)
         cursor.execute("""
-            SELECT g.id_guardia, g.fecha_guardia, CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador
+            SELECT g.id_guardia, g.fecha_guardia, CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
+                   f.descripcion AS feriado
             FROM guardias g
             INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             WHERE g.fecha_guardia >= CURDATE()
             ORDER BY g.fecha_guardia ASC
             LIMIT 5
         """)
         proximas_guardias = cursor.fetchall()
         for g in proximas_guardias:
+            g["es_feriado"] = g.get("feriado") is not None
             fecha = g["fecha_guardia"]
             if isinstance(fecha, date):
                 g["dia_semana"] = DIAS_ES[fecha.weekday()]
