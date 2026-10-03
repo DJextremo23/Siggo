@@ -229,6 +229,7 @@ def admin_registrar_informe():
             INNER JOIN roles r ON ur.id_rol = r.id_rol
             WHERE r.nombre_rol = 'fiscalizador'
               AND u.estado = 'activo'
+              AND g.tipo = 'guardia'
             ORDER BY u.nombre, u.apellidos, g.fecha_guardia DESC
         """)
         guardias = cursor.fetchall()

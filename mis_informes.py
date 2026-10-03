@@ -239,6 +239,7 @@ def registrar_informe():
                 YEAR(fecha_guardia) AS anio
             FROM guardias
             WHERE id_usuario = %s
+              AND tipo = 'guardia'
             ORDER BY fecha_guardia DESC
         """, (session["id_usuario"],))
 

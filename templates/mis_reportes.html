@@ -259,13 +259,7 @@
 
 <td data-label="Fecha"><strong>{{ d.fecha_guardia|fecha }}</strong></td>
 
-<td data-label="Tipo">
-{% if d.tipo == 'soporte' %}
-<span class="tipo-badge soporte">Soporte</span>
-{% else %}
-<span class="tipo-badge guardia">Guardia</span>
-{% endif %}
-</td>
+<td data-label="Tipo">{{ 'Soporte' if d.tipo == 'soporte' else 'Guardia' }}</td>
 
 <td data-label="Feriado">
 {% if d.feriado != '—' %}
