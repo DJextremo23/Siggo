@@ -1821,7 +1821,7 @@ def inicio():
 
         # 🔥 Obtener datos desde la vista correcta
         cursor.execute("""
-            SELECT id_guardia, fecha_guardia, tipo_dia, feriado, asistencia
+            SELECT id_guardia, fecha_guardia, tipo_dia, feriado, asistencia, tipo
             FROM resumen_guardias
             WHERE id_usuario = (
                 SELECT id_usuario FROM usuarios WHERE usuario = %s
