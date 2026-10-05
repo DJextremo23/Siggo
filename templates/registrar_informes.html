@@ -486,12 +486,32 @@
 
     if (!dropzone || !fileInput) return;
 
+    var ALLOWED = ['xlsx', 'xlsm'];
+
+    function extValida(nombre) {
+        var ext = nombre.split('.').pop().toLowerCase();
+        return ALLOWED.indexOf(ext) !== -1;
+    }
+
+    function limpiarError() {
+        dropzone.classList.remove('error');
+    }
+
     function mostrarNombre() {
+        limpiarError();
         if (nameEl) {
             nameEl.textContent = fileInput.files.length
                 ? fileInput.files[0].name
                 : 'Arrastra tu archivo aquí o haz clic para seleccionar';
         }
+    }
+
+    function mostrarError() {
+        if (nameEl) {
+            nameEl.textContent = 'Formato no permitido. Solo se aceptan XLSX o XLSM.';
+        }
+        dropzone.classList.add('error');
+        fileInput.value = '';
     }
 
     dropzone.addEventListener('click', function(e) {
@@ -519,12 +539,22 @@
     dropzone.addEventListener('drop', function(e) {
         var files = e.dataTransfer.files;
         if (files.length) {
-            fileInput.files = files;
-            mostrarNombre();
+            if (extValida(files[0].name)) {
+                fileInput.files = files;
+                mostrarNombre();
+            } else {
+                mostrarError();
+            }
         }
     });
 
-    fileInput.addEventListener('change', mostrarNombre);
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length && !extValida(fileInput.files[0].name)) {
+            mostrarError();
+        } else {
+            mostrarNombre();
+        }
+    });
 })();
 </script>
 

@@ -269,6 +269,15 @@ body {
     font-size: 13px;
 }
 
+.drop-zone.error {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.drop-zone.error .file-name {
+    color: #ef4444;
+}
+
 /* ================= FORM ACTIONS ================= */
 .form-actions {
     display: flex;
