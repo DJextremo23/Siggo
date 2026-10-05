@@ -79,7 +79,7 @@ body {
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
     padding: 24px;
-    max-width: 640px;
+    max-width: 900px;
 }
 
 /* ================= FORM HEADER BAR ================= */
@@ -101,14 +101,18 @@ body {
 
 /* ================= FORM ================= */
 .edit-form {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 24px;
 }
 
 /* ================= FIELD ================= */
 .field {
     margin-bottom: 8px;
+}
+
+.field-full {
+    grid-column: 1 / -1;
 }
 
 .field-label {
@@ -244,6 +248,7 @@ body {
     margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid #e2e8f0;
+    grid-column: 1 / -1;
 }
 
 .btn-submit {
@@ -327,5 +332,9 @@ body {
 
     .card {
         padding: 16px;
+    }
+
+    .edit-form {
+        grid-template-columns: 1fr;
     }
 }
