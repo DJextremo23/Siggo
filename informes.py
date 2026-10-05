@@ -233,7 +233,7 @@ def admin_registrar_informe():
             g["fecha_str"] = g["fecha_guardia"].strftime("%d.%m.%Y") if g["fecha_guardia"] else ""
 
         return render_template(
-            "registrar_informe_admin.html",
+            "registrar_informes.html",
             guardias=guardias
         )
 

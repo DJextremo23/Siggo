@@ -1922,7 +1922,7 @@ def inicio():
                 _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         return render_template(
-            "index.html",
+            "fiscalizador.html",
             datos=datos,
             notificaciones=notificaciones,
             notif_no_leidas=notif_no_leidas,
