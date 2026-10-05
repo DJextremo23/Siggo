@@ -308,7 +308,7 @@ def administrador():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            _, a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
+            a["dias_tomados"], a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
                 _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         # Totales del dashboard
@@ -1142,12 +1142,6 @@ def vacaciones():
         # =========================
         # FILTROS
         # =========================
-        anio_alerta = request.args.get("anio_alerta", "").strip()
-        desde_alerta = request.args.get("desde_alerta", "").strip()
-        hasta_alerta = request.args.get("hasta_alerta", "").strip()
-        fiscalizador_alerta = request.args.get("fiscalizador_alerta", "").strip()
-        estado_alerta = request.args.get("estado_alerta", "").strip()
-
         anio_vac = request.args.get("anio_vac", "").strip()
         desde_vac = request.args.get("desde_vac", "").strip()
         hasta_vac = request.args.get("hasta_vac", "").strip()
@@ -1204,8 +1198,94 @@ def vacaciones():
         vacaciones = cursor.fetchall()
 
         # =========================
-        # ALERTAS
+        # CONTADORES (totales del año actual, independientes de los filtros)
         # =========================
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM vacaciones
+            WHERE YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE())
+        """)
+        total_registros = cursor.fetchone()["total"]
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM vacaciones
+            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE()))
+              AND CURDATE() > fecha_fin
+        """)
+        total_finalizadas = cursor.fetchone()["total"]
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM vacaciones
+            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE()))
+              AND CURDATE() < fecha_inicio
+        """)
+        total_pendientes = cursor.fetchone()["total"]
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM vacaciones
+            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
+               OR YEAR(fecha_fin) = YEAR(CURDATE()))
+              AND CURDATE() BETWEEN fecha_inicio AND fecha_fin
+        """)
+        total_en_curso = cursor.fetchone()["total"]
+
+        return render_template(
+            "vacaciones.html",
+            vacaciones=vacaciones,
+            usuarios=usuarios,
+            total_registros=total_registros,
+            total_finalizadas=total_finalizadas,
+            total_pendientes=total_pendientes,
+            total_en_curso=total_en_curso
+        )
+    except Exception as e:
+        print("ERROR vacaciones:", e)
+        return error_interno()
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+@app.route("/alerta_vacaciones")
+def alerta_vacaciones():
+
+    if "usuario" not in session:
+        return redirect(url_for("home"))
+
+    if session.get("perfil_activo") != "admin":
+        return acceso_no_autorizado()
+
+    cursor = None
+    try:
+        cursor = conexion.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT DISTINCT
+                u.id_usuario,
+                CONCAT(u.nombre,' ',u.apellidos) AS nombre
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'fiscalizador'
+              AND u.estado = 'activo'
+            ORDER BY nombre
+        """)
+        usuarios = cursor.fetchall()
+
+        # =========================
+        # FILTROS
+        # =========================
+        anio_alerta = request.args.get("anio_alerta", "").strip()
+        desde_alerta = request.args.get("desde_alerta", "").strip()
+        hasta_alerta = request.args.get("hasta_alerta", "").strip()
+        fiscalizador_alerta = request.args.get("fiscalizador_alerta", "").strip()
+        estado_alerta = request.args.get("estado_alerta", "").strip()
+
         filtro_alerta = ""
         params_alerta = []
 
@@ -1253,59 +1333,12 @@ def vacaciones():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            _, a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
+            a["dias_tomados"], a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
                 _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
-        # =========================
-        # CONTADORES (totales del año actual, independientes de los filtros)
-        # =========================
-        cursor.execute("""
-            SELECT COUNT(*) AS total
-            FROM vacaciones
-            WHERE YEAR(fecha_inicio) = YEAR(CURDATE())
-               OR YEAR(fecha_fin) = YEAR(CURDATE())
-        """)
-        total_registros = cursor.fetchone()["total"]
-
-        cursor.execute("""
-            SELECT COUNT(*) AS total
-            FROM vacaciones
-            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
-               OR YEAR(fecha_fin) = YEAR(CURDATE()))
-              AND CURDATE() > fecha_fin
-        """)
-        total_finalizadas = cursor.fetchone()["total"]
-
-        cursor.execute("""
-            SELECT COUNT(*) AS total
-            FROM vacaciones
-            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
-               OR YEAR(fecha_fin) = YEAR(CURDATE()))
-              AND CURDATE() < fecha_inicio
-        """)
-        total_pendientes = cursor.fetchone()["total"]
-
-        cursor.execute("""
-            SELECT COUNT(*) AS total
-            FROM vacaciones
-            WHERE (YEAR(fecha_inicio) = YEAR(CURDATE())
-               OR YEAR(fecha_fin) = YEAR(CURDATE()))
-              AND CURDATE() BETWEEN fecha_inicio AND fecha_fin
-        """)
-        total_en_curso = cursor.fetchone()["total"]
-
-        return render_template(
-            "vacaciones.html",
-            vacaciones=vacaciones,
-            usuarios=usuarios,
-            alertas=alertas,
-            total_registros=total_registros,
-            total_finalizadas=total_finalizadas,
-            total_pendientes=total_pendientes,
-            total_en_curso=total_en_curso
-        )
+        return render_template("alerta_vacaciones.html", alertas=alertas, usuarios=usuarios)
     except Exception as e:
-        print("ERROR vacaciones:", e)
+        print("ERROR alerta_vacaciones:", e)
         return error_interno()
     finally:
         if cursor is not None:
@@ -1885,7 +1918,7 @@ def inicio():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            _, a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
+            a["dias_tomados"], a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
                 _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         return render_template(

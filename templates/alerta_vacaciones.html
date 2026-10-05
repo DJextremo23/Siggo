@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ 'Disponibilidad de Vacaciones' }}</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/alerta_vacaciones.css') }}">
+
+</head>
+
+<body class="rol-{{ session.get('perfil_activo', '') }}">
+
+<!-- Página: Disponibilidad de Vacaciones (Administrador) — Semáforo de disponibilidad del personal fiscalizador -->
+
+<div class="layout">
+
+    {% set active_page = 'vacaciones' %}
+    {% include 'menu.html' %}
+
+    <div class="main">
+
+        <!-- HEADER - Encabezado de la página -->
+        <div class="page-header">
+            <div class="page-header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
+            <div class="page-header-text">
+                <h1>{{ 'Disponibilidad de Vacaciones' }}</h1>
+                <p>{{ 'Semáforo de disponibilidad de vacaciones del personal' }}</p>
+            </div>
+        </div>
+
+        <!-- MENSAJES FLASH (éxito / error) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ 'success' if category == 'success' else 'error' }}" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                {% if category == 'success' %}
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+                {% else %}
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                {% endif %}
+            </svg>
+            <span>{{ message }}</span>
+            <button type="button" class="alert-close" aria-label="Cerrar" title="Cerrar">&times;</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- FILTROS SEMÁFORO DE ALERTAS - Búsqueda por año, fechas, fiscalizador y estado -->
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('alerta_vacaciones') }}" class="filtro-form" id="filtrosAlertas">
+                    <div class="filtro-field">
+                        <label for="filtroAnio" class="filtro-label">Año</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <input type="number" id="filtroAnio" name="anio_alerta" class="filtro-input" placeholder="Ej: 2026" min="2000" max="2100" value="{{ request.args.get('anio_alerta','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroDesde" class="filtro-label">Desde</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <polyline points="8 14 12 18 16 14"/>
+                            </svg>
+                            <input type="date" id="filtroDesde" name="desde_alerta" class="filtro-input" value="{{ request.args.get('desde_alerta','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroHasta" class="filtro-label">Hasta</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <polyline points="8 10 12 6 16 10"/>
+                            </svg>
+                            <input type="date" id="filtroHasta" name="hasta_alerta" class="filtro-input" value="{{ request.args.get('hasta_alerta','') }}">
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroFiscalizador" class="filtro-label">Fiscalizador</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <select id="filtroFiscalizador" name="fiscalizador_alerta" class="filtro-input">
+                                <option value="">Todos</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.id_usuario }}" {% if request.args.get('fiscalizador_alerta') == u.id_usuario|string %}selected{% endif %}>{{ u.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-field">
+                        <label for="filtroSemaforo" class="filtro-label">Estado</label>
+                        <div class="filtro-input-wrap">
+                            <svg class="filtro-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <select id="filtroSemaforo" name="estado_alerta" class="filtro-input">
+                                <option value="">Todos</option>
+                                <option value="LISTO" {% if request.args.get('estado_alerta') == 'LISTO' %}selected{% endif %}>LISTO</option>
+                                <option value="PRÓXIMO" {% if request.args.get('estado_alerta') == 'PRÓXIMO' %}selected{% endif %}>PRÓXIMO</option>
+                                <option value="NORMAL" {% if request.args.get('estado_alerta') == 'NORMAL' %}selected{% endif %}>NORMAL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-actions">
+                        <button type="submit" class="btn-filtrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            Buscar
+                        </button>
+                        <button type="button" class="btn-limpiar" data-url="{{ url_for('alerta_vacaciones') }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            Limpiar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ALERTAS - Tabla de disponibilidad de vacaciones del personal -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </div>
+                <div class="card-header-text">
+                    <h2>Alerta</h2>
+                    <p>Disponibilidad de vacaciones del personal</p>
+                </div>
+                <div class="pagination-bar" id="alertas-pagination" style="display:none;">
+                    <button class="pagination-btn" id="alertas-prev" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </button>
+                    <span class="pagination-info" id="alertas-page-info"></span>
+                    <button class="pagination-btn" id="alertas-next">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body no-padding">
+                <div class="table-container">
+                    <table class="tabla-resp tabla-alertas">
+                        <thead>
+                            <tr>
+                                <th>Fiscalizador</th>
+                                <th>Fecha de habilitación</th>
+                                <th>Estado de derecho</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertas-tbody">
+                            {% for a in alertas %}
+                            <tr>
+                                <td data-label="Fiscalizador">
+                                    <strong>{{ a.nombre }}</strong>
+                                    {% if a.dias_pendientes_anteriores > 0 %}
+                                        <span class="pendientes-anteriores">{{ a.dias_pendientes_anteriores }} días pend. de años anteriores</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Fecha de habilitación">
+                                    <span class="inline-flex-center">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                            <line x1="16" y1="2" x2="16" y2="6"/>
+                                            <line x1="8" y1="2" x2="8" y2="6"/>
+                                            <line x1="3" y1="10" x2="21" y2="10"/>
+                                        </svg>
+                                        {{ a.fecha_vacaciones|fecha }}
+                                    </span>
+                                </td>
+                                <td data-label="Estado de derecho">
+                                    {% if a.dias_faltantes < 0 %}
+                                        <span class="badge derecho-disponible">
+                                            <span class="badge-dot"></span>Disponible hace {{ a.dias_faltantes|abs }} días
+                                        </span>
+                                    {% elif a.dias_faltantes == 0 %}
+                                        <span class="badge derecho-hoy">
+                                            <span class="badge-dot"></span>Disponible HOY
+                                        </span>
+                                    {% else %}
+                                        <span class="badge derecho-faltante">
+                                            <span class="badge-dot"></span>Faltan {{ a.dias_faltantes }} días
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Estado">
+                                    {% if a.dias_faltantes <= 0 %}
+                                        <span class="badge listo">
+                                            <span class="badge-dot"></span>LISTO
+                                        </span>
+                                    {% elif a.dias_faltantes <= 15 %}
+                                        <span class="badge proximo">
+                                            <span class="badge-dot"></span>PRÓXIMO
+                                        </span>
+                                    {% else %}
+                                        <span class="badge normal">
+                                            <span class="badge-dot"></span>NORMAL
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row">
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                                            <polyline points="13 2 13 9 20 9"/>
+                                        </svg>
+                                        <span>No hay alertas registradas</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+/* ===== CONFIG ===== */
+var PAGE_SIZE = 6;
+
+/* ===== PAGINACION ALERTAS ===== */
+var alertasPage = 0;
+
+function alertasGetVisible() {
+    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
+    var visible = [];
+    for (var i = 0; i < rows.length; i++) {
+        if (!rows[i].classList.contains('oculta-filtro')) {
+            visible.push(rows[i]);
+        }
+    }
+    return visible;
+}
+
+function alertasRender() {
+    var pag = document.getElementById('alertas-pagination');
+    var prevBtn = document.getElementById('alertas-prev');
+    var nextBtn = document.getElementById('alertas-next');
+    var info = document.getElementById('alertas-page-info');
+    var visible = alertasGetVisible();
+    var count = visible.length;
+
+    for (var i = 0; i < visible.length; i++) {
+        visible[i].style.display = 'none';
+    }
+
+    if (count <= PAGE_SIZE) {
+        for (var j = 0; j < visible.length; j++) {
+            visible[j].style.removeProperty('display');
+        }
+        if (pag) pag.style.display = 'none';
+        return;
+    }
+
+    if (pag) pag.style.display = 'flex';
+
+    var start = alertasPage * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, count);
+
+    for (var k = start; k < end; k++) {
+        visible[k].style.removeProperty('display');
+    }
+
+    if (info) info.textContent = (start + 1) + '-' + end + ' de ' + count;
+    if (prevBtn) prevBtn.disabled = alertasPage === 0;
+    if (nextBtn) nextBtn.disabled = end >= count;
+}
+
+function alertasCambiarPagina(cambio) {
+    var visible = alertasGetVisible();
+    var max = Math.ceil(visible.length / PAGE_SIZE) || 1;
+    alertasPage += cambio;
+    if (alertasPage < 0) alertasPage = 0;
+    if (alertasPage >= max) alertasPage = max - 1;
+    alertasRender();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    alertasRender();
+
+    document.getElementById('alertas-prev').addEventListener('click', function() { alertasCambiarPagina(-1); });
+    document.getElementById('alertas-next').addEventListener('click', function() { alertasCambiarPagina(1); });
+
+    document.querySelectorAll('.btn-limpiar[data-url]').forEach(function(b) {
+        b.addEventListener('click', function() {
+            window.location.href = b.dataset.url;
+        });
+    });
+
+    document.querySelectorAll('.alert-close').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var alert = btn.closest('.alert');
+            if (alert) alert.remove();
+        });
+    });
+});
+</script>
+
+</body>
+</html>
