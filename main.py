@@ -296,14 +296,6 @@ def administrador():
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()
-                    ), 0
-                ) AS dias_tomados,
-                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
-                COALESCE(
-                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
-                     FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
                 ) AS dias_tomados_total
             FROM usuarios u
@@ -1246,18 +1238,11 @@ def vacaciones():
                     DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
-                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
                      WHERE v.id_usuario = u.id_usuario AND v.fecha_inicio <= CURDATE()), 0
-                ) AS dias_tomados_total,
-                COALESCE(
-                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
-                     FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()), 0
-                ) AS dias_tomados_anio
+                ) AS dias_tomados_total
             FROM usuarios u
             INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
             INNER JOIN roles r ON ur.id_rol = r.id_rol
@@ -1885,14 +1870,6 @@ def inicio():
                     DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR),
                     CURDATE()
                 ) AS dias_faltantes,
-                COALESCE(
-                    (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
-                     FROM vacaciones v
-                     WHERE v.id_usuario = u.id_usuario
-                       AND v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()
-                    ), 0
-                ) AS dias_tomados,
-                TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) * 30 AS total_acumulado,
                 COALESCE(
                     (SELECT SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1)
                      FROM vacaciones v
@@ -3355,8 +3332,7 @@ def mis_vacaciones():
         # DIAS PENDIENTES (30 días por año cumplido)
         # =========================
         cursor.execute("""
-            SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias,
-                   YEAR(fecha_ingreso) AS anio_ingreso
+            SELECT YEAR(fecha_ingreso) AS anio_ingreso
             FROM usuarios WHERE id_usuario = %s
         """, (session["id_usuario"],))
 
