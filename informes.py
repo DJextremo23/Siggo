@@ -114,7 +114,7 @@ def admin_informes():
 
 
 # ── Registrar informe (subir) para cualquier fiscalizador ──
-@informes_bp.route("/informes/registrar", methods=["GET", "POST"])
+@informes_bp.route("/registrar_informes", methods=["GET", "POST"])
 def admin_registrar_informe():
 
     if "usuario" not in session:
@@ -245,7 +245,7 @@ def admin_registrar_informe():
 
 
 # ── Editar informe (título, descripción y reemplazo de archivo) ──
-@informes_bp.route("/informes/editar/<int:id_informe>", methods=["GET", "POST"])
+@informes_bp.route("/editar_informes/<int:id_informe>", methods=["GET", "POST"])
 def admin_editar_informe(id_informe):
 
     if "usuario" not in session:
@@ -355,7 +355,7 @@ def admin_editar_informe(id_informe):
 
 
 # ── Descarga segura de un informe por ID ──
-@informes_bp.route("/informes/descargar/<int:id_informe>")
+@informes_bp.route("/descargar_informes/<int:id_informe>")
 def admin_descargar_informe(id_informe):
 
     # Solo usuarios autenticados
@@ -409,7 +409,7 @@ def admin_descargar_informe(id_informe):
 
 
 # ── Eliminación lógica de un informe (cambia estado a 'eliminado') ──
-@informes_bp.route("/informes/eliminar/<int:id_informe>", methods=["POST"])
+@informes_bp.route("/eliminar_informes/<int:id_informe>", methods=["POST"])
 def admin_eliminar_informe(id_informe):
 
     # Solo usuarios autenticados
