@@ -248,6 +248,11 @@ body {
     gap: 20px;
 }
 
+.drop-zone.dragover .foto-edit-preview {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
 .foto-edit-preview {
     width: 90px;
     height: 90px;
@@ -265,6 +270,50 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    cursor: zoom-in;
+}
+
+/* ================= FOTO LIGHTBOX ================= */
+.foto-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.foto-lightbox.show {
+    display: flex;
+}
+
+.foto-lightbox img {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.foto-lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.foto-lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .foto-placeholder {

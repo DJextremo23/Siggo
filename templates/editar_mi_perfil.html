@@ -61,8 +61,8 @@
             <!-- FOTO -->
             <div class="form-field span-3">
                 <label class="field-label">Foto de perfil</label>
-                <div class="foto-edit-wrapper">
-                    <div class="foto-edit-preview" id="fotoEditPreview">
+                <div class="foto-edit-wrapper drop-zone" id="foto-dropzone">
+                    <div class="foto-edit-preview" id="fotoEditPreview" title="Ver foto">
                         {% if usuario.foto %}
                         <img src="{{ url_for('static', filename='fotos/' + usuario.foto) }}" alt="Foto actual">
                         {% else %}
@@ -304,7 +304,78 @@ function previewEditFoto(input) {
 document.getElementById('fotoEditInput').addEventListener('change', function() {
     previewEditFoto(this);
 });
+
+(function() {
+    var dropzone = document.getElementById('foto-dropzone');
+    var input = document.getElementById('fotoEditInput');
+    if (!dropzone || !input) return;
+
+    ['dragover', 'dragenter'].forEach(function(evt) {
+        dropzone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(function(evt) {
+        dropzone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        });
+    });
+
+    dropzone.addEventListener('drop', function(e) {
+        var files = e.dataTransfer.files;
+        if (files.length) {
+            input.files = files;
+            previewEditFoto(input);
+        }
+    });
+})();
+
+(function() {
+    var preview = document.getElementById('fotoEditPreview');
+    var lightbox = document.getElementById('fotoLightbox');
+    var lightboxImg = document.getElementById('fotoLightboxImg');
+    var closeBtn = document.getElementById('fotoLightboxClose');
+
+    if (!preview || !lightbox || !lightboxImg) return;
+
+    preview.addEventListener('click', function() {
+        var img = preview.querySelector('img');
+        if (img) {
+            lightboxImg.src = img.src;
+            lightbox.classList.add('show');
+        }
+    });
+
+    function cerrar() {
+        lightbox.classList.remove('show');
+        lightboxImg.src = '';
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', cerrar);
+    }
+
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === lightbox || e.target === lightboxImg) {
+            cerrar();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') cerrar();
+    });
+})();
 </script>
+
+<div class="foto-lightbox" id="fotoLightbox">
+    <button class="foto-lightbox-close" id="fotoLightboxClose" type="button" aria-label="Cerrar">&times;</button>
+    <img id="fotoLightboxImg" src="" alt="Foto de perfil">
+</div>
 
 </body>
 </html>

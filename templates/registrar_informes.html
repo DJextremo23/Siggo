@@ -204,7 +204,7 @@
             <!-- ARCHIVO -->
             <div class="field">
                 <label for="archivo" class="field-label">Archivo</label>
-                <div class="field-input">
+                <div class="field-input drop-zone" id="archivo-dropzone">
                     <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/>
@@ -215,7 +215,9 @@
                            name="archivo"
                            accept=".xlsx,.xlsm,.pdf,.docx"
                            required
-                           class="file-input">
+                           class="file-input"
+                           hidden>
+                    <span class="file-name" id="archivo-nombre">Arrastra tu archivo aquí o haz clic para seleccionar</span>
                 </div>
             </div>
 
@@ -470,6 +472,56 @@
     });
 
     restoreDisplay();
+})();
+</script>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    var dropzone = document.getElementById('archivo-dropzone');
+    var fileInput = document.getElementById('archivo');
+    var nameEl = document.getElementById('archivo-nombre');
+
+    if (!dropzone || !fileInput) return;
+
+    function mostrarNombre() {
+        if (nameEl) {
+            nameEl.textContent = fileInput.files.length
+                ? fileInput.files[0].name
+                : 'Arrastra tu archivo aquí o haz clic para seleccionar';
+        }
+    }
+
+    dropzone.addEventListener('click', function(e) {
+        if (e.target !== fileInput) {
+            fileInput.click();
+        }
+    });
+
+    ['dragover', 'dragenter'].forEach(function(evt) {
+        dropzone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(function(evt) {
+        dropzone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        });
+    });
+
+    dropzone.addEventListener('drop', function(e) {
+        var files = e.dataTransfer.files;
+        if (files.length) {
+            fileInput.files = files;
+            mostrarNombre();
+        }
+    });
+
+    fileInput.addEventListener('change', mostrarNombre);
 })();
 </script>
 

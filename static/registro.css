@@ -66,6 +66,11 @@ body.login-body {
     gap: 16px;
 }
 
+.drop-zone.dragover .foto-preview {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
 .foto-preview {
     width: 56px;
     height: 56px;

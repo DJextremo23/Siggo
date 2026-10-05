@@ -217,6 +217,30 @@ body {
     display: none;
 }
 
+/* ================= DROP ZONE ================= */
+.drop-zone {
+    cursor: pointer;
+}
+
+.drop-zone.dragover {
+    border-color: var(--azul);
+    background: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.drop-zone.dragover .field-icon {
+    color: var(--azul);
+}
+
+.file-name {
+    flex: 1;
+    color: var(--text-muted);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* ================= FORM ACTIONS ================= */
 .form-actions {
     display: flex;
