@@ -2603,6 +2603,7 @@ def asistencia():
     fecha_desde = request.args.get("fecha_desde", "").strip()
     fecha_hasta = request.args.get("fecha_hasta", "").strip()
     asistencia = request.args.get("asistencia", "").strip()
+    tipo = request.args.get("tipo", "").strip()
 
     cursor = conexion.cursor(dictionary=True)
 
@@ -2626,6 +2627,10 @@ def asistencia():
         else:
             sql += " AND asistencia = %s "
             params.append(asistencia)
+
+    if tipo:
+        sql += " AND tipo = %s "
+        params.append(tipo)
 
     sql += " ORDER BY fecha_guardia DESC"
 
@@ -2815,6 +2820,7 @@ def mis_compensaciones():
     desde = request.args.get("desde", "").strip()
     hasta = request.args.get("hasta", "").strip()
     estado = request.args.get("estado", "")
+    tipo = request.args.get("tipo", "").strip()
 
     cursor = conexion.cursor(dictionary=True)
 
@@ -2852,6 +2858,10 @@ def mis_compensaciones():
     if hasta:
         query += " AND g.fecha_guardia <= %s"
         parametros.append(hasta)
+
+    if tipo:
+        query += " AND g.tipo = %s"
+        parametros.append(tipo)
 
     query += " ORDER BY g.fecha_guardia DESC"
 
@@ -3058,6 +3068,7 @@ def mis_guardias():
     fecha_hasta = request.args.get("fecha_hasta")
     asistencia = request.args.get("asistencia")
     estado_guardia = request.args.get("estado_guardia")
+    tipo = request.args.get("tipo", "").strip()
 
     cursor = conexion.cursor(dictionary=True)
 
@@ -3157,6 +3168,11 @@ def mis_guardias():
                 a.estado IS NULL
                 OR LOWER(COALESCE(a.estado, '')) NOT IN ('asistio','falta','justificado')
             ) """
+
+        # ================= FILTRO TIPO =================
+        if tipo:
+            sql += " AND g.tipo = %s "
+            params.append(tipo)
 
         sql += " ORDER BY g.fecha_guardia DESC"
 
