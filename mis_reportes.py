@@ -252,7 +252,7 @@ def mis_reportes():
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END)
                 AS guardias_feriado,
 
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END)
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END)
                 AS compensaciones
 
             FROM guardias g
@@ -262,6 +262,9 @@ def mis_reportes():
 
             LEFT JOIN compensaciones c
                 ON g.id_guardia = c.id_guardia
+
+            LEFT JOIN asistencia a
+                ON g.id_guardia = a.id_guardia
 
             {filtro_base}
         """, params_base)
@@ -656,10 +659,11 @@ def exportar_resumen_pdf():
             SELECT
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones
             FROM guardias g
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+            LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro_base}
         """, params_base)
         resumen = cursor.fetchall()
@@ -748,10 +752,11 @@ def exportar_resumen_excel():
             SELECT
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones
             FROM guardias g
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+            LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro_base}
         """, params_base)
         resumen = cursor.fetchall()

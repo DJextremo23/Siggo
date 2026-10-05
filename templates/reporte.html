@@ -957,9 +957,15 @@ document.getElementById('anio').addEventListener('input', actualizarLinksExport)
 document.getElementById('fecha_desde').addEventListener('change', actualizarLinksExport);
 document.getElementById('fecha_hasta').addEventListener('change', actualizarLinksExport);
 
-document.getElementById('buscar-resumen').addEventListener('input', renderResumenChart);
+document.getElementById('buscar-resumen').addEventListener('input', function() {
+  renderResumenChart();
+  actualizarLinksExport();
+});
 document.getElementById('buscar-detalle').addEventListener('input', function() { filtrarTabla('detalle'); });
-document.getElementById('buscar-resumen-vacaciones').addEventListener('input', renderResumenVacacionesChart);
+document.getElementById('buscar-resumen-vacaciones').addEventListener('input', function() {
+  renderResumenVacacionesChart();
+  actualizarLinksExport();
+});
 document.getElementById('buscar-vacaciones').addEventListener('input', function() { filtrarTabla('vacaciones'); });
 
 document.getElementById('detalle-prev').addEventListener('click', function() { cambiarPagina('detalle', -1); });

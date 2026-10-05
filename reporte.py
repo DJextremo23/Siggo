@@ -234,7 +234,7 @@ def reporte():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
                 CAST(SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS UNSIGNED) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones,
                 (
                     SELECT COUNT(g2.id_guardia)
                     FROM guardias g2
@@ -249,6 +249,7 @@ def reporte():
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+            LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro}
             GROUP BY u.id_usuario
         """, params_pend + params)
@@ -412,7 +413,7 @@ def exportar_pdf():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones,
                 (
                     SELECT COUNT(g2.id_guardia)
                     FROM guardias g2
@@ -427,6 +428,7 @@ def exportar_pdf():
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+            LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro}
             GROUP BY u.id_usuario
         """, params_pend + params)
@@ -513,7 +515,7 @@ def exportar_excel():
                 CONCAT(u.nombre,' ',u.apellidos) AS fiscalizador,
                 COUNT(g.id_guardia) AS total_guardias,
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
-                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() THEN 1 ELSE 0 END) AS compensaciones,
+                SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones,
                 (
                     SELECT COUNT(g2.id_guardia)
                     FROM guardias g2
@@ -528,6 +530,7 @@ def exportar_excel():
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+            LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro}
             GROUP BY u.id_usuario
         """, params_pend + params)
