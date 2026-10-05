@@ -238,6 +238,24 @@ DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Dom
 # Meses abreviados en español para los bloques de fecha
 MESES_ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
+def _balance_vacaciones_fifo(anio_ingreso, dias_tomados_total):
+    """Calcula el balance de vacaciones con atribución FIFO (igual que reportes).
+
+    Los días tomados se descuentan primero de los períodos anteriores al año
+    actual; el excedente se atribuye al año en curso. Devuelve
+    (dias_tomados_este_anio, dias_pendientes_este_anio, dias_pendientes_anteriores).
+    """
+    anio_actual = date.today().year
+    ingreso = int(anio_ingreso or anio_actual)
+    tomados = int(dias_tomados_total or 0)
+    if anio_actual <= ingreso:
+        return 0, 0, 0
+    ent_antes = (anio_actual - ingreso - 1) * 30
+    dias_tomados_este_anio = min(30, max(0, tomados - ent_antes))
+    dias_pendientes_este_anio = max(0, 30 - dias_tomados_este_anio)
+    dias_pendientes_anteriores = max(0, ent_antes - tomados)
+    return dias_tomados_este_anio, dias_pendientes_este_anio, dias_pendientes_anteriores
+
 # ==========================
 # RUTAS DE INICIO / LOGIN
 # ==========================
@@ -268,6 +286,7 @@ def administrador():
         cursor.execute("""
             SELECT
                 u.id_usuario,
+                YEAR(u.fecha_ingreso) AS anio_ingreso,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
                 DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
@@ -297,12 +316,8 @@ def administrador():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            pendientes_este_anio = max(0, min(30, a["total_acumulado"]) - a["dias_tomados"])
-            a["dias_pendientes_este_anio"] = pendientes_este_anio
-            a["dias_pendientes_anteriores"] = max(
-                0,
-                (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
-            )
+            _, a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
+                _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         # Totales del dashboard
         cursor.execute("SELECT COUNT(*) AS total FROM usuarios u INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario INNER JOIN roles r ON ur.id_rol = r.id_rol WHERE r.nombre_rol = 'fiscalizador' AND u.estado = 'activo'")
@@ -1224,6 +1239,7 @@ def vacaciones():
         cursor.execute(f"""
             SELECT 
                 u.id_usuario,
+                YEAR(u.fecha_ingreso) AS anio_ingreso,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
                 DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
@@ -1252,12 +1268,8 @@ def vacaciones():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            pendientes_este_anio = max(0, min(30, a["total_acumulado"]) - a["dias_tomados_anio"])
-            a["dias_pendientes_este_anio"] = pendientes_este_anio
-            a["dias_pendientes_anteriores"] = max(
-                0,
-                (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
-            )
+            _, a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
+                _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         # =========================
         # CONTADORES (totales del año actual, independientes de los filtros)
@@ -1866,6 +1878,7 @@ def inicio():
         cursor.execute("""
             SELECT
                 u.id_usuario,
+                YEAR(u.fecha_ingreso) AS anio_ingreso,
                 CONCAT(u.nombre,' ',u.apellidos) AS nombre,
                 DATE_ADD(u.fecha_ingreso, INTERVAL GREATEST(1, TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE())) YEAR) AS fecha_vacaciones,
                 DATEDIFF(
@@ -1895,12 +1908,8 @@ def inicio():
         alertas = cursor.fetchall()
 
         for a in alertas:
-            pendientes_este_anio = max(0, min(30, a["total_acumulado"]) - a["dias_tomados"])
-            a["dias_pendientes_este_anio"] = pendientes_este_anio
-            a["dias_pendientes_anteriores"] = max(
-                0,
-                (a["total_acumulado"] - a["dias_tomados_total"]) - pendientes_este_anio
-            )
+            _, a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
+                _balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         return render_template(
             "index.html",
@@ -3346,7 +3355,8 @@ def mis_vacaciones():
         # DIAS PENDIENTES (30 días por año cumplido)
         # =========================
         cursor.execute("""
-            SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias
+            SELECT TIMESTAMPDIFF(YEAR, fecha_ingreso, CURDATE()) * 30 AS total_dias,
+                   YEAR(fecha_ingreso) AS anio_ingreso
             FROM usuarios WHERE id_usuario = %s
         """, (session["id_usuario"],))
 
@@ -3355,27 +3365,19 @@ def mis_vacaciones():
         dias_pendientes_este_anio = 0
         dias_pendientes_anteriores = 0
 
-        if user and user["total_dias"] is not None:
-            total_dias = user["total_dias"]
-
+        if user is not None:
             cursor.execute("""
-                SELECT 
-                    COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total,
-                    COALESCE(SUM(CASE WHEN v.fecha_inicio >= DATE_ADD(u.fecha_ingreso, INTERVAL TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) YEAR) AND v.fecha_inicio < DATE_ADD(u.fecha_ingreso, INTERVAL (TIMESTAMPDIFF(YEAR, u.fecha_ingreso, CURDATE()) + 1) YEAR) AND v.fecha_inicio <= CURDATE()
-                                      THEN DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1
-                                      ELSE 0 END), 0) AS total_anio
+                SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
                 FROM vacaciones v
-                JOIN usuarios u ON u.id_usuario = v.id_usuario
                 WHERE v.id_usuario = %s
                   AND v.fecha_inicio <= CURDATE()
             """, (session["id_usuario"],))
 
             result = cursor.fetchone()
-            dias_tomados = result["total"] if result else 0
-            dias_tomados_anio = result["total_anio"] if result else 0
+            dias_tomados_total = result["total"] if result else 0
 
-            dias_pendientes_este_anio = max(0, min(30, total_dias) - dias_tomados_anio)
-            dias_pendientes_anteriores = max(0, (total_dias - dias_tomados) - dias_pendientes_este_anio)
+            _, dias_pendientes_este_anio, dias_pendientes_anteriores = \
+                _balance_vacaciones_fifo(user["anio_ingreso"], dias_tomados_total)
             dias_pendientes = dias_pendientes_este_anio + dias_pendientes_anteriores
 
         # =========================
