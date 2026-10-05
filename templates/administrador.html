@@ -61,7 +61,6 @@
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
                         <h2>Notificaciones de Vacaciones</h2>
-                        <span class="notif-timer" id="notifTimer">5:00</span>
                     </div>
                     <div class="notif-header-right">
                         <a href="{{ url_for('alerta_vacaciones') }}" class="notif-gear-btn" title="Disponibilidad de vacaciones del personal">
@@ -541,37 +540,12 @@
     var panel = document.getElementById('notifPanel');
     var btn = document.getElementById('btnNotificaciones');
     var closeBtn = document.getElementById('notifClose');
-    var timerEl = document.getElementById('notifTimer');
-    var badge = document.getElementById('notifBadge');
 
     if (!panel) return;
-
-    var totalSeconds = 300;
-    var panelInterval;
-
-    function updateTimer() {
-        if (totalSeconds <= 0) {
-            panel.style.display = 'none';
-            if (panelInterval) clearInterval(panelInterval);
-            return;
-        }
-        var min = Math.floor(totalSeconds / 60);
-        var sec = totalSeconds % 60;
-        if (timerEl) {
-            timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
-        }
-        totalSeconds--;
-    }
-
-    if (panel && timerEl) {
-        panelInterval = setInterval(updateTimer, 1000);
-        updateTimer();
-    }
 
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
             panel.style.display = 'none';
-            if (panelInterval) clearInterval(panelInterval);
         });
     }
 
@@ -579,13 +553,8 @@
         btn.addEventListener('click', function() {
             if (panel.style.display === 'none') {
                 panel.style.display = 'block';
-                totalSeconds = 300;
-                if (panelInterval) clearInterval(panelInterval);
-                panelInterval = setInterval(updateTimer, 1000);
-                updateTimer();
             } else {
                 panel.style.display = 'none';
-                if (panelInterval) clearInterval(panelInterval);
             }
         });
     }

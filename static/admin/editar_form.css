@@ -74,7 +74,13 @@ body {
     padding: 32px;
     box-shadow: var(--shadow-md);
     border: 1px solid #e2e8f0;
-    max-width: 520px;
+    max-width: 860px;
+}
+
+.card form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 24px;
 }
 
 .field {
@@ -173,6 +179,7 @@ body {
     margin-top: 24px;
     padding-top: 20px;
     border-top: 1px solid #f1f5f9;
+    grid-column: 1 / -1;
 }
 
 .btn {
@@ -231,6 +238,9 @@ body {
 }
 
 @media (max-width: 600px) {
+    .card form {
+        grid-template-columns: 1fr;
+    }
     .form-actions {
         flex-direction: column;
     }
