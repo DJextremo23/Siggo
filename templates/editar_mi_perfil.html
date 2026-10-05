@@ -335,7 +335,7 @@ document.getElementById('fotoEditInput').addEventListener('change', function() {
     });
 })();
 
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
     var preview = document.getElementById('fotoEditPreview');
     var lightbox = document.getElementById('fotoLightbox');
     var lightboxImg = document.getElementById('fotoLightboxImg');
@@ -369,7 +369,7 @@ document.getElementById('fotoEditInput').addEventListener('change', function() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') cerrar();
     });
-})();
+});
 </script>
 
 <div class="foto-lightbox" id="fotoLightbox">
