@@ -902,118 +902,13 @@ def _extraer_estructura_xlsx(archivo_obj):
 
 
 def _extraer_texto_archivo(archivo_obj):
-    """Extrae texto de PDF, DOCX o XLSX y lo devuelve como string."""
-    ext = archivo_obj["extension"].lower()
-    ruta = archivo_obj["ruta_archivo"]
-
+    """Extrae y estructura el contenido de un XLSX/XLSM para su análisis."""
     texto = ""
 
-    if ext == "pdf":
-        try:
-            import pdfplumber
-
-            def _es_amarillo(color):
-                try:
-                    if isinstance(color, (tuple, list)):
-                        if len(color) == 3:
-                            r, g, b = color
-                            return r >= 0.75 and g >= 0.75 and b <= 0.45
-                        if len(color) == 4:
-                            c, m, y, k = color
-                            return c <= 0.25 and m <= 0.35 and y >= 0.6 and k <= 0.25
-                except Exception:
-                    pass
-                return False
-
-            with pdfplumber.open(ruta) as pdf:
-                paginas = []
-                for num, pagina in enumerate(pdf.pages, 1):
-                    rects_amarillos = []
-                    try:
-                        for r in pagina.rects:
-                            if _es_amarillo(r.get("non_stroking_color")):
-                                rects_amarillos.append((r["x0"], r["top"], r["x1"], r["bottom"]))
-                    except Exception:
-                        pass
-
-                    lineas = []
-                    try:
-                        for lin in pagina.extract_text_lines():
-                            t = (lin.get("text") or "").strip()
-                            if not t:
-                                continue
-                            marca = ""
-                            if rects_amarillos:
-                                for (x0, top, x1, bottom) in rects_amarillos:
-                                    if lin["top"] < bottom and lin["bottom"] > top and lin["x0"] < x1 and lin["x1"] > x0:
-                                        marca = "[CRITICO-AMARILLO] "
-                                        break
-                            lineas.append(marca + t)
-                    except Exception:
-                        t = pagina.extract_text()
-                        if t:
-                            lineas.append(t)
-                    if lineas:
-                        paginas.append(f"===== PÁGINA: {num} =====\n" + "\n".join(lineas))
-                texto = "\n".join(paginas)
-        except Exception as e:
-            texto = f"[Error al extraer texto del PDF: {str(e)}]"
-
-    elif ext == "docx":
-        try:
-            from docx import Document
-            from docx.enum.text import WD_COLOR_INDEX
-
-            def _parrafo_amarillo(p):
-                try:
-                    return any(r.font.highlight_color == WD_COLOR_INDEX.YELLOW for r in p.runs)
-                except Exception:
-                    return False
-
-            def _celda_amarilla(celda):
-                try:
-                    tcPr = celda._tc.tcPr
-                    if tcPr is not None:
-                        shd = tcPr.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}shd")
-                        if shd is not None:
-                            fill = (shd.get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fill") or "").upper()
-                            if fill == "FFFF00" or (len(fill) == 6 and fill not in ("AUTO", "FFFFFF") and fill.startswith("FF") and fill.endswith("00")):
-                                return True
-                    return any(_parrafo_amarillo(p) for p in celda.paragraphs)
-                except Exception:
-                    return False
-
-            doc = Document(ruta)
-            parrafos = []
-            for p in doc.paragraphs:
-                if p.text.strip():
-                    marca = "[CRITICO-AMARILLO] " if _parrafo_amarillo(p) else ""
-                    parrafos.append(marca + p.text)
-            texto = "\n".join(parrafos)
-
-            # Intentar extraer tablas del DOCX
-            if doc.tables:
-                texto += "\n\n--- TABLAS ENCONTRADAS ---\n"
-                for idx, tabla in enumerate(doc.tables, 1):
-                    texto += f"\nTabla {idx}:\n"
-                    for fila in tabla.rows:
-                        celdas = []
-                        fila_amarilla = False
-                        for celda in fila.cells:
-                            celdas.append(celda.text.strip().replace("\n", " / "))
-                            if _celda_amarilla(celda):
-                                fila_amarilla = True
-                        if any(c for c in celdas):
-                            marca = "[CRITICO-AMARILLO] " if fila_amarilla else ""
-                            texto += marca + " | ".join(celdas) + "\n"
-        except Exception as e:
-            texto = f"[Error al extraer texto del DOCX: {str(e)}]"
-
-    elif ext in ("xlsx", "xlsm"):
-        try:
-            texto = json.dumps(_extraer_estructura_xlsx(archivo_obj), ensure_ascii=False)
-        except Exception as e:
-            texto = f"[Error al extraer texto del XLSX: {str(e)}]"
+    try:
+        texto = json.dumps(_extraer_estructura_xlsx(archivo_obj), ensure_ascii=False)
+    except Exception as e:
+        texto = f"[Error al extraer texto del XLSX: {str(e)}]"
 
     return texto.strip()
 

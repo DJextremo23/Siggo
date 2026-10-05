@@ -203,12 +203,16 @@
             <!-- ARCHIVO -->
             <div class="field">
                 <label for="archivo" class="field-label">Archivo (Excel)</label>
-                <div class="field-input drop-zone" id="archivo-dropzone">
-                    <svg class="field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="drop-zone" id="archivo-dropzone">
+                    <svg class="drop-zone-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/>
                         <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
+                    <div class="drop-zone-info">
+                        <span class="file-name" id="archivo-nombre">Arrastra tu archivo aquí o haz clic para seleccionar</span>
+                        <span class="drop-zone-sub">Formatos: XLSX o XLSM</span>
+                    </div>
                     <input type="file"
                            id="archivo"
                            name="archivo"
@@ -216,7 +220,6 @@
                            required
                            class="file-input"
                            hidden>
-                    <span class="file-name" id="archivo-nombre">Arrastra tu archivo aquí o haz clic para seleccionar</span>
                 </div>
             </div>
 
