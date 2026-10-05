@@ -345,7 +345,7 @@ def admin_editar_informe(id_informe):
             flash("Informe actualizado correctamente", "success")
             return redirigir_con_filtros("informes.admin_informes", "filtro_informes")
 
-        return render_template("editar_informe_admin.html", informe=informe)
+        return render_template("editar_informes.html", informe=informe)
 
     finally:
         if cursor is not None:
