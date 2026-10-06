@@ -191,8 +191,11 @@ def actualizar_usuario(id):
                 usuario=request.form
             )
 
-        # Validar que el estado sea válido
-        if estado not in ("activo", "inactivo"):
+        # Validar que el estado sea válido.
+        # En autoedición se fuerza 'activo' (un admin no puede desactivarse a sí mismo).
+        if id == session.get("id_usuario"):
+            estado = "activo"
+        elif estado not in ("activo", "inactivo"):
             return render_template(
                 "editar_fiscalizador.html",
                 error="Estado inválido",
