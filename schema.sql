@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     foto VARCHAR(255) DEFAULT NULL,
     totp_secret VARCHAR(64) DEFAULT NULL,
     dos_factores_activo TINYINT(1) DEFAULT 0,
+    cuenta_bloqueada TINYINT(1) DEFAULT 0,
+    bloqueos_consecutivos INT DEFAULT 0,
+    session_version INT DEFAULT 0,
     INDEX idx_usuario_estado (estado)
 );
 

@@ -3,9 +3,10 @@ import os
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
-from utils.validators import validar_mime_real, validar_longitudes, password_segura
+from utils.validators import validar_mime_real, validar_longitudes, password_segura, correo_valido
 from utils import registrar_auditoria
 from limiter_instance import limiter
+import mysql.connector.errors
 
 """
 Blueprint para registro de nuevos usuarios con validación de contraseña segura,
@@ -66,6 +67,7 @@ def registro():
 
         conn = None
         cursor = None
+        ruta_foto = None
 
         try:
             conn = conexion()
@@ -121,6 +123,10 @@ def registro():
             })
             if not valido:
                 return render_template("registro.html", error=msg)
+
+            # Validar el formato del correo electrónico
+            if not correo_valido(correo):
+                return render_template("registro.html", error="Formato de correo inválido")
 
             # Verificar que las contraseñas coincidan antes de continuar
             if password != confirm:
@@ -344,10 +350,34 @@ def registro():
 
             )
 
+        except mysql.connector.errors.IntegrityError as e:
+
+            if conn is not None:
+                conn.rollback()
+
+            if ruta_foto:
+                try:
+                    os.remove(ruta_foto)
+                except OSError:
+                    pass
+
+            print("ERROR (IntegrityError):", e)
+
+            return render_template(
+                "registro.html",
+                error="El correo o el nombre de usuario ya está registrado"
+            )
+
         except Exception as e:
 
             if conn is not None:
                 conn.rollback()
+
+            if ruta_foto:
+                try:
+                    os.remove(ruta_foto)
+                except OSError:
+                    pass
 
             print("ERROR:", e)
 

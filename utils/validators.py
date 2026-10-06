@@ -69,11 +69,20 @@ def password_segura(password):
     ])
 
 
+# Expresión regular para validar el formato básico de un correo electrónico
+EMAIL_REGEX = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
+
+
+# Verifica que la cadena tenga un formato de correo electrónico válido
+def correo_valido(correo):
+    return bool(correo) and bool(EMAIL_REGEX.match(correo))
+
+
 INPUT_LIMITS = {
     "nombre": 100,
     "apellidos": 100,
     "usuario": 50,
-    "correo": 150,
+    "correo": 100,
     "password": 128,
     "titulo": 255,
     "descripcion": 2000,

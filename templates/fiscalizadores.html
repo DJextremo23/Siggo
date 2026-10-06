@@ -212,7 +212,9 @@
                         </td>
 
                         <td data-label="Estado">
-                            {% if f.estado == 'activo' %}
+                            {% if f.cuenta_bloqueada %}
+                                <span class="estado bloqueado">Bloqueada</span>
+                            {% elif f.estado == 'activo' %}
                                 <span class="estado activo">Activo</span>
                             {% else %}
                                 <span class="estado inactivo">Inactivo</span>
@@ -250,6 +252,18 @@
                                     </svg>
                                     {% endif %}
                                 </a>
+
+                                {% if f.cuenta_bloqueada %}
+                                <a href="#"
+                                   class="btn-icon btn-desbloquear"
+                                   title="Desbloquear cuenta (intentos fallidos)"
+                                   data-unlock-url="{{ url_for('fiscalizadores.desbloquear_usuario', id=f.id_usuario) }}">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                                    </svg>
+                                </a>
+                                {% endif %}
 
                                 <a href="#"
                                    class="btn-icon btn-eliminar"
@@ -398,6 +412,14 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteBtns[d].addEventListener("click", function(e) {
             e.preventDefault();
             confirmarPost(this.getAttribute("data-delete-url"), "¿Seguro que deseas eliminar este usuario?", "Eliminar", "Eliminar usuario");
+        });
+    }
+
+    var unlockBtns = document.querySelectorAll(".btn-desbloquear");
+    for (var u = 0; u < unlockBtns.length; u++) {
+        unlockBtns[u].addEventListener("click", function(e) {
+            e.preventDefault();
+            confirmarPost(this.getAttribute("data-unlock-url"), "¿Desea desbloquear esta cuenta para permitir el acceso nuevamente?", "Desbloquear", "Desbloquear cuenta");
         });
     }
 

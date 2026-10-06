@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, send_file, url_for, flash
 from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils import acceso_no_autorizado, guardar_filtros, redirigir_con_filtros, datos_invalidos, no_encontrado
+from utils import acceso_no_autorizado, guardar_filtros, redirigir_con_filtros, datos_invalidos, no_encontrado, registrar_auditoria
 from utils.validators import archivo_permitido, sanitizar_nombre, validar_mime_real, validar_longitudes
 from datetime import datetime
 from limiter_instance import limiter
@@ -412,6 +412,7 @@ def admin_descargar_informe(id_informe):
 
 # ── Eliminación lógica de un informe (cambia estado a 'eliminado') ──
 @informes_bp.route("/eliminar_informes/<int:id_informe>", methods=["POST"])
+@limiter.limit("10 per minute")
 def admin_eliminar_informe(id_informe):
 
     # Solo usuarios autenticados
@@ -442,6 +443,8 @@ def admin_eliminar_informe(id_informe):
         )
 
         conn.commit()
+
+        registrar_auditoria("informe_eliminado", f"Informe eliminado (admin): ID {id_informe}")
 
         ruta = informe[0]
         if ruta:

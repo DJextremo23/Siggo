@@ -23,6 +23,10 @@ login_bp = Blueprint("login", __name__)
 MAX_INTENTOS_LOGIN = 5
 BLOQUEO_MINUTOS = 15
 
+# Tras N ciclos de bloqueo temporal, la cuenta se bloquea de forma "dura":
+# solo un administrador puede reactivarla (escalado anti fuerza bruta).
+MAX_LOCKOUTS_ANTES_BLOQUEO = 5
+
 # Configuración específica para el código TOTP durante el login
 MAX_INTENTOS_2FA = 10
 TOKEN_2FA_TTL_MINUTOS = 5
@@ -35,12 +39,12 @@ _DUMMY_PASSWORD_HASH = generate_password_hash(secrets.token_urlsafe(32))
 # ---------------------------------------------------------------------------
 
 # Elimina registros de intentos antiguos (fuera de la ventana de bloqueo)
-def _limpiar_intentos_db(identificador):
+def _limpiar_intentos_db(identificador, minutos=BLOQUEO_MINUTOS):
     try:
         conn = conexion()
         cursor = conn.cursor()
         try:
-            corte = datetime.now() - timedelta(minutes=BLOQUEO_MINUTOS)
+            corte = datetime.now() - timedelta(minutes=minutos)
             cursor.execute(
                 "DELETE FROM intentos_login WHERE identificador = %s AND intento_en < %s",
                 (identificador, corte)
@@ -53,9 +57,9 @@ def _limpiar_intentos_db(identificador):
         pass
 
 
-# Cuenta los intentos fallidos vigentes para un identificador
-def _contar_intentos_db(identificador):
-    _limpiar_intentos_db(identificador)
+# Cuenta los intentos fallidos vigentes para un identificador (dentro de la ventana)
+def _contar_intentos_db(identificador, minutos=BLOQUEO_MINUTOS):
+    _limpiar_intentos_db(identificador, minutos)
     try:
         conn = conexion()
         cursor = conn.cursor()
@@ -74,8 +78,47 @@ def _contar_intentos_db(identificador):
 
 
 # Indica si un identificador alcanzó el máximo de intentos fallidos
-def _esta_bloqueado(identificador, max_intentos=MAX_INTENTOS_LOGIN):
-    return _contar_intentos_db(identificador) >= max_intentos
+def _esta_bloqueado(identificador, max_intentos=MAX_INTENTOS_LOGIN, minutos=BLOQUEO_MINUTOS):
+    return _contar_intentos_db(identificador, minutos) >= max_intentos
+
+
+# Duración (minutos) del bloqueo temporal según la cantidad de bloqueos previos
+# de la cuenta (escalado progresivo):
+#   0 previos -> 15 min, 1 -> 30 min, 2 -> 60 min, 3 o más -> 24 h
+def _minutos_bloqueo_actual(usuario_o_correo):
+    ciclos = _ciclos_bloqueo_cuenta(usuario_o_correo)
+    if ciclos <= 0:
+        return 15
+    if ciclos == 1:
+        return 30
+    if ciclos == 2:
+        return 60
+    return 1440
+
+
+# Devuelve la cantidad de bloqueos consecutivos registrados para una cuenta
+def _ciclos_bloqueo_cuenta(usuario_o_correo):
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            if "@" in usuario_o_correo:
+                cursor.execute(
+                    "SELECT bloqueos_consecutivos FROM usuarios WHERE LOWER(correo) = %s",
+                    (usuario_o_correo.lower(),)
+                )
+            else:
+                cursor.execute(
+                    "SELECT bloqueos_consecutivos FROM usuarios WHERE usuario = %s",
+                    (usuario_o_correo,)
+                )
+            row = cursor.fetchone()
+            return row["bloqueos_consecutivos"] if row else 0
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception:
+        return 0
 
 
 # Registra un nuevo intento fallido en la base de datos
@@ -106,6 +149,109 @@ def _limpiar_bloqueo(identificador):
                 "DELETE FROM intentos_login WHERE identificador = %s",
                 (identificador,)
             )
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception:
+        pass
+
+
+# Escala el bloqueo a nivel de cuenta: cada vez que se cruza el umbral de
+# intentos fallidos (un "ciclo de bloqueo"), incrementa el contador de la
+# cuenta. Al alcanzar MAX_LOCKOUTS_ANTES_BLOQUEO, marca la cuenta como
+# bloqueada (cuenta_bloqueada=TRUE) y solo un administrador podrá reactivarla.
+def _escalar_bloqueo_cuenta(usuario_o_correo):
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            if "@" in usuario_o_correo:
+                cursor.execute(
+                    "SELECT id_usuario FROM usuarios WHERE LOWER(correo) = %s",
+                    (usuario_o_correo.lower(),)
+                )
+            else:
+                cursor.execute(
+                    "SELECT id_usuario FROM usuarios WHERE usuario = %s",
+                    (usuario_o_correo,)
+                )
+            row = cursor.fetchone()
+            if not row:
+                return
+
+            id_usuario = row["id_usuario"]
+
+            cursor.execute(
+                "UPDATE usuarios SET bloqueos_consecutivos = bloqueos_consecutivos + 1 WHERE id_usuario = %s",
+                (id_usuario,)
+            )
+            cursor.execute(
+                "SELECT bloqueos_consecutivos FROM usuarios WHERE id_usuario = %s",
+                (id_usuario,)
+            )
+            contador = cursor.fetchone()["bloqueos_consecutivos"]
+
+            if contador >= MAX_LOCKOUTS_ANTES_BLOQUEO:
+                cursor.execute(
+                    "UPDATE usuarios SET cuenta_bloqueada = TRUE WHERE id_usuario = %s",
+                    (id_usuario,)
+                )
+                registrar_auditoria(
+                    "cuenta_bloqueada",
+                    f"Bloqueo duro por intentos fallidos repetidos: {usuario_o_correo}"
+                )
+
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception:
+        pass
+
+
+# Reinicia el contador de bloqueos consecutivos tras un inicio de sesión exitoso
+def _resetear_bloqueos_cuenta(id_usuario):
+    try:
+        conn = conexion()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE usuarios SET bloqueos_consecutivos = 0 WHERE id_usuario = %s",
+                (id_usuario,)
+            )
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception:
+        pass
+
+
+# Purga periódica de las tablas de seguridad (mejor esfuerzo, como máximo 1 vez/hora).
+# Evita el crecimiento ilimitado de intentos_login, login_2fa_pendiente y
+# dispositivos_confiables, que de otro modo solo se limpian de forma parcial.
+_ULTIMA_PURGA = None
+_PURGA_INTERVALO_SEG = 3600
+
+
+def _purga_periodica():
+    global _ULTIMA_PURGA
+    ahora = datetime.now()
+    if _ULTIMA_PURGA is not None and (ahora - _ULTIMA_PURGA).total_seconds() < _PURGA_INTERVALO_SEG:
+        return
+    _ULTIMA_PURGA = ahora
+
+    try:
+        conn = conexion()
+        cursor = conn.cursor()
+        try:
+            # Intentos fallidos: se retienen 1 día (más que suficiente para el bloqueo de 24 h).
+            cursor.execute("DELETE FROM intentos_login WHERE intento_en < (NOW() - INTERVAL 1 DAY)")
+            # Tokens 2FA pendientes ya expirados.
+            cursor.execute("DELETE FROM login_2fa_pendiente WHERE expira < NOW()")
+            # Dispositivos confiables inactivos por más de 90 días.
+            cursor.execute("DELETE FROM dispositivos_confiables WHERE ultimo_uso < (NOW() - INTERVAL 90 DAY)")
             conn.commit()
         finally:
             cursor.close()
@@ -231,10 +377,10 @@ def _eliminar_dispositivos_confiables(id_usuario):
 # El secreto se guarda en servidor (BD), no en la cookie de sesión.
 # ---------------------------------------------------------------------------
 
-def _guardar_pendiente_2fa(id_usuario, totp_secret):
+def _guardar_pendiente_2fa(id_usuario, totp_secret, ttl_minutos=None):
     """Guarda el secreto TOTP en la BD y devuelve un token de un solo uso."""
     token = secrets.token_urlsafe(32)
-    expira = datetime.now() + timedelta(minutes=TOKEN_2FA_TTL_MINUTOS)
+    expira = datetime.now() + timedelta(minutes=(ttl_minutos or TOKEN_2FA_TTL_MINUTOS))
     conn = None
     cursor = None
     try:
@@ -313,6 +459,8 @@ def _eliminar_pendiente_2fa(token):
 @login_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
+    _purga_periodica()
+
     if request.method == "POST":
         usuario = request.form.get("usuario", "").strip()
         password = request.form.get("password", "").strip()
@@ -327,10 +475,16 @@ def login():
         ip = request.remote_addr or ""
         identificador_bloqueo = f"{usuario.lower()}|{ip}"
 
-        if _esta_bloqueado(identificador_bloqueo):
+        # Bloqueo temporal con duración progresiva según los ciclos previos de la cuenta
+        minutos_bloqueo = _minutos_bloqueo_actual(usuario)
+        if _esta_bloqueado(identificador_bloqueo, minutos=minutos_bloqueo):
+            if minutos_bloqueo >= 1440:
+                mensaje = "Demasiados intentos fallidos. Intente de nuevo en 24 horas."
+            else:
+                mensaje = f"Demasiados intentos fallidos. Intente de nuevo en {minutos_bloqueo} minutos."
             return render_template(
                 "login.html",
-                error="Demasiados intentos fallidos. Intente de nuevo en 15 minutos."
+                error=mensaje
             )
 
         conn = None
@@ -360,6 +514,8 @@ def login():
                     u.foto,
                     u.totp_secret,
                     u.dos_factores_activo,
+                    u.cuenta_bloqueada,
+                    u.session_version,
                     r.nombre_rol
                 FROM usuarios u
                 INNER JOIN usuarios_roles ur
@@ -373,6 +529,15 @@ def login():
 
             user = resultados[0] if resultados else None
 
+            # Bloqueo duro de cuenta: si fue marcada por intentos fallidos repetidos,
+            # solo un administrador puede reactivarla. Se informa genéricamente para
+            # no confirmar la existencia del usuario.
+            if user and user.get("cuenta_bloqueada"):
+                return render_template(
+                    "login.html",
+                    error="Cuenta bloqueada por seguridad. Contacte al administrador."
+                )
+
             # Comparar siempre contra un hash (real o dummy) para igualar tiempos de respuesta
             if user and user["estado"] == "activo":
                 hash_a_comparar = user["password"]
@@ -383,12 +548,17 @@ def login():
 
             if not user or user["estado"] != "activo" or not password_ok:
                 _registrar_fallo(identificador_bloqueo)
+                # Si este fallo cruza el umbral de bloqueo temporal, escala el
+                # contador de bloqueos consecutivos de la cuenta.
+                if _contar_intentos_db(identificador_bloqueo, minutos=minutos_bloqueo) >= MAX_INTENTOS_LOGIN:
+                    _escalar_bloqueo_cuenta(usuario)
                 return render_template(
                     "login.html",
                     error="Credenciales inválidas"
                 )
 
             _limpiar_bloqueo(identificador_bloqueo)
+            _resetear_bloqueos_cuenta(user["id_usuario"])
 
             session.clear()
 
@@ -420,6 +590,7 @@ def login():
                         "nombre": f"{user['nombre']} {user['apellidos']}",
                         "foto": user.get("foto") or "",
                         "roles": roles,
+                        "session_version": user.get("session_version", 0),
                         "token": token,
                     }
                     session["_2fa_pendiente_expira"] = (datetime.now() + timedelta(minutes=TOKEN_2FA_TTL_MINUTOS)).timestamp()
@@ -432,6 +603,7 @@ def login():
             )
             session["foto"] = user.get("foto") or ""
             session["roles"] = roles
+            session["session_version"] = user.get("session_version", 0)
             session.permanent = True
 
             registrar_auditoria("login", f"Inicio de sesión: {user['usuario']}")
@@ -551,6 +723,7 @@ def verificar_2fa():
         session["nombre"] = pendiente["nombre"]
         session["foto"] = pendiente["foto"]
         session["roles"] = pendiente["roles"]
+        session["session_version"] = pendiente.get("session_version", 0)
         session.permanent = True
 
         registrar_auditoria("login_2fa", f"Inicio de sesión con 2FA: {pendiente['usuario']}")
@@ -598,15 +771,16 @@ def _generar_qr_svg(secret, usuario):
     return buffer.getvalue().decode("utf-8")
 
 
-# Devuelve el secreto temporal si existe y no expiró; si no, lo limpia y devuelve None
+# Devuelve el secreto temporal si el token de configuración sigue vigente.
+# El secreto vive en la BD (no en la cookie); la sesión solo guarda el token.
 def _temp_secret_2fa_valido():
-    secret = session.get("_2fa_temp_secret")
-    expira = session.get("_2fa_temp_secret_expira", 0)
-    if secret and datetime.now().timestamp() < expira:
-        return secret
-    session.pop("_2fa_temp_secret", None)
-    session.pop("_2fa_temp_secret_expira", None)
-    return None
+    token = session.get("_2fa_temp_token")
+    if not token:
+        return None
+    secret = _obtener_secret_2fa(token)
+    if not secret:
+        session.pop("_2fa_temp_token", None)
+    return secret
 
 
 @login_bp.route("/configurar_2fa", methods=["GET", "POST"])
@@ -641,8 +815,14 @@ def configurar_2fa():
                     )
 
                 secret = pyotp.random_base32()
-                session["_2fa_temp_secret"] = secret
-                session["_2fa_temp_secret_expira"] = (datetime.now() + timedelta(minutes=10)).timestamp()
+                # El secreto se guarda en la BD; en la sesión solo queda un token opaco.
+                token = _guardar_pendiente_2fa(session["id_usuario"], secret, ttl_minutos=10)
+                if not token:
+                    return render_template(
+                        "configurar_2fa.html",
+                        error="Error del sistema. Intente nuevamente."
+                    )
+                session["_2fa_temp_token"] = token
                 qr_svg = _generar_qr_svg(secret, session.get("usuario", "usuario"))
 
                 return render_template(
@@ -684,8 +864,7 @@ def configurar_2fa():
             """, (secret_temporal, session["id_usuario"]))
 
             conn.commit()
-            session.pop("_2fa_temp_secret", None)
-            session.pop("_2fa_temp_secret_expira", None)
+            _eliminar_pendiente_2fa(session.pop("_2fa_temp_token", None))
             registrar_auditoria("2fa_activado", f"2FA activado para {session.get('usuario', '')}")
 
             return render_template(
@@ -726,8 +905,7 @@ def configurar_2fa():
 # Cancela la configuración de 2FA en curso y vuelve al perfil
 @login_bp.route("/cancelar_configurar_2fa", methods=["POST"])
 def cancelar_configurar_2fa():
-    session.pop("_2fa_temp_secret", None)
-    session.pop("_2fa_temp_secret_expira", None)
+    _eliminar_pendiente_2fa(session.pop("_2fa_temp_token", None))
     return redirect(url_for("perfil.editar_mi_perfil"))
 
 

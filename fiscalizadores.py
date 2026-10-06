@@ -54,6 +54,7 @@ def listar_fiscalizadores():
                 u.usuario,
                 u.estado,
                 u.foto,
+                u.cuenta_bloqueada,
                 GROUP_CONCAT(
                     r.nombre_rol
                     ORDER BY r.nombre_rol
@@ -71,7 +72,8 @@ def listar_fiscalizadores():
                 u.correo,
                 u.usuario,
                 u.estado,
-                u.foto
+                u.foto,
+                u.cuenta_bloqueada
             ORDER BY u.nombre
         """)
 
@@ -255,6 +257,7 @@ def actualizar_usuario(id):
                 id_rol = data[0]
 
         # Si se proporcionó una nueva contraseña, generar hash y actualizar junto con los demás datos
+        # e incrementar session_version para invalidar las sesiones activas del usuario.
         if password:
 
             password_hash = generate_password_hash(password)
@@ -263,7 +266,8 @@ def actualizar_usuario(id):
                 UPDATE usuarios
                 SET nombre=%s, apellidos=%s, correo=%s,
                     usuario=%s, password=%s,
-                    estado=%s, fecha_ingreso=%s
+                    estado=%s, fecha_ingreso=%s,
+                    session_version = session_version + 1
                 WHERE id_usuario=%s
             """, (
                 nombre, apellidos, correo,
@@ -495,6 +499,58 @@ def toggle_usuario(id):
 
         print("ERROR TOGGLE USUARIO:", e)
         flash("Error interno del servidor al cambiar estado", "error")
+
+        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+    finally:
+
+        if cursor is not None: cursor.close()
+        if conn is not None: conn.close()
+
+# ==========================
+# DESBLOQUEAR CUENTA (ADMIN)
+# ==========================
+# Reactiva una cuenta marcada como bloqueada por intentos fallidos repetidos.
+@fiscalizadores_bp.route("/desbloquear_usuario/<int:id>", methods=["POST"])
+def desbloquear_usuario(id):
+
+    if "usuario" not in session or session.get("perfil_activo") != "admin":
+        return redirect(url_for("login.login"))
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT usuario FROM usuarios WHERE id_usuario = %s",
+            (id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+        cursor.execute("""
+            UPDATE usuarios
+            SET cuenta_bloqueada = FALSE, bloqueos_consecutivos = 0
+            WHERE id_usuario = %s
+        """, (id,))
+
+        conn.commit()
+        registrar_auditoria("cuenta_desbloqueada", f"Cuenta reactivada por admin: {row['usuario']}")
+
+        flash(f"Cuenta de {row['usuario']} desbloqueada correctamente", "success")
+
+        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+    except Exception as e:
+
+        if conn is not None: conn.rollback()
+
+        print("ERROR DESBLOQUEAR USUARIO:", e)
+        flash("Error interno del servidor al desbloquear la cuenta", "error")
 
         return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 

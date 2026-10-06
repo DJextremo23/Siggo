@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
+from utils import registrar_auditoria
 import os
 from datetime import datetime
 
@@ -170,6 +171,7 @@ def actualizar_mi_perfil():
                 )
 
         # Si se proporcionó contraseña, se actualiza también el hash de la contraseña
+        # y se incrementa session_version para invalidar las demás sesiones activas.
         if password:
 
             password_hash = generate_password_hash(password)
@@ -177,7 +179,8 @@ def actualizar_mi_perfil():
             cursor.execute("""
                 UPDATE usuarios
                 SET nombre=%s, apellidos=%s, correo=%s,
-                    usuario=%s, password=%s
+                    usuario=%s, password=%s,
+                    session_version = session_version + 1
                 WHERE id_usuario=%s
             """, (
                 nombre, apellidos, correo,
@@ -252,6 +255,10 @@ def actualizar_mi_perfil():
         # Actualiza los datos de sesión con los nuevos valores
         session["nombre"] = f"{nombre} {apellidos}"
         session["usuario"] = usuario_form
+        # Si cambió la contraseña, la sesión actual adopta la nueva versión
+        # (las demás sesiones quedan invalidadas por el incremento en BD).
+        if password:
+            session["session_version"] = session.get("session_version", 0) + 1
 
         flash("Perfil actualizado correctamente", "success")
 
@@ -273,6 +280,54 @@ def actualizar_mi_perfil():
 
     finally:
 
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
+# Cierra la sesión en todos los demás dispositivos: incrementa session_version
+# en BD (invalida las otras sesiones) y mantiene válida la sesión actual.
+@perfil_bp.route("/cerrar_sesion_todos", methods=["POST"])
+def cerrar_sesion_todos():
+
+    if "usuario" not in session:
+        return redirect(url_for("login.login"))
+
+    id_usuario = session.get("id_usuario")
+    if not id_usuario:
+        return redirect(url_for("login.login"))
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = conexion()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "UPDATE usuarios SET session_version = session_version + 1 WHERE id_usuario = %s",
+            (id_usuario,)
+        )
+        conn.commit()
+
+        # La sesión actual adopta la nueva versión; las demás quedan invalidadas.
+        session["session_version"] = session.get("session_version", 0) + 1
+
+        registrar_auditoria("sesiones_cerradas", "Cierre de sesión en todos los dispositivos")
+
+        flash("Se cerró la sesión en los demás dispositivos", "success")
+
+        return redirect(url_for("perfil.editar_mi_perfil"))
+
+    except Exception as e:
+        if conn is not None:
+            conn.rollback()
+        print("ERROR CERRAR SESIONES:", e)
+        flash("Error interno del servidor", "error")
+        return redirect(url_for("perfil.editar_mi_perfil"))
+
+    finally:
         if cursor is not None:
             cursor.close()
         if conn is not None:

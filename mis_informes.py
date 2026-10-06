@@ -6,7 +6,7 @@ editar, eliminar, descargar y analizar informes con IA
 from flask import Blueprint, render_template, request, redirect, session, send_file, url_for, jsonify, flash
 from werkzeug.utils import secure_filename
 from conexion import conexion
-from utils import acceso_no_autorizado, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
+from utils import acceso_no_autorizado, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros, registrar_auditoria
 from utils.validators import archivo_permitido, sanitizar_nombre, validar_mime_real, validar_longitudes
 from datetime import datetime
 from limiter_instance import limiter
@@ -457,6 +457,7 @@ def descargar_informe(id_informe):
 # ELIMINAR INFORME (SOFT DELETE)
 # ==========================================
 @informe_bp.route("/eliminar_informe/<int:id_informe>", methods=["POST"])
+@limiter.limit("10 per minute")
 def eliminar_informe(id_informe):
 
     if "usuario" not in session:
@@ -487,6 +488,8 @@ def eliminar_informe(id_informe):
         )
 
         conn.commit()
+
+        registrar_auditoria("informe_eliminado", f"Informe eliminado: ID {id_informe}")
 
         ruta = informe[0]
         if ruta:

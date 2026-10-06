@@ -11,6 +11,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.cell import get_column_letter
+from xml.sax.saxutils import escape
 
 # Paleta de colores corporativos
 COLOR_PRIMARIO = '#0f172a'
@@ -91,9 +92,10 @@ def build_pdf_tabla(encabezados, filas, estilos, ancho_disponible, columnas_cent
     """Construye y devuelve un objeto Table de ReportLab listo para insertar en PDF."""
     # Encabezados renderizados como párrafos con estilo header
     tabla_data = [[Paragraph(h, estilos['header']) for h in encabezados]]
-    # Filas de datos: valores None se muestran como guion largo
+    # Filas de datos: valores None se muestran como guion largo; el texto se
+    # escapa para evitar que reportlab interprete markup HTML (inyección en PDF).
     for fila in filas:
-        tabla_data.append([Paragraph(str(v) if v is not None else '\u2014', estilos['celda']) for v in fila])
+        tabla_data.append([Paragraph(escape(str(v)) if v is not None else '\u2014', estilos['celda']) for v in fila])
     ncols = len(encabezados)
     col_widths = [ancho_disponible / ncols] * ncols
     table = Table(tabla_data, colWidths=col_widths)
