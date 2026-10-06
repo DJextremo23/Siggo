@@ -186,6 +186,37 @@ def _resetear_bloqueos_cuenta(id_usuario):
         pass
 
 
+# Registra en auditoría si el inicio de sesión proviene de un dispositivo nuevo
+# (User-Agent distinto al último usado) y actualiza el último dispositivo visto.
+def _detectar_nuevo_dispositivo(id_usuario):
+    ua_actual = request.headers.get("User-Agent", "")[:500]
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT ultimo_user_agent FROM usuarios WHERE id_usuario = %s",
+                (id_usuario,)
+            )
+            row = cursor.fetchone()
+            anterior = row["ultimo_user_agent"] if row else None
+            if anterior and anterior != ua_actual:
+                registrar_auditoria(
+                    "login_nuevo_dispositivo",
+                    f"Inicio de sesión desde un dispositivo distinto: id_usuario {id_usuario}"
+                )
+            cursor.execute(
+                "UPDATE usuarios SET ultimo_user_agent = %s WHERE id_usuario = %s",
+                (ua_actual, id_usuario)
+            )
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception:
+        pass
+
+
 # Purga periódica de las tablas de seguridad (mejor esfuerzo, como máximo 1 vez/hora).
 # Evita el crecimiento ilimitado de intentos_login, login_2fa_pendiente y
 # dispositivos_confiables, que de otro modo solo se limpian de forma parcial.
@@ -572,6 +603,7 @@ def login():
             session.permanent = True
 
             registrar_auditoria("login", f"Inicio de sesión: {user['usuario']}")
+            _detectar_nuevo_dispositivo(user["id_usuario"])
 
             if len(roles) == 1:
                 session["perfil_activo"] = roles[0]
@@ -692,6 +724,7 @@ def verificar_2fa():
         session.permanent = True
 
         registrar_auditoria("login_2fa", f"Inicio de sesión con 2FA: {pendiente['usuario']}")
+        _detectar_nuevo_dispositivo(pendiente["id_usuario"])
 
         if len(pendiente["roles"]) == 1:
             session["perfil_activo"] = pendiente["roles"][0]
