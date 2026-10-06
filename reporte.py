@@ -12,7 +12,8 @@ from reportlab.lib.pagesizes import A4, landscape
 from estilos_reporte import (
     COLOR_ACENTO,
     estilos_pdf, build_pdf_tabla,
-    configurar_encabezado_excel, aplicar_estilo_datos_excel
+    configurar_encabezado_excel, aplicar_estilo_datos_excel,
+    sanitizar_celda_excel
 )
 
 # Blueprint para reportes del admin - resumen, detalle y vacaciones con exportación a PDF y Excel
@@ -568,7 +569,7 @@ def exportar_excel():
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Reporte de Guardias")
     for d in data:
         ws.append([
-            d["fiscalizador"],
+            sanitizar_celda_excel(d["fiscalizador"]),
             d["total_guardias"],
             d["guardias_feriado"],
             d["compensaciones"],
@@ -753,14 +754,14 @@ def exportar_detalle_fecha_excel():
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Detalle de Guardias")
     for d in detalle:
         ws.append([
-            d["fiscalizador"],
+            sanitizar_celda_excel(d["fiscalizador"]),
             _fecha(d["fecha_guardia"]),
             "Soporte" if d["tipo"] == "soporte" else "Guardia",
-            d["feriado_descripcion"],
+            sanitizar_celda_excel(d["feriado_descripcion"]),
             d["asistencia"],
             _fecha(d["fecha_compensacion"]),
             d["estado_compensacion"],
-            d["observacion"] or ""
+            sanitizar_celda_excel(d["observacion"] or "")
         ])
     _aplicar_estilo_datos_excel(ws, columnas, data_start)
 
@@ -954,7 +955,7 @@ def exportar_vacaciones_excel():
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Detalle de Vacaciones")
     for v in data:
         ws.append([
-            v["fiscalizador"],
+            sanitizar_celda_excel(v["fiscalizador"]),
             _fecha(v["fecha_inicio"]),
             _fecha(v["fecha_fin"]),
             v["dias_tomados"],
@@ -1077,7 +1078,7 @@ def exportar_resumen_vacaciones_excel():
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Resumen de Vacaciones")
     for r in data:
         ws.append([
-            r["fiscalizador"],
+            sanitizar_celda_excel(r["fiscalizador"]),
             r["dias_tomados"],
             r["dias_pendientes"],
             r["dias_pendientes_anteriores"]

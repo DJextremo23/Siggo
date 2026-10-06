@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, make_response, flash, jsonify
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from conexion import conexion
 from datetime import datetime, timedelta
 from limiter_instance import limiter
+from utils import registrar_auditoria
 import pyotp
 import qrcode
 import qrcode.image.svg
@@ -21,6 +22,13 @@ login_bp = Blueprint("login", __name__)
 # Configuración de bloqueo por intentos fallidos
 MAX_INTENTOS_LOGIN = 5
 BLOQUEO_MINUTOS = 15
+
+# Configuración específica para el código TOTP durante el login
+MAX_INTENTOS_2FA = 10
+TOKEN_2FA_TTL_MINUTOS = 5
+
+# Hash dummy para igualar tiempos de respuesta en login (evita enumeración de usuarios)
+_DUMMY_PASSWORD_HASH = generate_password_hash(secrets.token_urlsafe(32))
 
 # ---------------------------------------------------------------------------
 # Funciones auxiliares para control de intentos fallidos
@@ -66,8 +74,8 @@ def _contar_intentos_db(identificador):
 
 
 # Indica si un identificador alcanzó el máximo de intentos fallidos
-def _esta_bloqueado(identificador):
-    return _contar_intentos_db(identificador) >= MAX_INTENTOS_LOGIN
+def _esta_bloqueado(identificador, max_intentos=MAX_INTENTOS_LOGIN):
+    return _contar_intentos_db(identificador) >= max_intentos
 
 
 # Registra un nuevo intento fallido en la base de datos
@@ -218,6 +226,87 @@ def _eliminar_dispositivos_confiables(id_usuario):
             conn.close()
 
 
+# ---------------------------------------------------------------------------
+# Funciones auxiliares para el secreto TOTP pendiente durante el login (2FA)
+# El secreto se guarda en servidor (BD), no en la cookie de sesión.
+# ---------------------------------------------------------------------------
+
+def _guardar_pendiente_2fa(id_usuario, totp_secret):
+    """Guarda el secreto TOTP en la BD y devuelve un token de un solo uso."""
+    token = secrets.token_urlsafe(32)
+    expira = datetime.now() + timedelta(minutes=TOKEN_2FA_TTL_MINUTOS)
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor()
+        # Limpieza perezosa de tokens expirados
+        cursor.execute("DELETE FROM login_2fa_pendiente WHERE expira < NOW()")
+        cursor.execute(
+            "INSERT INTO login_2fa_pendiente (token, id_usuario, totp_secret, expira) VALUES (%s, %s, %s, %s)",
+            (token, id_usuario, totp_secret, expira)
+        )
+        conn.commit()
+        return token
+    except Exception:
+        return None
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
+def _obtener_secret_2fa(token):
+    """Devuelve el secreto TOTP asociado al token si existe y no expiró."""
+    if not token:
+        return None
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT totp_secret, expira FROM login_2fa_pendiente WHERE token = %s",
+            (token,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        if row["expira"] and row["expira"] < datetime.now():
+            cursor.execute("DELETE FROM login_2fa_pendiente WHERE token = %s", (token,))
+            conn.commit()
+            return None
+        return row["totp_secret"]
+    except Exception:
+        return None
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
+def _eliminar_pendiente_2fa(token):
+    """Elimina el token pendiente de 2FA (un solo uso)."""
+    if not token:
+        return
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM login_2fa_pendiente WHERE token = %s", (token,))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
 # ==========================
 # LOGIN — Inicio de sesión con validación de credenciales y bloqueo
 # ==========================
@@ -234,8 +323,9 @@ def login():
                 error="Credenciales inválidas"
             )
 
-        # Normalizar el identificador de bloqueo para evitar evadirlo variando mayúsculas
-        identificador_bloqueo = usuario.lower()
+        # Identificador de bloqueo: usuario + IP (evita que un tercero bloquee la cuenta de otro)
+        ip = request.remote_addr or ""
+        identificador_bloqueo = f"{usuario.lower()}|{ip}"
 
         if _esta_bloqueado(identificador_bloqueo):
             return render_template(
@@ -250,7 +340,15 @@ def login():
             conn = conexion()
             cursor = conn.cursor(dictionary=True)
 
-            cursor.execute("""
+            # Búsqueda por usuario o por correo (un único criterio, sin ambigüedad)
+            if "@" in usuario:
+                filtro_identidad = "WHERE LOWER(u.correo) = %s"
+                param_identidad = usuario.lower()
+            else:
+                filtro_identidad = "WHERE u.usuario = %s"
+                param_identidad = usuario
+
+            cursor.execute(f"""
                 SELECT
                     u.id_usuario,
                     u.nombre,
@@ -268,32 +366,22 @@ def login():
                 ON u.id_usuario = ur.id_usuario
                 INNER JOIN roles r
                 ON ur.id_rol = r.id_rol
-                WHERE u.usuario=%s
-                OR u.correo=%s
-            """, (usuario, usuario))
+                {filtro_identidad}
+            """, (param_identidad,))
 
             resultados = cursor.fetchall()
 
-            if not resultados:
-                _registrar_fallo(identificador_bloqueo)
-                return render_template(
-                    "login.html",
-                    error="Credenciales inválidas"
-                )
+            user = resultados[0] if resultados else None
 
-            user = resultados[0]
+            # Comparar siempre contra un hash (real o dummy) para igualar tiempos de respuesta
+            if user and user["estado"] == "activo":
+                hash_a_comparar = user["password"]
+            else:
+                hash_a_comparar = _DUMMY_PASSWORD_HASH
 
-            if user["estado"] != "activo":
-                _registrar_fallo(identificador_bloqueo)
-                return render_template(
-                    "login.html",
-                    error="Credenciales inválidas"
-                )
+            password_ok = check_password_hash(hash_a_comparar, password)
 
-            if not check_password_hash(
-                user["password"],
-                password
-            ):
+            if not user or user["estado"] != "activo" or not password_ok:
                 _registrar_fallo(identificador_bloqueo)
                 return render_template(
                     "login.html",
@@ -320,15 +408,21 @@ def login():
                 if dispositivo_confiable:
                     _actualizar_ultimo_uso_dispositivo(user["id_usuario"], dispositivo_confiable)
                 else:
+                    token = _guardar_pendiente_2fa(user["id_usuario"], user["totp_secret"])
+                    if not token:
+                        return render_template(
+                            "login.html",
+                            error="Error del sistema. Intente nuevamente."
+                        )
                     session["_2fa_pendiente"] = {
                         "id_usuario": user["id_usuario"],
                         "usuario": user["usuario"],
                         "nombre": f"{user['nombre']} {user['apellidos']}",
                         "foto": user.get("foto") or "",
                         "roles": roles,
-                        "totp_secret": user["totp_secret"],
+                        "token": token,
                     }
-                    session["_2fa_pendiente_expira"] = (datetime.now() + timedelta(minutes=5)).timestamp()
+                    session["_2fa_pendiente_expira"] = (datetime.now() + timedelta(minutes=TOKEN_2FA_TTL_MINUTOS)).timestamp()
                     return redirect(url_for("login.verificar_2fa"))
 
             session["id_usuario"] = user["id_usuario"]
@@ -339,6 +433,8 @@ def login():
             session["foto"] = user.get("foto") or ""
             session["roles"] = roles
             session.permanent = True
+
+            registrar_auditoria("login", f"Inicio de sesión: {user['usuario']}")
 
             if len(roles) == 1:
                 session["perfil_activo"] = roles[0]
@@ -395,6 +491,7 @@ def activar_perfil(rol):
 # ==========================
 @login_bp.route("/logout", methods=["POST"])
 def logout():
+    registrar_auditoria("logout", f"Cierre de sesión: {session.get('usuario', '')}")
     session.clear()
     return redirect(
         url_for("login.login")
@@ -424,13 +521,29 @@ def verificar_2fa():
                 error="Ingrese un código válido de 6 dígitos"
             )
 
-        totp = pyotp.TOTP(pendiente["totp_secret"])
+        # Bloqueo por demasiados códigos incorrectos (además del límite por IP)
+        id_2fa_bloqueo = f"2fa:{pendiente['id_usuario']}"
+        if _esta_bloqueado(id_2fa_bloqueo, MAX_INTENTOS_2FA):
+            session.pop("_2fa_pendiente", None)
+            session.pop("_2fa_pendiente_expira", None)
+            _eliminar_pendiente_2fa(pendiente.get("token"))
+            return redirect(url_for("login.login"))
+
+        secret = _obtener_secret_2fa(pendiente.get("token"))
+        if not secret:
+            session.pop("_2fa_pendiente", None)
+            session.pop("_2fa_pendiente_expira", None)
+            return redirect(url_for("login.login"))
+
+        totp = pyotp.TOTP(secret)
         if not totp.verify(codigo, valid_window=1):
+            _registrar_fallo(id_2fa_bloqueo)
             return render_template(
                 "verificar_2fa.html",
                 error="Código inválido. Intente nuevamente."
             )
 
+        _eliminar_pendiente_2fa(pendiente.get("token"))
         session.pop("_2fa_pendiente", None)
         session.pop("_2fa_pendiente_expira", None)
         session["id_usuario"] = pendiente["id_usuario"]
@@ -439,6 +552,8 @@ def verificar_2fa():
         session["foto"] = pendiente["foto"]
         session["roles"] = pendiente["roles"]
         session.permanent = True
+
+        registrar_auditoria("login_2fa", f"Inicio de sesión con 2FA: {pendiente['usuario']}")
 
         if len(pendiente["roles"]) == 1:
             session["perfil_activo"] = pendiente["roles"][0]
@@ -571,6 +686,7 @@ def configurar_2fa():
             conn.commit()
             session.pop("_2fa_temp_secret", None)
             session.pop("_2fa_temp_secret_expira", None)
+            registrar_auditoria("2fa_activado", f"2FA activado para {session.get('usuario', '')}")
 
             return render_template(
                 "configurar_2fa.html",
@@ -658,6 +774,7 @@ def desactivar_2fa():
         conn.commit()
 
         _eliminar_dispositivos_confiables(session["id_usuario"])
+        registrar_auditoria("2fa_desactivado", f"2FA desactivado para {session.get('usuario', '')}")
 
         if ajax:
             return jsonify({"success": True, "message": "Autenticación en dos pasos desactivada correctamente."})

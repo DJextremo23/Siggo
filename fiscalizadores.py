@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
+from utils import registrar_auditoria
 import os
 from datetime import datetime
 
@@ -157,7 +158,7 @@ def actualizar_usuario(id):
 
     nombre = request.form.get("nombre", "").strip()
     apellidos = request.form.get("apellidos", "").strip()
-    correo = request.form.get("correo", "").strip()
+    correo = request.form.get("correo", "").strip().lower()
     usuario_form = request.form.get("usuario", "").strip()
     password = request.form.get("password", "").strip()
     rol = request.form.get("rol")
@@ -223,7 +224,7 @@ def actualizar_usuario(id):
         cursor.execute("""
             SELECT id_usuario
             FROM usuarios
-            WHERE (correo = %s OR usuario = %s)
+            WHERE (LOWER(correo) = %s OR usuario = %s)
               AND id_usuario != %s
             LIMIT 1
         """, (correo, usuario_form, id))
@@ -285,6 +286,13 @@ def actualizar_usuario(id):
         # Guardar la foto de perfil si el archivo es válido y no excede el tamaño máximo
         foto = request.files.get("foto")
         if foto and foto.filename and foto_permitida(foto.filename):
+            # Rechaza antes de leer el archivo completo si el tamaño declarado excede el límite
+            if foto.content_length and foto.content_length > MAX_PHOTO_SIZE:
+                return render_template(
+                    "editar_fiscalizador.html",
+                    error="La imagen excede el tamaño máximo permitido (5 MB).",
+                    usuario=request.form
+                )
             contenido = foto.read()
             if len(contenido) <= MAX_PHOTO_SIZE:
                 ext = foto.filename.rsplit(".", 1)[1].lower()
@@ -336,6 +344,7 @@ def actualizar_usuario(id):
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
         conn.commit()
+        registrar_auditoria("usuario_actualizado", f"Usuario ID {id} actualizado")
 
         flash("Usuario actualizado correctamente", "success")
         return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
@@ -411,6 +420,7 @@ def eliminar_usuario(id):
         if usuario["cnt"] > 0:
             nuevo_estado = _cambiar_estado_usuario(cursor, id)
             conn.commit()
+            registrar_auditoria("usuario_estado_cambiado", f"Usuario ID {id} -> {nuevo_estado} (tenía guardias)")
             flash(f"Usuario {'desactivado' if nuevo_estado == 'inactivo' else 'activado'} (tiene guardias registradas)", "success")
         else:
             cursor.execute(
@@ -422,6 +432,7 @@ def eliminar_usuario(id):
                 (id,)
             )
             conn.commit()
+            registrar_auditoria("usuario_eliminado", f"Usuario ID {id} eliminado")
             flash("Usuario eliminado correctamente", "success")
 
         return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
@@ -469,6 +480,7 @@ def toggle_usuario(id):
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
         conn.commit()
+        registrar_auditoria("usuario_toggle", f"Usuario ID {id} -> {nuevo_estado}")
 
         flash(f"Usuario {'activado' if nuevo_estado == 'activo' else 'desactivado'} correctamente", "success")
 
@@ -516,6 +528,17 @@ def resetear_2fa(id):
             flash("Usuario no encontrado", "error")
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
+        # Reautenticación del administrador antes de desactivar el 2FA de otro usuario
+        password = request.form.get("password", "")
+        cursor.execute(
+            "SELECT password FROM usuarios WHERE id_usuario = %s",
+            (session.get("id_usuario"),)
+        )
+        admin_row = cursor.fetchone()
+        if not admin_row or not check_password_hash(admin_row["password"], password):
+            flash("Contraseña de administrador incorrecta", "error")
+            return redirect(url_for("fiscalizadores.editar_usuario", id=id))
+
         # Desactivar 2FA y limpiar el secreto TOTP
         cursor.execute("""
             UPDATE usuarios
@@ -530,6 +553,7 @@ def resetear_2fa(id):
         """, (id,))
 
         conn.commit()
+        registrar_auditoria("2fa_reseteado", f"2FA reseteado por admin para usuario ID {id}")
 
         flash(
             f"Autenticación en dos pasos desactivada para {usuario['nombre']} {usuario['apellidos']}.",

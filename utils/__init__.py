@@ -1,6 +1,37 @@
 """Utilidades compartidas para respuestas de error HTTP estandarizadas (403, 404, 400, 500)."""
 
 from flask import render_template, redirect, request, session, url_for
+from conexion import ConexionDB
+
+# Conexión independiente para auditoría (no interfiere con la transacción de la ruta)
+_auditoria_db = ConexionDB()
+
+
+def registrar_auditoria(accion, detalle=None):
+    """Registra una acción sensible en la tabla 'auditoria' (mejor esfuerzo).
+
+    No lanza excepciones: si falla, la acción principal no se ve afectada.
+    """
+    try:
+        cursor = _auditoria_db.cursor()
+        cursor.execute(
+            "INSERT INTO auditoria (id_usuario, usuario, accion, detalle, ip) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (
+                session.get("id_usuario"),
+                session.get("usuario"),
+                accion,
+                (detalle or "")[:500],
+                (request.remote_addr or "")[:50],
+            ),
+        )
+        _auditoria_db.commit()
+        cursor.close()
+    except Exception:
+        try:
+            _auditoria_db.rollback()
+        except Exception:
+            pass
 
 
 def guardar_filtros(key):

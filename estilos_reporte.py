@@ -20,6 +20,18 @@ COLOR_ALT_FILA = '#f8fafc'
 COLOR_TEXTO_MUTED = '#64748b'
 
 
+def sanitizar_celda_excel(valor):
+    """Previene inyección de fórmulas en Excel.
+
+    Si el valor es texto y comienza con un carácter que Excel interpreta como
+    fórmula (=, +, -, @, tabulador, retorno), antepone una comilla para que se
+    trate como texto literal.
+    """
+    if isinstance(valor, str) and valor and valor[0] in "=+-@\t\r":
+        return "'" + valor
+    return valor
+
+
 def estilos_pdf():
     """Devuelve un diccionario con estilos de párrafo para reportes PDF."""
     return {

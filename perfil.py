@@ -86,7 +86,7 @@ def actualizar_mi_perfil():
 
     nombre = request.form.get("nombre", "").strip()
     apellidos = request.form.get("apellidos", "").strip()
-    correo = request.form.get("correo", "").strip()
+    correo = request.form.get("correo", "").strip().lower()
     usuario_form = request.form.get("usuario", "").strip()
     password = request.form.get("password", "").strip()
     password_actual = request.form.get("password_actual", "").strip()
@@ -148,7 +148,7 @@ def actualizar_mi_perfil():
         cursor.execute("""
             SELECT id_usuario
             FROM usuarios
-            WHERE (correo = %s OR usuario = %s)
+            WHERE (LOWER(correo) = %s OR usuario = %s)
               AND id_usuario != %s
             LIMIT 1
         """, (correo, usuario_form, id_usuario))
@@ -205,6 +205,14 @@ def actualizar_mi_perfil():
                 return render_template(
                     "editar_mi_perfil.html",
                     error="Formato de imagen no válido. Formatos permitidos: PNG, JPG, JPEG, JFIF, GIF o WEBP.",
+                    usuario=_datos_error(dos_factores, foto_actual)
+                )
+
+            # Rechaza antes de leer el archivo completo si el tamaño declarado excede el límite
+            if foto.content_length and foto.content_length > MAX_PHOTO_SIZE:
+                return render_template(
+                    "editar_mi_perfil.html",
+                    error="La imagen excede el tamaño máximo permitido (5 MB).",
                     usuario=_datos_error(dos_factores, foto_actual)
                 )
 

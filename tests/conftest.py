@@ -32,6 +32,10 @@ import main
 # Reemplazar la conexión real por el mock
 main.conexion = mock_db
 
+# Reemplazar la conexión de auditoría por el mock (evita intentos de conexión real)
+import utils
+utils._auditoria_db = mock_db
+
 
 import pytest
 from main import app as flask_app

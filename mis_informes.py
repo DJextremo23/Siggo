@@ -16,6 +16,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import landscape, letter
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from estilos_reporte import sanitizar_celda_excel
 import os
 import json
 import re
@@ -707,9 +708,9 @@ def exportar_informes_excel():
         for row_idx, d in enumerate(data, 2):
             row_data = [
                 str(d["fecha_guardia"]) if d["fecha_guardia"] else "",
-                d["titulo"] or "",
-                d["descripcion"] or "",
-                d["nombre_archivo"] or "",
+                sanitizar_celda_excel(d["titulo"] or ""),
+                sanitizar_celda_excel(d["descripcion"] or ""),
+                sanitizar_celda_excel(d["nombre_archivo"] or ""),
                 (d["tipo_archivo"] or "").upper(),
                 str(d["fecha_subida"]) if d["fecha_subida"] else ""
             ]
@@ -1313,7 +1314,8 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                 es_no_encontrado = "no se encuentra" in error_str.lower()
 
                 if es_429:
-                    ultimo_error = error_str
+                    print(f"[IA] Cuota excedida (429): {error_str}")
+                    ultimo_error = "Cuota excedida. Inténtalo nuevamente en unos minutos."
                     # Si es el último intento de este modelo, pasar al siguiente
                     if intento >= max_intentos_por_modelo:
                         break
@@ -1344,10 +1346,10 @@ def _analizar_con_gemini(texto, titulo, descripcion, imagenes=None):
                     ultimo_error = "Gemini está experimentando alta demanda en este momento."
                     break
 
-                # Error desconocido: devolver inmediatamente
+                # Error desconocido: devolver mensaje genérico (el detalle queda en el log)
                 print(f"[IA] Error al conectar con Gemini: {error_str}")
                 return {
-                    "error": f"Error de Gemini: {error_str}"
+                    "error": "Error inesperado al contactar el servicio de análisis. Inténtalo nuevamente en unos minutos."
                 }
 
     # Todos los modelos gratuitos fallaron por cuota.
@@ -1479,7 +1481,8 @@ def analizar_informe_api(id_informe):
         if not texto:
             return jsonify({"error": "No se pudo extraer texto del archivo"}), 400
         if texto.startswith("[Error"):
-            return jsonify({"error": texto}), 500
+            print("ERROR extraer texto:", texto)
+            return jsonify({"error": "No se pudo procesar el archivo."}), 500
 
         imagenes = _extraer_imagenes_archivo(informe)
 
@@ -1633,7 +1636,8 @@ def generar_ppt_analisis(id_informe):
         )
 
     except Exception as e:
-        return jsonify({"error": f"Error al generar PPT: {str(e)}"}), 500
+        print("ERROR generar PPT:", e)
+        return jsonify({"error": "Error interno al generar la presentación."}), 500
 
     finally:
         if cursor is not None: cursor.close()

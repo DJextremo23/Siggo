@@ -15,7 +15,8 @@ from urllib.parse import urlencode
 from estilos_reporte import (
     COLOR_ACENTO, COLOR_TEXTO_MUTED,
     estilos_pdf, build_pdf_tabla,
-    configurar_encabezado_excel, aplicar_estilo_datos_excel
+    configurar_encabezado_excel, aplicar_estilo_datos_excel,
+    sanitizar_celda_excel
 )
 
 
@@ -604,11 +605,11 @@ def exportar_excel():
         ws.append([
             _fecha(d["fecha_guardia"]),
             "Soporte" if d["tipo"] == "soporte" else "Guardia",
-            d["feriado"] or "",
+            sanitizar_celda_excel(d["feriado"] or ""),
             d["asistencia"] or "",
             _fecha(d["fecha_compensacion"]),
             d["estado_compensacion"] or "",
-            d["observacion"] or ""
+            sanitizar_celda_excel(d["observacion"] or "")
         ])
     _aplicar_estilo_datos_excel(ws, columnas, data_start)
 
@@ -776,7 +777,7 @@ def exportar_resumen_excel():
     columnas = ["Fiscalizador", "Total Guardia", "Total Feriado", "Total Compensaciones", "Compensaciones Pendientes"]
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Resumen de Guardias")
     ws.append([
-        nombre,
+        sanitizar_celda_excel(nombre),
         r.get("total_guardias", 0),
         r.get("guardias_feriado", 0),
         r.get("compensaciones", 0),
@@ -1125,7 +1126,7 @@ def exportar_resumen_vacaciones_excel():
     data_start = _configurar_encabezado_excel(ws, columnas, titulo="Resumen de Vacaciones")
 
     ws.append([
-        resumen["nombre"],
+        sanitizar_celda_excel(resumen["nombre"]),
         resumen["dias_tomados"],
         resumen["dias_pendientes_este_anio"],
         resumen["dias_pendientes_anteriores"]

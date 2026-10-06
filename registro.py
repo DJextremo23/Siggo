@@ -4,6 +4,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
+from utils import registrar_auditoria
 from limiter_instance import limiter
 
 """
@@ -227,6 +228,12 @@ def registro():
             nombre_foto = None
 
             if foto and foto.filename and foto_permitida(foto.filename):
+                # Rechaza antes de leer el archivo completo si el tamaño declarado excede el límite
+                if foto.content_length and foto.content_length > MAX_PHOTO_SIZE:
+                    return render_template(
+                        "registro.html",
+                        error="La imagen excede el tamaño máximo permitido (5 MB)."
+                    )
                 contenido = foto.read()
                 if len(contenido) <= MAX_PHOTO_SIZE:
                     ext = foto.filename.rsplit(".", 1)[1].lower()
@@ -326,6 +333,8 @@ def registro():
                 )
 
             conn.commit()
+
+            registrar_auditoria("usuario_creado", f"Usuario creado: {usuario} (rol {rol})")
 
             return render_template(
 

@@ -192,6 +192,12 @@
             <p>Este usuario tiene 2FA activo. Si perdió su código (cambió de dispositivo o eliminó su app de autenticación), desactívalo para que pueda volver a iniciar sesión con su contraseña y reactivarlo cuando quiera.</p>
             <form action="{{ url_for('fiscalizadores.resetear_2fa', id=usuario.id_usuario) }}" method="POST" onsubmit="return confirm('¿Desactivar la autenticación en dos pasos de este usuario?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="field" style="margin:12px 0;">
+                    <label class="field-label" for="adminPasswordReset2FA">Tu contraseña (confirmación)</label>
+                    <div class="field-input">
+                        <input type="password" id="adminPasswordReset2FA" name="password" autocomplete="current-password" placeholder="Ingresa tu contraseña para confirmar" required>
+                    </div>
+                </div>
                 <button type="submit" class="btn btn-danger">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -208,19 +214,80 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-function previewEditFoto(input) {
-    var preview = document.getElementById('fotoEditPreview');
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            preview.innerHTML = '<img src="' + e.target.result + '" alt="Vista previa">';
+var fotoComprimida = null;   // archivo ya comprimido, listo para subir
+var fotoPendiente = false;   // hay una foto seleccionada que aún se está comprimiendo
+var reintentarSubmit = false;
+
+function comprimirFoto(file, done) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+            var MAX = 1024;
+            var w = img.width, h = img.height;
+            if (w > h) {
+                if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+            } else {
+                if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(function(blob) {
+                var archivo = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
+                done(archivo, URL.createObjectURL(blob));
+            }, 'image/jpeg', 0.92);
         };
-        reader.readAsDataURL(input.files[0]);
+        img.onerror = function() { done(null, null); };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function mostrarFoto(file) {
+    if (!file) return;
+    fotoPendiente = true;
+    fotoComprimida = null;
+    comprimirFoto(file, function(archivo, url) {
+        fotoComprimida = archivo;
+        fotoPendiente = false;
+        var preview = document.getElementById('fotoEditPreview');
+        if (preview && url) {
+            preview.innerHTML = '<img src="' + url + '" alt="Vista previa">';
+        }
+        if (reintentarSubmit) {
+            reintentarSubmit = false;
+            aplicarFotoComprimida();
+            var form = document.getElementById('fotoEditInput').closest('form');
+            if (form) {
+                if (typeof form.requestSubmit === 'function') form.requestSubmit();
+                else form.submit();
+            }
+        }
+    });
+}
+
+function aplicarFotoComprimida() {
+    if (!fotoComprimida) return;
+    try {
+        var dt = new DataTransfer();
+        dt.items.add(fotoComprimida);
+        document.getElementById('fotoEditInput').files = dt.files;
+    } catch (err) {
+        // Si el navegador no permite reemplazar el archivo, se envía el original.
     }
 }
 
-document.getElementById('fotoEditInput').addEventListener('change', function() {
-    previewEditFoto(this);
+var fotoInput = document.getElementById('fotoEditInput');
+
+fotoInput.addEventListener('change', function() {
+    mostrarFoto(this.files && this.files[0]);
 });
 
 (function() {
@@ -247,11 +314,29 @@ document.getElementById('fotoEditInput').addEventListener('change', function() {
     dropzone.addEventListener('drop', function(e) {
         var files = e.dataTransfer.files;
         if (files.length) {
-            input.files = files;
-            previewEditFoto(input);
+            try {
+                var dt = new DataTransfer();
+                dt.items.add(files[0]);
+                input.files = dt.files;
+            } catch (err) {}
+            mostrarFoto(files[0]);
         }
     });
 })();
+
+var formFoto = fotoInput.closest('form');
+if (formFoto) {
+    formFoto.addEventListener('submit', function(e) {
+        if (fotoComprimida) {
+            aplicarFotoComprimida();
+            return;
+        }
+        if (fotoPendiente) {
+            e.preventDefault();
+            reintentarSubmit = true;
+        }
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     var preview = document.getElementById('fotoEditPreview');

@@ -11,7 +11,7 @@ from reporte import reporte_bp
 from conexion import ConexionDB
 from mis_reportes import mis_reportes_bp
 from csrf import generate_token, validate_csrf
-from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
+from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros, registrar_auditoria
 
 from datetime import datetime, timedelta, date
 from login import login_bp
@@ -101,7 +101,12 @@ app.secret_key = _secret_key
 # Permite que session_cookie_secure y force_https funcionen correctamente
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=4)
+# Configuración de sesión: timeout por inactividad + tope absoluto (mejores prácticas OWASP)
+SESSION_IDLE_MINUTOS = int(os.getenv("SESSION_IDLE_MINUTOS", "60"))     # inactividad: 1 hora
+SESSION_ABSOLUTO_HORAS = int(os.getenv("SESSION_ABSOLUTO_HORAS", "8"))  # tope máximo: 8 horas
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_ABSOLUTO_HORAS)
+# Límite duro de subida: evita recibir archivos enormes (las fotos se comprimen en el cliente a <1 MB)
+app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 6 MB
 
 
 def formatear_fecha(valor, con_hora=False):
@@ -179,6 +184,38 @@ def inject_csrf_token():
 @app.before_request
 def csrf_check():
     validate_csrf()
+
+
+@app.before_request
+def verificar_expiracion_sesion():
+    """Cierra la sesión por inactividad o por tiempo máximo (enforcement en servidor)."""
+    if "usuario" not in session:
+        return
+
+    ahora = datetime.now().timestamp()
+
+    login_at = session.get("_login_at")
+    if login_at is None:
+        session["_login_at"] = ahora
+        login_at = ahora
+
+    last_activity = session.get("_last_activity")
+    if last_activity is None:
+        session["_last_activity"] = ahora
+        last_activity = ahora
+
+    # Tope absoluto: fuerza re-login aunque el usuario haya estado activo
+    if ahora - login_at > SESSION_ABSOLUTO_HORAS * 3600:
+        session.clear()
+        return redirect(url_for("login.login"))
+
+    # Inactividad: cierra si no hubo actividad dentro del período definido
+    if ahora - last_activity > SESSION_IDLE_MINUTOS * 60:
+        session.clear()
+        return redirect(url_for("login.login"))
+
+    # Renovar la marca de actividad (timeout deslizante)
+    session["_last_activity"] = ahora
 
 
 @app.after_request
@@ -262,6 +299,8 @@ def _balance_vacaciones_fifo(anio_ingreso, dias_tomados_total):
 
 @app.route("/")
 def home():
+    if "usuario" in session:
+        return redirect(url_for("inicio"))
     return render_template("login.html")
 
 # ==========================
@@ -771,6 +810,7 @@ def eliminar_compensaciones():
             tuple(ids_int),
         )
         conexion.commit()
+        registrar_auditoria("compensaciones_eliminadas", f"Eliminadas {cursor.rowcount} compensaciones")
         flash(f"Se eliminaron {cursor.rowcount} compensaciones correctamente", "success")
     except Exception as e:
         conexion.rollback()
@@ -1094,6 +1134,7 @@ def eliminar_feriados():
             tuple(ids_int),
         )
         conexion.commit()
+        registrar_auditoria("feriados_eliminados", f"Eliminados {cursor.rowcount} feriados")
         flash(f"Se eliminaron {cursor.rowcount} feriados correctamente", "success")
     except Exception as e:
         conexion.rollback()
@@ -1815,6 +1856,7 @@ def eliminar_vacaciones():
             ))
 
         conexion.commit()
+        registrar_auditoria("vacaciones_eliminadas", f"Eliminadas {len(vacaciones_data)} vacaciones")
         flash(f"Se eliminaron {len(vacaciones_data)} vacaciones correctamente", "success")
     except Exception as e:
         conexion.rollback()
@@ -1967,7 +2009,8 @@ def marcar_notificacion_leida(id_notificacion):
         return {"ok": True}
     except Exception as e:
         conexion.rollback()
-        return {"ok": False, "error": str(e)}, 500
+        print("ERROR notificaciones:", e)
+        return {"ok": False, "error": "Error interno del servidor."}, 500
     finally:
         cursor.close()
 
@@ -1990,7 +2033,8 @@ def marcar_todas_leidas():
         return {"ok": True}
     except Exception as e:
         conexion.rollback()
-        return {"ok": False, "error": str(e)}, 500
+        print("ERROR notificaciones:", e)
+        return {"ok": False, "error": "Error interno del servidor."}, 500
     finally:
         cursor.close()
 
@@ -2024,7 +2068,8 @@ def notificaciones_nuevas():
 
         return {"ok": True, "notificaciones": notifs}
     except Exception as e:
-        return {"ok": False, "error": str(e)}, 500
+        print("ERROR notificaciones nuevas:", e)
+        return {"ok": False, "error": "Error interno del servidor."}, 500
     finally:
         cursor.close()
 
@@ -2435,6 +2480,7 @@ def eliminar_guardias():
     try:
         _eliminar_guardias_con_archivos(cursor, ids_int)
         conexion.commit()
+        registrar_auditoria("guardias_eliminadas", f"Eliminadas {cursor.rowcount} guardias")
         flash(f"Se eliminaron {cursor.rowcount} guardias correctamente", "success")
     except Exception as e:
         conexion.rollback()

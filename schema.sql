@@ -131,6 +131,29 @@ CREATE TABLE IF NOT EXISTS dispositivos_confiables (
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 );
 
+-- ── SECRETO TOTP PENDIENTE DE LOGIN (2FA, almacenado en servidor) ──
+CREATE TABLE IF NOT EXISTS login_2fa_pendiente (
+    token VARCHAR(64) PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    totp_secret VARCHAR(64) NOT NULL,
+    expira DATETIME NOT NULL,
+    creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_expira (expira)
+);
+
+-- ── AUDITORÍA (registro de acciones sensibles) ──
+CREATE TABLE IF NOT EXISTS auditoria (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT DEFAULT NULL,
+    usuario VARCHAR(50) DEFAULT NULL,
+    accion VARCHAR(100) NOT NULL,
+    detalle VARCHAR(500) DEFAULT NULL,
+    ip VARCHAR(50) DEFAULT NULL,
+    creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_auditoria_usuario (id_usuario),
+    INDEX idx_auditoria_fecha (creado_en)
+);
+
 -- ── VISTA: resumen_guardias ──
 CREATE OR REPLACE VIEW resumen_guardias AS
 SELECT
