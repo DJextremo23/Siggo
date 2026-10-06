@@ -8,7 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from limiter_instance import limiter
 from reporte import reporte_bp
-from conexion import ConexionDB
+from conexion import conexion as obtener_conexion
 from mis_reportes import mis_reportes_bp
 from csrf import generate_token, validate_csrf
 from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros, registrar_auditoria
@@ -355,10 +355,10 @@ def _perf_log(resp):
     return resp
 
 # -----------------------------------------------
-# Conexión a la base de datos (singleton)
+# Conexión a la base de datos (singleton compartido entre módulos)
 # -----------------------------------------------
 
-conexion = ConexionDB()
+conexion = obtener_conexion()
 
 
 @app.teardown_request
@@ -663,6 +663,7 @@ def inicio():
 # Marcar una notificación como leída
 
 @app.route("/notificaciones/leer/<int:id_notificacion>", methods=["POST"])
+@limiter.limit("10 per minute")
 def marcar_notificacion_leida(id_notificacion):
     if "usuario" not in session:
         return {"ok": False, "error": "No autorizado"}, 401
@@ -687,6 +688,7 @@ def marcar_notificacion_leida(id_notificacion):
         cursor.close()
 
 @app.route("/notificaciones/leer_todas", methods=["POST"])
+@limiter.limit("10 per minute")
 def marcar_todas_leidas():
     if "usuario" not in session:
         return {"ok": False, "error": "No autorizado"}, 401
@@ -702,6 +704,7 @@ def marcar_todas_leidas():
               AND leida = FALSE
         """, (session["usuario"],))
         conexion.commit()
+        registrar_auditoria("notificaciones_leidas", "Marcadas todas las notificaciones como leídas")
         return {"ok": True}
     except Exception as e:
         conexion.rollback()

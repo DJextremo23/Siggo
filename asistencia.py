@@ -1,7 +1,8 @@
 """Rutas de gestión de asistencias (admin y fiscalizador)."""
 
 from flask import render_template, request, session, redirect, url_for, flash
-from conexion import conexion
+from conexion import conexion as _obtener_conexion
+conexion = _obtener_conexion()
 from limiter_instance import limiter
 from utils import (
     acceso_no_autorizado, datos_invalidos, no_encontrado, error_interno,

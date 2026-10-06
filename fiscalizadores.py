@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
 from utils import registrar_auditoria
+from limiter_instance import limiter
 import os
 from datetime import datetime
 
@@ -153,6 +154,7 @@ def editar_usuario(id):
 # ==========================
 # Procesa el formulario de edición: actualiza datos, contraseña, foto y rol del usuario
 @fiscalizadores_bp.route("/actualizar_usuario/<int:id>", methods=["POST"])
+@limiter.limit("10 per minute")
 def actualizar_usuario(id):
 
     if "usuario" not in session or session.get("perfil_activo") != "admin":
@@ -394,6 +396,7 @@ def _cambiar_estado_usuario(cursor, id):
 
 
 @fiscalizadores_bp.route("/eliminar_usuario/<int:id>", methods=["POST"])
+@limiter.limit("10 per minute")
 def eliminar_usuario(id):
 
     if "usuario" not in session or session.get("perfil_activo") != "admin":
@@ -464,6 +467,7 @@ def eliminar_usuario(id):
 # ==========================
 # Alterna el estado de un usuario entre activo e inactivo
 @fiscalizadores_bp.route("/toggle_usuario/<int:id>", methods=["POST"])
+@limiter.limit("10 per minute")
 def toggle_usuario(id):
 
     if "usuario" not in session or session.get("perfil_activo") != "admin":
@@ -512,6 +516,7 @@ def toggle_usuario(id):
 # ==========================
 # Reactiva una cuenta marcada como bloqueada por intentos fallidos repetidos.
 @fiscalizadores_bp.route("/desbloquear_usuario/<int:id>", methods=["POST"])
+@limiter.limit("10 per minute")
 def desbloquear_usuario(id):
 
     if "usuario" not in session or session.get("perfil_activo") != "admin":
@@ -564,6 +569,7 @@ def desbloquear_usuario(id):
 # ==========================
 # Desactiva la autenticación en dos pasos de un usuario (por pérdida de código o cambio de dispositivo)
 @fiscalizadores_bp.route("/resetear_2fa/<int:id>", methods=["POST"])
+@limiter.limit("10 per minute")
 def resetear_2fa(id):
 
     if "usuario" not in session or session.get("perfil_activo") != "admin":

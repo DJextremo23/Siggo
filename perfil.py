@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
 from utils.validators import validar_mime_real, validar_longitudes, password_segura
 from utils import registrar_auditoria
+from limiter_instance import limiter
 import os
 from datetime import datetime
 
@@ -77,6 +78,7 @@ def editar_mi_perfil():
 
 # Procesa el formulario POST para actualizar nombre, apellidos, correo, usuario, contraseña y foto
 @perfil_bp.route("/actualizar_mi_perfil", methods=["POST"])
+@limiter.limit("10 per minute")
 def actualizar_mi_perfil():
 
     # Redirige al login si no hay sesión activa
@@ -289,6 +291,7 @@ def actualizar_mi_perfil():
 # Cierra la sesión en todos los demás dispositivos: incrementa session_version
 # en BD (invalida las otras sesiones) y mantiene válida la sesión actual.
 @perfil_bp.route("/cerrar_sesion_todos", methods=["POST"])
+@limiter.limit("10 per minute")
 def cerrar_sesion_todos():
 
     if "usuario" not in session:
