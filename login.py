@@ -25,7 +25,7 @@ BLOQUEO_MINUTOS = 15
 
 # Tras N ciclos de bloqueo temporal, la cuenta se bloquea de forma "dura":
 # solo un administrador puede reactivarla (escalado anti fuerza bruta).
-MAX_LOCKOUTS_ANTES_BLOQUEO = 5
+MAX_LOCKOUTS_ANTES_BLOQUEO = 3
 
 # Configuración específica para el código TOTP durante el login
 MAX_INTENTOS_2FA = 10
@@ -85,8 +85,7 @@ def _esta_bloqueado(identificador, max_intentos=MAX_INTENTOS_LOGIN, minutos=BLOQ
 # Duración (minutos) del bloqueo temporal según la cantidad de bloqueos previos
 # de la cuenta (escalado progresivo):
 #   0 previos -> 15 min, 1 -> 30 min, 2 -> 60 min, 3 o más -> 24 h
-def _minutos_bloqueo_actual(usuario_o_correo):
-    ciclos = _ciclos_bloqueo_cuenta(usuario_o_correo)
+def _minutos_bloqueo(ciclos):
     if ciclos <= 0:
         return 15
     if ciclos == 1:
@@ -94,31 +93,6 @@ def _minutos_bloqueo_actual(usuario_o_correo):
     if ciclos == 2:
         return 60
     return 1440
-
-
-# Devuelve la cantidad de bloqueos consecutivos registrados para una cuenta
-def _ciclos_bloqueo_cuenta(usuario_o_correo):
-    try:
-        conn = conexion()
-        cursor = conn.cursor(dictionary=True)
-        try:
-            if "@" in usuario_o_correo:
-                cursor.execute(
-                    "SELECT bloqueos_consecutivos FROM usuarios WHERE LOWER(correo) = %s",
-                    (usuario_o_correo.lower(),)
-                )
-            else:
-                cursor.execute(
-                    "SELECT bloqueos_consecutivos FROM usuarios WHERE usuario = %s",
-                    (usuario_o_correo,)
-                )
-            row = cursor.fetchone()
-            return row["bloqueos_consecutivos"] if row else 0
-        finally:
-            cursor.close()
-            conn.close()
-    except Exception:
-        return 0
 
 
 # Registra un nuevo intento fallido en la base de datos
@@ -161,27 +135,11 @@ def _limpiar_bloqueo(identificador):
 # intentos fallidos (un "ciclo de bloqueo"), incrementa el contador de la
 # cuenta. Al alcanzar MAX_LOCKOUTS_ANTES_BLOQUEO, marca la cuenta como
 # bloqueada (cuenta_bloqueada=TRUE) y solo un administrador podrá reactivarla.
-def _escalar_bloqueo_cuenta(usuario_o_correo):
+def _escalar_bloqueo_cuenta(id_usuario):
     try:
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
         try:
-            if "@" in usuario_o_correo:
-                cursor.execute(
-                    "SELECT id_usuario FROM usuarios WHERE LOWER(correo) = %s",
-                    (usuario_o_correo.lower(),)
-                )
-            else:
-                cursor.execute(
-                    "SELECT id_usuario FROM usuarios WHERE usuario = %s",
-                    (usuario_o_correo,)
-                )
-            row = cursor.fetchone()
-            if not row:
-                return
-
-            id_usuario = row["id_usuario"]
-
             cursor.execute(
                 "UPDATE usuarios SET bloqueos_consecutivos = bloqueos_consecutivos + 1 WHERE id_usuario = %s",
                 (id_usuario,)
@@ -199,7 +157,7 @@ def _escalar_bloqueo_cuenta(usuario_o_correo):
                 )
                 registrar_auditoria(
                     "cuenta_bloqueada",
-                    f"Bloqueo duro por intentos fallidos repetidos: {usuario_o_correo}"
+                    f"Bloqueo duro por intentos fallidos repetidos: id_usuario {id_usuario}"
                 )
 
             conn.commit()
@@ -471,22 +429,6 @@ def login():
                 error="Credenciales inválidas"
             )
 
-        # Identificador de bloqueo: usuario + IP (evita que un tercero bloquee la cuenta de otro)
-        ip = request.remote_addr or ""
-        identificador_bloqueo = f"{usuario.lower()}|{ip}"
-
-        # Bloqueo temporal con duración progresiva según los ciclos previos de la cuenta
-        minutos_bloqueo = _minutos_bloqueo_actual(usuario)
-        if _esta_bloqueado(identificador_bloqueo, minutos=minutos_bloqueo):
-            if minutos_bloqueo >= 1440:
-                mensaje = "Demasiados intentos fallidos. Intente de nuevo en 24 horas."
-            else:
-                mensaje = f"Demasiados intentos fallidos. Intente de nuevo en {minutos_bloqueo} minutos."
-            return render_template(
-                "login.html",
-                error=mensaje
-            )
-
         conn = None
         cursor = None
 
@@ -515,6 +457,7 @@ def login():
                     u.totp_secret,
                     u.dos_factores_activo,
                     u.cuenta_bloqueada,
+                    u.bloqueos_consecutivos,
                     u.session_version,
                     r.nombre_rol
                 FROM usuarios u
@@ -528,6 +471,27 @@ def login():
             resultados = cursor.fetchall()
 
             user = resultados[0] if resultados else None
+
+            # Identificador de bloqueo: la cuenta (id_usuario), no la IP ni la cadena
+            # ingresada. Así el contador es consistente entre nombre de usuario y correo,
+            # y funciona detrás de proxies con IP rotativa. Para cuentas inexistentes se
+            # usa la cadena ingresada (no hay id que asociar).
+            if user:
+                identificador_bloqueo = f"uid:{user['id_usuario']}"
+            else:
+                identificador_bloqueo = usuario.lower()
+
+            # Bloqueo temporal con duración progresiva según los ciclos previos de la cuenta
+            minutos_bloqueo = _minutos_bloqueo(user["bloqueos_consecutivos"] if user else 0)
+            if _esta_bloqueado(identificador_bloqueo, minutos=minutos_bloqueo):
+                if minutos_bloqueo >= 1440:
+                    mensaje = "Demasiados intentos fallidos. Intente de nuevo en 24 horas."
+                else:
+                    mensaje = f"Demasiados intentos fallidos. Intente de nuevo en {minutos_bloqueo} minutos."
+                return render_template(
+                    "login.html",
+                    error=mensaje
+                )
 
             # Bloqueo duro de cuenta: si fue marcada por intentos fallidos repetidos,
             # solo un administrador puede reactivarla. Se informa genéricamente para
@@ -551,7 +515,8 @@ def login():
                 # Si este fallo cruza el umbral de bloqueo temporal, escala el
                 # contador de bloqueos consecutivos de la cuenta.
                 if _contar_intentos_db(identificador_bloqueo, minutos=minutos_bloqueo) >= MAX_INTENTOS_LOGIN:
-                    _escalar_bloqueo_cuenta(usuario)
+                    if user:
+                        _escalar_bloqueo_cuenta(user["id_usuario"])
                 return render_template(
                     "login.html",
                     error="Credenciales inválidas"
