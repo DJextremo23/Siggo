@@ -4,6 +4,7 @@ from conexion import conexion
 from utils import acceso_no_autorizado, guardar_filtros, redirigir_con_filtros, datos_invalidos, no_encontrado
 from utils.validators import archivo_permitido, sanitizar_nombre, validar_mime_real, validar_longitudes
 from datetime import datetime
+from limiter_instance import limiter
 import os
 
 """
@@ -115,6 +116,7 @@ def admin_informes():
 
 # ── Registrar informe (subir) para cualquier fiscalizador ──
 @informes_bp.route("/registrar_informes", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def admin_registrar_informe():
 
     if "usuario" not in session:

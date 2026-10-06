@@ -9,6 +9,7 @@ from conexion import conexion
 from utils import acceso_no_autorizado, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros
 from utils.validators import archivo_permitido, sanitizar_nombre, validar_mime_real, validar_longitudes
 from datetime import datetime
+from limiter_instance import limiter
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
@@ -118,6 +119,7 @@ def mis_informes():
 # REGISTRAR INFORME
 # ==========================================
 @informe_bp.route("/registrar_informe", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def registrar_informe():
 
     if "usuario" not in session:

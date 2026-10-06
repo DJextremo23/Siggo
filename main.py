@@ -90,6 +90,13 @@ configurar_logging()
 
 app = Flask(__name__)
 
+# El modo depuración debe permanecer desactivado SIEMPRE en producción
+# (evita exponer trazas/stack traces y el depurador interactivo de Werkzeug).
+app.config["DEBUG"] = False
+app.config["TESTING"] = False
+# No propagar excepciones ni mostrar información interna en respuestas de error
+app.config["PROPAGATE_EXCEPTIONS"] = False
+
 # La clave de sesión DEBE venir del entorno; si falta, se aborta el arranque
 # para no firmar sesiones con una clave aleatoria que cambiaría en cada reinicio.
 _secret_key = os.getenv("SECRET_KEY")
@@ -107,6 +114,13 @@ SESSION_ABSOLUTO_HORAS = int(os.getenv("SESSION_ABSOLUTO_HORAS", "8"))  # tope m
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_ABSOLUTO_HORAS)
 # Límite duro de subida: evita recibir archivos enormes (las fotos se comprimen en el cliente a <1 MB)
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 6 MB
+
+# Cookie de sesión con nombre propio (reduce huella del framework y evita colisiones con otras apps)
+app.config["SESSION_COOKIE_NAME"] = "siggo_session"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Path estricto y sin dominio explícito para limitar el alcance de la cookie
+app.config["SESSION_COOKIE_PATH"] = "/"
 
 
 def formatear_fecha(valor, con_hora=False):
@@ -147,9 +161,21 @@ Talisman(
     strict_transport_security=FORCE_HTTPS,
     strict_transport_security_max_age=31536000,
     strict_transport_security_include_subdomains=True,
+    strict_transport_security_preload=True,
     frame_options="DENY",
     referrer_policy="strict-origin-when-cross-origin",
     x_content_type_options=True,
+    permissions_policy={
+        "camera": "()",
+        "microphone": "()",
+        "geolocation": "()",
+        "interest-cohort": "()",
+        "payment": "()",
+        "usb": "()",
+        "accelerometer": "()",
+        "gyroscope": "()",
+        "browsing-topics": "()",
+    },
     content_security_policy={
         "default-src": ["'self'", "blob:"],
         "script-src": ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
@@ -159,6 +185,11 @@ Talisman(
         "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         "connect-src": ["'self'"],
         "frame-ancestors": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+        "object-src": ["'none'"],
+        "frame-src": ["'none'"],
+        "upgrade-insecure-requests": [],
     },
     content_security_policy_nonce_in=["script-src", "style-src"],
 )
@@ -173,6 +204,27 @@ def forzar_https():
         return
     url = request.url.replace("http://", "https://", 1)
     return redirect(url, code=301)
+
+
+# Validación del Host: evita ataques de "Host header poisoning" (envenenamiento
+# de enlaces de restablecimiento, cache poisoning). Solo se activa si se define
+# ALLOWED_HOSTS (lista separada por comas); por defecto queda desactivado para
+# no romper despliegues detrás de proxies (Railway/nginx) sin dominio fijo.
+_ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").strip()
+
+
+@app.before_request
+def validar_host():
+    if not _ALLOWED_HOSTS:
+        return
+    host = request.host.split(":")[0]
+    permitidos = [h.strip().lower() for h in _ALLOWED_HOSTS.split(",") if h.strip()]
+    if host.lower() not in permitidos:
+        return error_response(
+            "Host no permitido.",
+            codigo=400,
+            titulo="Solicitud inválida"
+        )
 
 
 # Protección CSRF: inyección de token en plantillas y validación en cada petición
@@ -220,11 +272,28 @@ def verificar_expiracion_sesion():
 
 @app.after_request
 def no_cache(resp):
-    """Evita que el navegador almacene páginas en caché y muestre datos desactualizados."""
-    if resp.mimetype == "text/html":
+    """Evita que el navegador almacene en caché páginas y respuestas de API con datos sensibles."""
+    if resp.mimetype in ("text/html", "application/json"):
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         resp.headers["Pragma"] = "no-cache"
         resp.headers["Expires"] = "0"
+    return resp
+
+
+@app.after_request
+def cabeceras_seguridad(resp):
+    """Cabeceras defensivas adicionales (defensa en profundidad).
+
+    - Permissions-Policy: deshabilita APIs sensibles del navegador que la app no usa.
+    - X-Permitted-Cross-Domain-Policies: bloquea archivos de política de dominio.
+    - Cross-Origin-Resource-Policy: impide que otros orígenes incrusten respuestas.
+    - Cross-Origin-Opener-Policy: aisla el contexto de navegación (mitiga side-channels).
+    - X-XSS-Protection: desactivado; la CSP ya mitiga XSS y este filtro es obsoleto/abusable.
+    """
+    resp.headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
+    resp.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+    resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    resp.headers.setdefault("X-XSS-Protection", "0")
     return resp
 
 
@@ -775,6 +844,7 @@ def eliminar_compensacion(id_guardia):
         cursor.close()
 
 @app.route("/eliminar_compensaciones", methods=["POST"])
+@limiter.limit("10 per minute")
 def eliminar_compensaciones():
 
     if "usuario" not in session:
@@ -1079,6 +1149,7 @@ def eliminar_feriado(id):
         cursor.close()
 
 @app.route("/eliminar_feriados", methods=["POST"])
+@limiter.limit("10 per minute")
 def eliminar_feriados():
 
     if "usuario" not in session:
@@ -1781,6 +1852,7 @@ def eliminar_vacacion(id):
         cursor.close()
 
 @app.route("/eliminar_vacaciones", methods=["POST"])
+@limiter.limit("10 per minute")
 def eliminar_vacaciones():
 
     if "usuario" not in session:
@@ -2407,6 +2479,7 @@ def eliminar_guardia(id):
         cursor.close()
 
 @app.route("/eliminar_guardias", methods=["POST"])
+@limiter.limit("10 per minute")
 def eliminar_guardias():
 
     if "usuario" not in session:
@@ -3439,6 +3512,50 @@ def handle_500(error):
         volver_url="/",
         volver_texto="Volver al inicio"
     ), 500
+
+@app.errorhandler(404)
+def handle_404(error):
+    return render_template(
+        "error.html",
+        codigo="Error 404",
+        titulo="No encontrado",
+        mensaje="La página o recurso solicitado no existe.",
+        volver_url="/",
+        volver_texto="Volver al inicio"
+    ), 404
+
+@app.errorhandler(405)
+def handle_405(error):
+    return render_template(
+        "error.html",
+        codigo="Error 405",
+        titulo="Método no permitido",
+        mensaje="El método de la solicitud no está permitido para este recurso.",
+        volver_url="/",
+        volver_texto="Volver al inicio"
+    ), 405
+
+@app.errorhandler(400)
+def handle_400(error):
+    return render_template(
+        "error.html",
+        codigo="Error 400",
+        titulo="Solicitud inválida",
+        mensaje="La solicitud no pudo ser procesada.",
+        volver_url="/",
+        volver_texto="Volver al inicio"
+    ), 400
+
+@app.errorhandler(429)
+def handle_429(error):
+    return render_template(
+        "error.html",
+        codigo="Error 429",
+        titulo="Demasiadas solicitudes",
+        mensaje="Ha realizado demasiadas solicitudes. Espere un momento e intente nuevamente.",
+        volver_url="/",
+        volver_texto="Volver al inicio"
+    ), 429
 
 # -----------------------------------------------
 # Arranque de la aplicación con Waitress (producción)

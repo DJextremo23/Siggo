@@ -311,7 +311,7 @@ def _eliminar_pendiente_2fa(token):
 # LOGIN — Inicio de sesión con validación de credenciales y bloqueo
 # ==========================
 @login_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("10 per minute")
+@limiter.limit("5 per minute")
 def login():
     if request.method == "POST":
         usuario = request.form.get("usuario", "").strip()
