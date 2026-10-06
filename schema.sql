@@ -16,14 +16,17 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
-    correo VARCHAR(150) NOT NULL UNIQUE,
+    correo VARCHAR(100) NOT NULL UNIQUE,
     usuario VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    estado ENUM('activo', 'inactivo') DEFAULT 'activo',
-    foto VARCHAR(255) DEFAULT NULL,
+    estado ENUM('activo', 'inactivo', 'eliminado') DEFAULT 'activo',
     fecha_ingreso DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    foto VARCHAR(255) DEFAULT NULL,
     totp_secret VARCHAR(64) DEFAULT NULL,
-    dos_factores_activo BOOLEAN DEFAULT FALSE
+    dos_factores_activo TINYINT(1) DEFAULT 0,
+    INDEX idx_usuario_estado (estado)
 );
 
 -- ── USUARIOS ↔ ROLES ──
@@ -39,7 +42,8 @@ CREATE TABLE IF NOT EXISTS usuarios_roles (
 CREATE TABLE IF NOT EXISTS feriados (
     id_feriado INT AUTO_INCREMENT PRIMARY KEY,
     fecha DATE NOT NULL UNIQUE,
-    descripcion TEXT NOT NULL
+    descripcion VARCHAR(150) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ── GUARDIAS ──
@@ -47,18 +51,20 @@ CREATE TABLE IF NOT EXISTS guardias (
     id_guardia INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
     fecha_guardia DATE NOT NULL,
-    id_feriado INT DEFAULT NULL,
     tipo ENUM('guardia', 'soporte') NOT NULL DEFAULT 'guardia',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_guardia (id_usuario, fecha_guardia),
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_feriado) REFERENCES feriados(id_feriado) ON DELETE SET NULL
+    INDEX idx_guardias_fecha (fecha_guardia),
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 );
 
 -- ── ASISTENCIA ──
 CREATE TABLE IF NOT EXISTS asistencia (
     id_asistencia INT AUTO_INCREMENT PRIMARY KEY,
     id_guardia INT NOT NULL UNIQUE,
-    estado ENUM('asistio', 'falta', 'justificado') NOT NULL,
+    estado ENUM('asistio', 'falta', 'justificado') DEFAULT 'asistio',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_guardia) REFERENCES guardias(id_guardia) ON DELETE CASCADE
 );
 
@@ -67,8 +73,8 @@ CREATE TABLE IF NOT EXISTS compensaciones (
     id_compensacion INT AUTO_INCREMENT PRIMARY KEY,
     id_guardia INT NOT NULL UNIQUE,
     fecha_compensacion DATE NOT NULL,
-    estado VARCHAR(50) DEFAULT 'pendiente',
-    observacion TEXT DEFAULT NULL,
+    observacion VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_guardia) REFERENCES guardias(id_guardia) ON DELETE CASCADE
 );
 
@@ -78,6 +84,9 @@ CREATE TABLE IF NOT EXISTS vacaciones (
     id_usuario INT NOT NULL,
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE NOT NULL,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 );
 
@@ -86,16 +95,17 @@ CREATE TABLE IF NOT EXISTS informes (
     id_informe INT AUTO_INCREMENT PRIMARY KEY,
     id_guardia INT NOT NULL,
     id_usuario INT NOT NULL,
-    titulo VARCHAR(255) NOT NULL,
+    titulo VARCHAR(150) NOT NULL,
     descripcion TEXT DEFAULT NULL,
-    nombre_archivo VARCHAR(500) NOT NULL,
-    ruta_archivo VARCHAR(500) NOT NULL,
+    nombre_archivo VARCHAR(255) DEFAULT NULL,
+    ruta_archivo VARCHAR(255) DEFAULT NULL,
     tipo_archivo ENUM('xlsx','xlsm') DEFAULT NULL,
     extension VARCHAR(20) DEFAULT NULL,
-    tamano_archivo BIGINT NOT NULL,
+    tamano_archivo BIGINT DEFAULT NULL,
     resultado_analisis JSON DEFAULT NULL,
-    fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
     estado ENUM('activo', 'eliminado') DEFAULT 'activo',
+    fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_guardia) REFERENCES guardias(id_guardia) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 );
@@ -107,7 +117,7 @@ CREATE TABLE IF NOT EXISTS notificaciones (
     titulo VARCHAR(255) NOT NULL,
     mensaje TEXT NOT NULL,
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    leida BOOLEAN DEFAULT FALSE,
+    leida TINYINT(1) DEFAULT 0,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 );
 
@@ -180,10 +190,9 @@ SELECT
     END AS tipo_dia,
     COALESCE(a.estado, 'sin registro') AS asistencia,
     c.fecha_compensacion,
-    c.estado AS estado_compensacion,
     f.descripcion AS feriado
 FROM guardias g
 LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
 LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
 LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
-LEFT JOIN feriados f ON g.id_feriado = f.id_feriado;
+LEFT JOIN feriados f ON g.fecha_guardia = f.fecha;

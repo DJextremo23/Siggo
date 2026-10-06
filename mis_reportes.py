@@ -259,7 +259,7 @@ def mis_reportes():
             FROM guardias g
 
             LEFT JOIN feriados f
-                ON g.id_feriado = f.id_feriado
+                ON g.fecha_guardia = f.fecha
 
             LEFT JOIN compensaciones c
                 ON g.id_guardia = c.id_guardia
@@ -304,7 +304,7 @@ def mis_reportes():
                 ON g.id_guardia = c.id_guardia
 
             LEFT JOIN feriados f
-                ON g.id_feriado = f.id_feriado
+                ON g.fecha_guardia = f.fecha
 
             {filtro_detalle}
 
@@ -456,7 +456,7 @@ def exportar_pdf():
 
             FROM guardias g
             LEFT JOIN asistencia a ON g.id_guardia=a.id_guardia
-            LEFT JOIN feriados f ON g.id_feriado=f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia=f.fecha
             LEFT JOIN compensaciones c ON g.id_guardia=c.id_guardia
             {filtro_detalle}
             ORDER BY g.fecha_guardia DESC
@@ -584,7 +584,7 @@ def exportar_excel():
             FROM guardias g
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             {filtro_detalle}
             ORDER BY g.fecha_guardia DESC
         """, params_detalle)
@@ -662,7 +662,7 @@ def exportar_resumen_pdf():
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
                 SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones
             FROM guardias g
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro_base}
@@ -755,7 +755,7 @@ def exportar_resumen_excel():
                 SUM(CASE WHEN f.id_feriado IS NOT NULL THEN 1 ELSE 0 END) AS guardias_feriado,
                 SUM(CASE WHEN c.id_compensacion IS NOT NULL AND c.fecha_compensacion <= CURDATE() AND a.estado = 'asistio' THEN 1 ELSE 0 END) AS compensaciones
             FROM guardias g
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro_base}

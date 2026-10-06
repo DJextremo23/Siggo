@@ -420,7 +420,7 @@ def administrador():
                    f.descripcion AS feriado
             FROM guardias g
             INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             WHERE g.fecha_guardia >= CURDATE()
               AND g.tipo = 'guardia'
             ORDER BY g.fecha_guardia ASC
@@ -516,7 +516,7 @@ def compensaciones_admin():
             LEFT JOIN compensaciones c
                 ON g.id_guardia = c.id_guardia
             LEFT JOIN feriados f
-                ON g.id_feriado = f.id_feriado
+                ON g.fecha_guardia = f.fecha
             WHERE 1=1
         """
 
@@ -633,7 +633,7 @@ def editar_compensacion(id_guardia):
                 ON g.id_guardia = c.id_guardia
 
             LEFT JOIN feriados f
-                ON g.id_feriado = f.id_feriado
+                ON g.fecha_guardia = f.fecha
 
             WHERE g.id_guardia = %s
         """, (id_guardia,))
@@ -705,27 +705,21 @@ def guardar_edicion_compensacion(id_guardia):
             flash("La fecha de compensación no puede ser anterior a la fecha de la guardia", "error")
             return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
-        # Determinar el estado según si la fecha de compensación ya se disfrutó
-        estado_compensacion = 'usado' if datetime.now().date() >= fecha_compensacion else 'pendiente'
-
         # Insertar o actualizar compensación
         cursor.execute("""
             INSERT INTO compensaciones (
                 id_guardia,
                 fecha_compensacion,
-                observacion,
-                estado
+                observacion
             )
-            VALUES (%s, %s, %s, %s)
+            VALUES (%s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 fecha_compensacion = VALUES(fecha_compensacion),
-                observacion = VALUES(observacion),
-                estado = VALUES(estado)
+                observacion = VALUES(observacion)
         """, (
             id_guardia,
             fecha,
-            observacion,
-            estado_compensacion
+            observacion
         ))
 
         conexion.commit()
@@ -929,14 +923,6 @@ def guardar_feriado():
             descripcion
         ))
 
-        id_feriado = cursor.lastrowid
-
-        cursor.execute("""
-            UPDATE guardias
-            SET id_feriado = %s
-            WHERE fecha_guardia = %s
-        """, (id_feriado, fecha))
-
         conexion.commit()
 
         flash("Feriado registrado correctamente", "success")
@@ -1035,18 +1021,6 @@ def actualizar_feriado(id):
             SET fecha = %s, descripcion = %s
             WHERE id_feriado = %s
         """, (fecha, descripcion, id))
-
-        cursor.execute("""
-            UPDATE guardias
-            SET id_feriado = NULL
-            WHERE id_feriado = %s
-        """, (id,))
-
-        cursor.execute("""
-            UPDATE guardias
-            SET id_feriado = %s
-            WHERE fecha_guardia = %s
-        """, (id, fecha))
 
         conexion.commit()
 
@@ -2220,17 +2194,6 @@ def agregar_guardia():
             VALUES (%s, %s, %s)
         """, (id_usuario, fecha_guardia, tipo))
 
-        cursor.execute("""
-            UPDATE guardias
-            SET id_feriado = (
-                SELECT f.id_feriado
-                FROM feriados f
-                WHERE f.fecha = %s
-                LIMIT 1
-            )
-            WHERE id_usuario = %s AND fecha_guardia = %s
-        """, (fecha_guardia, id_usuario, fecha_guardia))
-
         conexion.commit()
         flash("Guardia registrada correctamente", "success")
         return redirigir_con_filtros("ver_guardias", "filtro_guardias")
@@ -2323,17 +2286,6 @@ def editar_guardia(id):
                     SET id_usuario=%s, fecha_guardia=%s, tipo=%s
                     WHERE id_guardia=%s
                 """, (id_usuario, fecha_guardia, tipo, id))
-
-                cursor.execute("""
-                    UPDATE guardias
-                    SET id_feriado = (
-                        SELECT f.id_feriado
-                        FROM feriados f
-                        WHERE f.fecha = %s
-                        LIMIT 1
-                    )
-                    WHERE id_guardia = %s
-                """, (fecha_guardia, id))
 
                 conexion.commit()
                 flash("Guardia actualizada correctamente", "success")
@@ -2906,7 +2858,7 @@ def mis_compensaciones():
         INNER JOIN usuarios u
             ON g.id_usuario = u.id_usuario
         LEFT JOIN feriados f
-            ON g.id_feriado = f.id_feriado
+            ON g.fecha_guardia = f.fecha
         WHERE g.id_usuario = %s
     """
 
@@ -2976,7 +2928,6 @@ def editar_mi_compensacion(id_compensacion):
                 c.id_compensacion,
                 c.fecha_compensacion,
                 c.observacion,
-                c.estado,
                 g.id_usuario,
                 g.fecha_guardia
             FROM compensaciones c
@@ -3039,7 +2990,6 @@ def actualizar_mi_compensacion(id_compensacion):
                 "id_compensacion": id_compensacion,
                 "fecha_compensacion": fecha,
                 "observacion": obs,
-                "estado": 'pendiente',
                 "fecha_guardia": fecha_guardia,
             }
             return render_template("editar_mi_compensacion.html",
@@ -3051,21 +3001,17 @@ def actualizar_mi_compensacion(id_compensacion):
                 "id_compensacion": id_compensacion,
                 "fecha_compensacion": fecha,
                 "observacion": obs,
-                "estado": 'pendiente',
                 "fecha_guardia": fecha_guardia,
             }
             return render_template("editar_mi_compensacion.html",
                                    compensacion=compensacion)
 
-        estado = 'usado' if date.today() >= fecha_compensacion else 'pendiente'
-
         cursor.execute("""
             UPDATE compensaciones
             SET fecha_compensacion = %s,
-                observacion = %s,
-                estado = %s
+                observacion = %s
             WHERE id_compensacion = %s
-        """, (fecha, obs, estado, id_compensacion))
+        """, (fecha, obs, id_compensacion))
 
         conexion.commit()
 
@@ -3183,7 +3129,7 @@ def mis_guardias():
             FROM guardias g
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
 
             WHERE g.id_usuario = %s
         """
@@ -3280,7 +3226,7 @@ def mis_feriados():
         sql = """
             SELECT DISTINCT f.id_feriado, f.fecha, f.descripcion
             FROM feriados f
-            INNER JOIN guardias g ON f.id_feriado = g.id_feriado
+            INNER JOIN guardias g ON f.fecha = g.fecha_guardia
             WHERE g.id_usuario = %s
         """
         params = [session["id_usuario"]]

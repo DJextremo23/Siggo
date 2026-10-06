@@ -305,19 +305,6 @@
                     <h2>Listado de Vacaciones</h2>
                     <p>Historial de períodos registrados</p>
                 </div>
-                <div class="pagination-bar" id="vacaciones-pagination" style="display:none;">
-                    <button class="pagination-btn" id="vacaciones-prev" disabled>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <polyline points="15 18 9 12 15 6"/>
-                        </svg>
-                    </button>
-                    <span class="pagination-info" id="vacaciones-page-info"></span>
-                    <button class="pagination-btn" id="vacaciones-next">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </button>
-                </div>
             </div>
 
             <!-- BARRA DE ELIMINACIÓN EN LOTE -->
@@ -487,66 +474,8 @@
 
 <script nonce="{{ csp_nonce() }}">
 /* ===== CONFIG ===== */
-var PAGE_SIZE = 6;
 var pendingUrl = null;
 var pendingIds = [];
-
-/* ===== PAGINACION VACACIONES ===== */
-var vacacionesPage = 0;
-
-function vacacionesGetVisible() {
-    var rows = document.querySelectorAll('#vacaciones-tbody tr:not(.empty-row)');
-    var visible = [];
-    for (var i = 0; i < rows.length; i++) {
-        if (!rows[i].classList.contains('oculta-filtro')) {
-            visible.push(rows[i]);
-        }
-    }
-    return visible;
-}
-
-function vacacionesRender() {
-    var pag = document.getElementById('vacaciones-pagination');
-    var prevBtn = document.getElementById('vacaciones-prev');
-    var nextBtn = document.getElementById('vacaciones-next');
-    var info = document.getElementById('vacaciones-page-info');
-    var visible = vacacionesGetVisible();
-    var count = visible.length;
-
-    for (var i = 0; i < visible.length; i++) {
-        visible[i].style.display = 'none';
-    }
-
-    if (count <= PAGE_SIZE) {
-        for (var j = 0; j < visible.length; j++) {
-            visible[j].style.removeProperty('display');
-        }
-        if (pag) pag.style.display = 'none';
-        return;
-    }
-
-    if (pag) pag.style.display = 'flex';
-
-    var start = vacacionesPage * PAGE_SIZE;
-    var end = Math.min(start + PAGE_SIZE, count);
-
-    for (var k = start; k < end; k++) {
-        visible[k].style.removeProperty('display');
-    }
-
-    if (info) info.textContent = (start + 1) + '-' + end + ' de ' + count;
-    if (prevBtn) prevBtn.disabled = vacacionesPage === 0;
-    if (nextBtn) nextBtn.disabled = end >= count;
-}
-
-function vacacionesCambiarPagina(cambio) {
-    var visible = vacacionesGetVisible();
-    var max = Math.ceil(visible.length / PAGE_SIZE) || 1;
-    vacacionesPage += cambio;
-    if (vacacionesPage < 0) vacacionesPage = 0;
-    if (vacacionesPage >= max) vacacionesPage = max - 1;
-    vacacionesRender();
-}
 
 function confirmarPost(url, msg) {
     if (msg) {
@@ -633,11 +562,6 @@ document.getElementById('btn-eliminar-seleccion').addEventListener('click', conf
 
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
-    vacacionesRender();
-
-    document.getElementById('vacaciones-prev').addEventListener('click', function() { vacacionesCambiarPagina(-1); });
-    document.getElementById('vacaciones-next').addEventListener('click', function() { vacacionesCambiarPagina(1); });
-
     document.querySelectorAll('.btn-eliminar').forEach(function(a) {
         a.addEventListener('click', function(e) {
             e.preventDefault();

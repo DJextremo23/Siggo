@@ -164,19 +164,6 @@
                     <h2>Alerta</h2>
                     <p>Disponibilidad de vacaciones del personal</p>
                 </div>
-                <div class="pagination-bar" id="alertas-pagination" style="display:none;">
-                    <button class="pagination-btn" id="alertas-prev" disabled>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <polyline points="15 18 9 12 15 6"/>
-                        </svg>
-                    </button>
-                    <span class="pagination-info" id="alertas-page-info"></span>
-                    <button class="pagination-btn" id="alertas-next">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </button>
-                </div>
             </div>
             <div class="card-body no-padding">
                 <div class="table-container">
@@ -263,72 +250,7 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-/* ===== CONFIG ===== */
-var PAGE_SIZE = 6;
-
-/* ===== PAGINACION ALERTAS ===== */
-var alertasPage = 0;
-
-function alertasGetVisible() {
-    var rows = document.querySelectorAll('#alertas-tbody tr:not(.empty-row)');
-    var visible = [];
-    for (var i = 0; i < rows.length; i++) {
-        if (!rows[i].classList.contains('oculta-filtro')) {
-            visible.push(rows[i]);
-        }
-    }
-    return visible;
-}
-
-function alertasRender() {
-    var pag = document.getElementById('alertas-pagination');
-    var prevBtn = document.getElementById('alertas-prev');
-    var nextBtn = document.getElementById('alertas-next');
-    var info = document.getElementById('alertas-page-info');
-    var visible = alertasGetVisible();
-    var count = visible.length;
-
-    for (var i = 0; i < visible.length; i++) {
-        visible[i].style.display = 'none';
-    }
-
-    if (count <= PAGE_SIZE) {
-        for (var j = 0; j < visible.length; j++) {
-            visible[j].style.removeProperty('display');
-        }
-        if (pag) pag.style.display = 'none';
-        return;
-    }
-
-    if (pag) pag.style.display = 'flex';
-
-    var start = alertasPage * PAGE_SIZE;
-    var end = Math.min(start + PAGE_SIZE, count);
-
-    for (var k = start; k < end; k++) {
-        visible[k].style.removeProperty('display');
-    }
-
-    if (info) info.textContent = (start + 1) + '-' + end + ' de ' + count;
-    if (prevBtn) prevBtn.disabled = alertasPage === 0;
-    if (nextBtn) nextBtn.disabled = end >= count;
-}
-
-function alertasCambiarPagina(cambio) {
-    var visible = alertasGetVisible();
-    var max = Math.ceil(visible.length / PAGE_SIZE) || 1;
-    alertasPage += cambio;
-    if (alertasPage < 0) alertasPage = 0;
-    if (alertasPage >= max) alertasPage = max - 1;
-    alertasRender();
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    alertasRender();
-
-    document.getElementById('alertas-prev').addEventListener('click', function() { alertasCambiarPagina(-1); });
-    document.getElementById('alertas-next').addEventListener('click', function() { alertasCambiarPagina(1); });
-
     document.querySelectorAll('.btn-limpiar[data-url]').forEach(function(b) {
         b.addEventListener('click', function() {
             window.location.href = b.dataset.url;

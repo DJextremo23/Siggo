@@ -264,7 +264,7 @@ def reporte():
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro}
@@ -295,7 +295,7 @@ def reporte():
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             {filtro}
             ORDER BY g.fecha_guardia DESC
         """, params)
@@ -445,7 +445,7 @@ def exportar_pdf():
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro}
@@ -547,7 +547,7 @@ def exportar_excel():
                 ) AS pendientes
             FROM guardias g
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             {filtro}
@@ -636,7 +636,7 @@ def exportar_detalle_fecha_pdf():
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             {filtro}
             ORDER BY g.fecha_guardia DESC
         """, params)
@@ -735,7 +735,7 @@ def exportar_detalle_fecha_excel():
             LEFT JOIN usuarios u ON g.id_usuario = u.id_usuario
             LEFT JOIN asistencia a ON g.id_guardia = a.id_guardia
             LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
-            LEFT JOIN feriados f ON g.id_feriado = f.id_feriado
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
             {filtro}
             ORDER BY g.fecha_guardia DESC
         """, params)
