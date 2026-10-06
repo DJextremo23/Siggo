@@ -467,10 +467,11 @@ def administrador():
             "pendientes": int(resumen_operativo["pendientes"] or 0),
         }
 
-        # Resumen operativo: guardias agrupadas por año y mes
+        # Resumen operativo: guardias (solo tipo 'guardia') agrupadas por año y mes
         cursor.execute("""
             SELECT YEAR(fecha_guardia) AS anio, MONTH(fecha_guardia) AS mes, COUNT(*) AS total
             FROM guardias
+            WHERE tipo = 'guardia'
             GROUP BY YEAR(fecha_guardia), MONTH(fecha_guardia)
             ORDER BY anio ASC, mes ASC
         """)
