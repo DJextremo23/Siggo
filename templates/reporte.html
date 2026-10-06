@@ -213,7 +213,7 @@
   <canvas id="chart-resumen"></canvas>
 </div>
 
-<div class="leyenda-avatares">
+<div class="leyenda-avatares" id="leyenda-resumen">
   {% for r in reporte %}
     {% if r.foto %}
     <div class="leyenda-item" title="{{ r.fiscalizador }}">
@@ -304,7 +304,7 @@
 
 <tbody id="tabla-detalle">
 {% for d in detalle %}
-<tr class="fila-detalle">
+<tr class="fila-detalle" data-busqueda="{{ d.fecha_guardia }} {{ d.fecha_compensacion }}">
 
 <td data-label="Fiscalizador"><strong>{{ d.fiscalizador }}</strong></td>
 <td data-label="Fecha"><strong>{{ d.fecha_guardia|fecha }}</strong></td>
@@ -414,7 +414,7 @@
   <canvas id="chart-resumen-vacaciones"></canvas>
 </div>
 
-<div class="leyenda-avatares">
+<div class="leyenda-avatares" id="leyenda-resumen-vacaciones">
   {% for r in resumen_vacaciones %}
     {% if r.foto %}
     <div class="leyenda-item" title="{{ r.fiscalizador }}">
@@ -500,7 +500,7 @@
 
 <tbody id="tabla-vacaciones">
 {% for v in vacaciones %}
-<tr class="fila-vacaciones">
+<tr class="fila-vacaciones" data-busqueda="{{ v.fecha_inicio }} {{ v.fecha_fin }} {{ v.estado }}">
 <td data-label="Fiscalizador"><strong>{{ v.fiscalizador }}</strong></td>
 <td data-label="Inicio"><strong>{{ v.fecha_inicio|fecha }}</strong></td>
 <td data-label="Fin"><strong>{{ v.fecha_fin|fecha }}</strong></td>
@@ -645,6 +645,30 @@ function actualizarLinksExport() {
     } catch(e) {}
 }
 
+/* ===== BÚSQUEDA POR TEXTO (igual al filtro del servidor: busca en todos los campos) ===== */
+function contieneTexto(row, texto) {
+  if (!texto) return true;
+  var t = texto.toLowerCase();
+  var haystack = Object.values(row).map(function(v) {
+    return (v === null || v === undefined) ? '' : String(v);
+  }).join(' ').toLowerCase();
+  return haystack.indexOf(t) !== -1;
+}
+
+function filtrarLeyenda(containerId, data, texto) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  var items = container.querySelectorAll('.leyenda-item');
+  items.forEach(function(item) {
+    var nombre = item.getAttribute('title') || '';
+    var row = null;
+    for (var i = 0; i < data.length; i++) {
+      if ((data[i].fiscalizador || '') === nombre) { row = data[i]; break; }
+    }
+    item.style.display = (row && contieneTexto(row, texto)) ? '' : 'none';
+  });
+}
+
 /* ===== GRÁFICO RESUMEN (BARRAS) ===== */
 var resumenData = {{ reporte | tojson }};
 var chartResumen = null;
@@ -655,9 +679,11 @@ function renderResumenChart() {
   var data = resumenData;
   if (texto) {
     data = resumenData.filter(function(r) {
-      return (r.fiscalizador || '').toLowerCase().indexOf(texto) !== -1;
+      return contieneTexto(r, texto);
     });
   }
+
+  filtrarLeyenda('leyenda-resumen', resumenData, texto);
 
   var canvas = document.getElementById('chart-resumen');
   if (!canvas) return;
@@ -709,9 +735,11 @@ function renderResumenVacacionesChart() {
   var data = resumenVacacionesData;
   if (texto) {
     data = resumenVacacionesData.filter(function(r) {
-      return (r.fiscalizador || '').toLowerCase().indexOf(texto) !== -1;
+      return contieneTexto(r, texto);
     });
   }
+
+  filtrarLeyenda('leyenda-resumen-vacaciones', resumenVacacionesData, texto);
 
   var canvas = document.getElementById('chart-resumen-vacaciones');
   if (!canvas) return;
@@ -768,6 +796,7 @@ function filtrarTabla(tipo){
 
   filas.forEach(function(f) {
     var contenido = f.textContent.toLowerCase();
+    contenido += ' ' + ((f.getAttribute('data-busqueda') || '').toLowerCase());
     f.classList.toggle('oculta-filtro', texto !== '' && !contenido.includes(texto));
   });
 

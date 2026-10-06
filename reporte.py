@@ -60,8 +60,12 @@ def filtrar_por_texto(data, texto):
     """Filtra una lista de diccionarios buscando el texto en cualquier campo (case-insensitive)."""
     if not texto:
         return data
-    texto_lower = texto.lower()
-    return [row for row in data if texto_lower in ' '.join(str(v) for v in row.values()).lower()]
+    # Normaliza guiones bajos a espacios para que "en curso" coincida con "en_curso".
+    texto_lower = texto.lower().replace('_', ' ')
+    return [
+        row for row in data
+        if texto_lower in ' '.join(str(v) for v in row.values()).lower().replace('_', ' ')
+    ]
 
 
 # ==========================
@@ -120,6 +124,16 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     hoy = date.today().strftime("%Y-%m-%d")
     periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
 
+    # Fin del período filtrado: respeta "Hasta"/año y nunca cuenta días futuros.
+    if fecha_hasta:
+        limite = fecha_hasta
+    elif anio:
+        limite = f"{anio}-12-31"
+    else:
+        limite = hoy
+    if limite > hoy:
+        limite = hoy
+
     # Periodo totalmente en el futuro: aún no hay registros de vacaciones
     if periodo_inicio and periodo_inicio > hoy:
         return []
@@ -129,6 +143,8 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         anio_filtro = int(anio)
     elif fecha_desde:
         anio_filtro = int(fecha_desde[:4])
+    elif fecha_hasta:
+        anio_filtro = int(fecha_hasta[:4])
     else:
         anio_filtro = date.today().year
 
@@ -166,7 +182,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """
 
     params = (
-        [anio_filtro, hoy, anio_filtro, anio_filtro, hoy, anio_filtro, anio_filtro, anio_filtro, hoy] +
+        [anio_filtro, limite, anio_filtro, anio_filtro, limite, anio_filtro, anio_filtro, anio_filtro, limite] +
         params_usuarios
     )
 
@@ -288,7 +304,7 @@ def reporte():
         # ==========================
         # VACACIONES
         # ==========================
-        filtro_vac = "WHERE 1=1"
+        filtro_vac = "WHERE 1=1 AND u.estado = 'activo' AND r.nombre_rol = 'fiscalizador'"
         params_vac = []
 
         if fecha_desde:
@@ -322,6 +338,8 @@ def reporte():
                 END AS estado
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
+            JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            JOIN roles r ON ur.id_rol = r.id_rol
             {filtro_vac}
             ORDER BY v.fecha_inicio DESC
         """, params_vac)
@@ -776,7 +794,7 @@ def exportar_vacaciones_pdf():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        filtro_vac = "WHERE 1=1"
+        filtro_vac = "WHERE 1=1 AND u.estado = 'activo' AND r.nombre_rol = 'fiscalizador'"
         params_vac = []
 
         if fecha_desde:
@@ -810,6 +828,8 @@ def exportar_vacaciones_pdf():
                 END AS estado
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
+            JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            JOIN roles r ON ur.id_rol = r.id_rol
             {filtro_vac}
             ORDER BY v.fecha_inicio DESC
         """, params_vac)
@@ -880,7 +900,7 @@ def exportar_vacaciones_excel():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        filtro_vac = "WHERE 1=1"
+        filtro_vac = "WHERE 1=1 AND u.estado = 'activo' AND r.nombre_rol = 'fiscalizador'"
         params_vac = []
 
         if fecha_desde:
@@ -914,6 +934,8 @@ def exportar_vacaciones_excel():
                 END AS estado
             FROM vacaciones v
             JOIN usuarios u ON u.id_usuario = v.id_usuario
+            JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            JOIN roles r ON ur.id_rol = r.id_rol
             {filtro_vac}
             ORDER BY v.fecha_inicio DESC
         """, params_vac)
