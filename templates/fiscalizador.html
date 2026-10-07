@@ -54,7 +54,7 @@
             <span class="welcome-role">Fiscalizador</span>
 
             {% if notificaciones or alertas_criticas|length + alertas_proximas|length + alertas_sin_tomar|length > 0 %}
-            <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel" id="notifPanel" style="display: none;">
                 <div class="notif-header">
                     <div class="notif-header-left">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -62,7 +62,6 @@
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
                         <h2>Notificaciones</h2>
-                        <span class="notif-timer" id="notifTimer">5:00</span>
                     </div>
                     <div class="notif-header-right">
                         {% if notificaciones %}
@@ -531,7 +530,6 @@
     var btn = document.getElementById('btnNotificaciones');
     var closeBtn = document.getElementById('notifClose');
     var markAllBtn = document.getElementById('notifMarkAll');
-    var timerEl = document.getElementById('notifTimer');
     var badge = document.getElementById('notifBadge');
     var toastContainer = document.getElementById('toastContainer');
     var toastEl = document.getElementById('toastMsg');
@@ -539,35 +537,13 @@
     var toastTitle = toastEl ? toastEl.querySelector('.toast-title') : null;
     var toastText = toastEl ? toastEl.querySelector('.toast-text') : null;
 
-    var totalSeconds = 300; // 5 minutos
-    var panelInterval;
     var toastInterval;
     var lastNotifCount = {{ notif_no_leidas|default(0) }};
     var vacAlertCount = {{ alertas_criticas|length + alertas_proximas|length + alertas_sin_tomar|length }};
 
-    function updateTimer() {
-        if (totalSeconds <= 0) {
-            if (panel) panel.style.display = 'none';
-            if (panelInterval) clearInterval(panelInterval);
-            return;
-        }
-        var min = Math.floor(totalSeconds / 60);
-        var sec = totalSeconds % 60;
-        if (timerEl) {
-            timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
-        }
-        totalSeconds--;
-    }
-
-    if (panel && timerEl) {
-        panelInterval = setInterval(updateTimer, 1000);
-        updateTimer();
-    }
-
     if (closeBtn && panel) {
         closeBtn.addEventListener('click', function() {
             panel.style.display = 'none';
-            if (panelInterval) clearInterval(panelInterval);
         });
     }
 
@@ -575,13 +551,8 @@
         btn.addEventListener('click', function() {
             if (panel.style.display === 'none') {
                 panel.style.display = 'block';
-                totalSeconds = 300;
-                if (panelInterval) clearInterval(panelInterval);
-                panelInterval = setInterval(updateTimer, 1000);
-                updateTimer();
             } else {
                 panel.style.display = 'none';
-                if (panelInterval) clearInterval(panelInterval);
             }
         });
     }

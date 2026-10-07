@@ -637,9 +637,20 @@ def inicio():
                 balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
         # ESTADO DE GUARDIAS: distribución guardia / soporte del año en curso
+        cursor.execute("""
+            SELECT
+                COALESCE(SUM(CASE WHEN tipo = 'guardia' THEN 1 ELSE 0 END), 0) AS guardia,
+                COALESCE(SUM(CASE WHEN tipo = 'soporte' THEN 1 ELSE 0 END), 0) AS soporte
+            FROM guardias
+            WHERE id_usuario = (
+                SELECT id_usuario FROM usuarios WHERE usuario = %s
+            )
+              AND YEAR(fecha_guardia) = YEAR(CURDATE())
+        """, (session["usuario"],))
+        fila_estado = cursor.fetchone()
         estado_guardias = {
-            "guardia": sum(1 for d in datos if d.get("tipo") == "guardia"),
-            "soporte": sum(1 for d in datos if d.get("tipo") == "soporte"),
+            "guardia": int(fila_estado["guardia"] or 0),
+            "soporte": int(fila_estado["soporte"] or 0),
         }
 
         # PRÓXIMAS GUARDIAS: turnos programados a futuro del fiscalizador
