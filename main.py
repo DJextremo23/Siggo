@@ -636,12 +636,45 @@ def inicio():
             a["dias_tomados"], a["dias_pendientes_este_anio"], a["dias_pendientes_anteriores"] = \
                 balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
 
+        # ESTADO DE GUARDIAS: distribución guardia / soporte del año en curso
+        estado_guardias = {
+            "guardia": sum(1 for d in datos if d.get("tipo") == "guardia"),
+            "soporte": sum(1 for d in datos if d.get("tipo") == "soporte"),
+        }
+
+        # PRÓXIMAS GUARDIAS: turnos programados a futuro del fiscalizador
+        cursor.execute("""
+            SELECT g.id_guardia, g.fecha_guardia, g.tipo, f.descripcion AS feriado
+            FROM guardias g
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
+            WHERE g.id_usuario = (
+                SELECT id_usuario FROM usuarios WHERE usuario = %s
+            )
+              AND g.fecha_guardia >= CURDATE()
+            ORDER BY g.fecha_guardia ASC
+            LIMIT 5
+        """, (session["usuario"],))
+        proximas_guardias = cursor.fetchall()
+        for g in proximas_guardias:
+            g["es_feriado"] = g.get("feriado") is not None
+            fecha = g["fecha_guardia"]
+            if isinstance(fecha, date):
+                g["dia_semana"] = DIAS_ES[fecha.weekday()]
+                g["dia_numero"] = fecha.day
+                g["mes_abrev"] = MESES_ABREV[fecha.month - 1]
+            else:
+                g["dia_semana"] = ""
+                g["dia_numero"] = "—"
+                g["mes_abrev"] = ""
+
         return render_template(
             "fiscalizador.html",
             datos=datos,
             notificaciones=notificaciones,
             notif_no_leidas=notif_no_leidas,
-            alertas=alertas
+            alertas=alertas,
+            estado_guardias=estado_guardias,
+            proximas_guardias=proximas_guardias
         )
 
     except Exception as e:
