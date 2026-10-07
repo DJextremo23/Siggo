@@ -1178,6 +1178,10 @@ tbody tr:hover {
     height: 220px;
 }
 
+.resumen-chart-container--donut {
+    height: 340px;
+}
+
 /* Tiles de resumen operativo */
 .resumen-stats {
     display: grid;
@@ -1190,7 +1194,7 @@ tbody tr:hover {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #f1f5f9;
+    background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 12px;
