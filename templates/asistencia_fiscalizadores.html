@@ -13,7 +13,7 @@
 
 <body>
 
-{% set active_page = 'mis_guardias' %}
+{% set active_page = '' %}
 {% include 'menu.html' %}
 
 <div class="content">
@@ -32,6 +32,13 @@
             <h1>Registrar Asistencia</h1>
             <p>Marca tu asistencia según tu guardia asignada</p>
         </div>
+
+        <a href="{{ url_for('asistencia') }}" class="btn-volver">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Volver a Mis Asistencias
+        </a>
     </div>
 
     <!-- MENSAJES FLASH (éxito, error, advertencia, informativo) -->
