@@ -196,20 +196,6 @@
 
     <div class="tabla-header">
         <h2>Detalle de Asistencia</h2>
-
-        <div class="table-controls">
-            <button id="btn-prev" aria-label="Anterior">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
-            </button>
-            <span id="contador"></span>
-            <button id="btn-next" aria-label="Siguiente">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                </svg>
-            </button>
-        </div>
     </div>
 
     <div class="tabla-container">
@@ -338,44 +324,6 @@
 </div>
 
     </div>
-
-    <script nonce="{{ csp_nonce() }}">
-    let inicio = 0;
-    const tamaño = 6;
-
-    const filas = document.querySelectorAll(".fila");
-    const contador = document.getElementById("contador");
-
-    function mostrar() {
-        filas.forEach((fila, i) => {
-            fila.style.display = (i >= inicio && i < inicio + tamaño) ? "" : "none";
-        });
-
-        let desde = filas.length === 0 ? 0 : inicio + 1;
-        let hasta = Math.min(inicio + tamaño, filas.length);
-
-        contador.innerText = `${desde} - ${hasta} de ${filas.length}`;
-    }
-
-    function siguiente() {
-        if (inicio + tamaño < filas.length) {
-            inicio += tamaño;
-            mostrar();
-        }
-    }
-
-    function anterior() {
-        if (inicio - tamaño >= 0) {
-            inicio -= tamaño;
-            mostrar();
-        }
-    }
-
-    mostrar();
-
-    document.getElementById("btn-prev").addEventListener("click", anterior);
-    document.getElementById("btn-next").addEventListener("click", siguiente);
-    </script>
 
 </body>
 </html>
