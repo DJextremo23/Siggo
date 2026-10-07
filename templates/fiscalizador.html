@@ -347,6 +347,16 @@
                 <p>No hay guardias programadas a futuro</p>
             </div>
             {% endif %}
+
+            <div class="resumen-acciones">
+                <a href="{{ url_for('mis_guardias') }}" class="ver-todas-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                    Ver todas las guardias
+                </a>
+            </div>
         </div>
 
         <!-- Estado de guardias -->
@@ -359,7 +369,7 @@
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                     </div>
-                    <h4>Estado de guardias</h4>
+                    <h4>Actividad del año</h4>
                 </div>
             </div>
             <div class="resumen-chart-container">

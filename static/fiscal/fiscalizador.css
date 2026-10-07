@@ -1096,6 +1096,7 @@ tbody tr:hover {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 14px;
+    margin-bottom: 28px;
 }
 
 .resumen-card {
@@ -1175,7 +1176,7 @@ tbody tr:hover {
 
 .resumen-chart-container {
     position: relative;
-    height: 220px;
+    height: 280px;
 }
 
 /* Tiles de resumen operativo */
