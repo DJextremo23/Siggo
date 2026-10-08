@@ -339,6 +339,7 @@
                             {% endif %}
                             <th>ID</th>
                             <th>Fiscalizador</th>
+                            <th>Fecha de ingreso</th>
                             <th>Inicio</th>
                             <th>Fin</th>
                             <th>Días</th>
@@ -361,6 +362,17 @@
                                 </td>
                                 <td data-label="Fiscalizador">
                                     <strong>{{ v.nombre }}</strong>
+                                </td>
+                                <td data-label="Fecha de ingreso">
+                                    <span class="inline-flex-center">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                            <line x1="16" y1="2" x2="16" y2="6"/>
+                                            <line x1="8" y1="2" x2="8" y2="6"/>
+                                            <line x1="3" y1="10" x2="21" y2="10"/>
+                                        </svg>
+                                        {{ v.fecha_ingreso|fecha }}
+                                    </span>
                                 </td>
                                 <td data-label="Inicio">
                                     <span class="inline-flex-center">
@@ -431,7 +443,7 @@
                             </tr>
                             {% else %}
                             <tr class="empty-row">
-                                <td colspan="{{ 8 if session.get('perfil_activo') == 'admin' else 6 }}">
+                                <td colspan="{{ 9 if session.get('perfil_activo') == 'admin' else 7 }}">
                                     <div class="empty-state">
                                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>

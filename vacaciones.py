@@ -83,6 +83,7 @@ def registrar_rutas(app):
                     v.fecha_inicio,
                     v.fecha_fin,
                     CONCAT(u.nombre,' ',u.apellidos) AS nombre,
+                    u.fecha_ingreso,
 
                     DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1 AS dias,
 

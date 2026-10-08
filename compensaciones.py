@@ -8,6 +8,7 @@ from utils import (
     acceso_no_autorizado, datos_invalidos, no_encontrado, error_interno,
     error_response, guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
+from correo import enviar_correo
 from helpers import DIAS_ES
 from datetime import datetime, date
 
@@ -269,6 +270,30 @@ def registrar_rutas(app):
             ))
 
             conexion.commit()
+
+            # Notificar al fiscalizador por correo la fecha de compensación (mejor esfuerzo)
+            cursor.execute("""
+                SELECT u.correo, CONCAT(u.nombre,' ',u.apellidos)
+                FROM guardias g
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                WHERE g.id_guardia = %s
+            """, (id_guardia,))
+            info_usuario = cursor.fetchone()
+            if info_usuario and info_usuario[0]:
+                fecha_compensacion_str = fecha_compensacion.strftime("%d/%m/%Y")
+                fecha_guardia_str = fecha_guardia.strftime("%d/%m/%Y") if isinstance(fecha_guardia, date) else str(fecha_guardia)
+                nombre_completo = info_usuario[1] or "Fiscalizador"
+                asunto = "Compensación registrada"
+                cuerpo = f"""
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+                    <h2 style="color: #2563eb; margin: 0 0 12px;">Compensación registrada</h2>
+                    <p>Hola <strong>{nombre_completo}</strong>,</p>
+                    <p>Se registró una compensación asociada a tu guardia del <strong>{fecha_guardia_str}</strong>.</p>
+                    <p><strong>Fecha de compensación:</strong> {fecha_compensacion_str}</p>
+                    <p>Puedes revisar el detalle en el sistema SIGGO.</p>
+                </div>
+                """
+                enviar_correo(info_usuario[0], asunto, cuerpo)
 
             registrar_auditoria("compensacion_registrada", f"Compensación guardada: guardia {id_guardia}")
             flash("Compensación registrada correctamente", "success")
