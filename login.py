@@ -44,10 +44,12 @@ def _limpiar_intentos_db(identificador, minutos=BLOQUEO_MINUTOS):
         conn = conexion()
         cursor = conn.cursor()
         try:
-            corte = datetime.now() - timedelta(minutes=minutos)
+            # Se usa NOW() del servidor de BD (no datetime.now()) para que la
+            # comparación con intento_en (CURRENT_TIMESTAMP) sea coherente aunque
+            # la zona horaria de la app difiera de la de MySQL (p. ej. Railway UTC).
             cursor.execute(
-                "DELETE FROM intentos_login WHERE identificador = %s AND intento_en < %s",
-                (identificador, corte)
+                "DELETE FROM intentos_login WHERE identificador = %s AND intento_en < (NOW() - INTERVAL %s MINUTE)",
+                (identificador, minutos)
             )
             conn.commit()
         finally:
