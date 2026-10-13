@@ -54,6 +54,15 @@ de Railway, define en .env el host publico (altaria.proxy.rlwy.net) y puerto 554
 - LOG_DIR           (opcional)     carpeta de logs            (default: logs)
 - LOG_LEVEL         (opcional)     DEBUG/INFO/WARNING/ERROR   (default: INFO)
                                    Los logs se guardan en LOG_DIR/app.log con rotación (10 MB, 5 respaldos).
+- SMTP_USER         (opcional)     correo organizacional remitente (ej. notificaciones@oigperu.com)
+- SMTP_PASSWORD     (opcional)     contraseña de aplicación (App Password) de Microsoft 365
+- SMTP_FROM         (opcional)     remitente visible (si se deja vacío usa SMTP_USER)
+- SMTP_HOST         (opcional)     default: smtp.office365.com
+- SMTP_PORT         (opcional)     default: 587
+- ALERTA_VACACIONES_INTERVALO_SEG (opcional) intervalo (segundos) de la alerta
+                                   automatica diaria de vacaciones (default: 86400 = 24h)
+- ALERTA_VACACIONES_ARRANQUE_SEG (opcional) retraso inicial antes de la primera
+                                   comprobacion (default: 60)
 
 Generar SECRET_KEY con:
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -92,3 +101,37 @@ Hacer backup de ambas carpetas junto con la base de datos.
 - NO subir el archivo .env al repositorio (ya esta en .gitignore).
 - SECRET_KEY larga y secreta.
 - HTTPS activo en produccion.
+
+
+8. CORREO DE NOTIFICACIONES (SMTP Microsoft 365 / Exchange)
+-------------------------------------------------------------
+La app envia correos de notificacion a los fiscalizadores (por ejemplo, al
+registrar, editar o eliminar una compensacion o unas vacaciones). Para que
+funcionen se necesita una cuenta de correo ORGANIZACIONAL (mismo dominio que los
+usuarios, @oigperu.com) y su contraseña de aplicación. No usar una cuenta personal.
+
+El área de TI debe proporcionar:
+1. Una cuenta de correo remitente, ej. notificaciones@oigperu.com
+2. La "contraseña de aplicación" (App Password) de Microsoft 365 para esa cuenta.
+   NO es la contraseña normal de inicio de sesión de la cuenta.
+
+Configurar en .env (o variables del sistema):
+- SMTP_USER     = notificaciones@oigperu.com
+- SMTP_PASSWORD = (contraseña de aplicación)
+- SMTP_FROM     = (opcional, si se omite usa SMTP_USER)
+
+Generar la contraseña de aplicación:
+https://account.live.com/proofs/manage/additional
+(Requiere tener activada la verificación en dos pasos en la cuenta de Microsoft.)
+
+IMPORTANTE:
+- Si SMTP_USER / SMTP_PASSWORD quedan vacíos, la app NO envía correos pero sigue
+  funcionando con normalidad (solo registra un aviso en los logs).
+- El dominio del remitente (SMTP_FROM) debe coincidir con el dominio de la
+  organización (@oigperu.com) para que los correos no se vean como spam.
+
+Ademas de las notificaciones por evento, la app ejecuta una tarea automatica
+diaria que avisa por correo a los administradores cuando hay fiscalizadores
+habilitados para tomar vacaciones o proximos a habilitarse (15 dias). El
+intervalo y el retraso inicial se controlan con ALERTA_VACACIONES_INTERVALO_SEG
+y ALERTA_VACACIONES_ARRANQUE_SEG (ver seccion 3).

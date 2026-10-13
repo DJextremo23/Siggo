@@ -1,5 +1,6 @@
 """Rutas de gestión de compensaciones (admin y fiscalizador)."""
 
+import os
 from flask import render_template, request, session, redirect, url_for, flash
 from conexion import conexion as _obtener_conexion
 conexion = _obtener_conexion()
@@ -11,6 +12,138 @@ from utils import (
 from correo import enviar_correo
 from helpers import DIAS_ES
 from datetime import datetime, date
+
+# Logos incrustados en los correos de notificación
+LOGO_SIGGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "img", "logo.png")
+LOGO_SMALL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "ppt", "logo_small.jpg")
+
+# Configuración visual de los correos de compensación según la acción
+_ACCIONES_CORREO = {
+    "registrada": {
+        "titulo": "Compensación registrada",
+        "header_bg": "#1e3a8a",
+        "subtitle_color": "#bfdbfe",
+        "mensaje": "Se le informa que se ha registrado una compensación asociada a una de sus guardias. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Registrado por",
+    },
+    "editada": {
+        "titulo": "Compensación actualizada",
+        "header_bg": "#92400e",
+        "subtitle_color": "#fde68a",
+        "mensaje": "Se le informa que se ha actualizado la compensación asociada a una de sus guardias. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Actualizado por",
+    },
+    "eliminada": {
+        "titulo": "Compensación eliminada",
+        "header_bg": "#991b1b",
+        "subtitle_color": "#fecaca",
+        "mensaje": "Se le informa que se ha eliminado la compensación asociada a una de sus guardias. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Eliminado por",
+    },
+}
+
+
+def _enviar_correo_compensacion(destinatario, nombre_completo, fecha_guardia,
+                                fecha_compensacion, tipo, feriado, accion,
+                                admin_nombre="", admin_correo=""):
+    """Notifica al fiscalizador una compensación registrada/editada/eliminada (mejor esfuerzo)."""
+    if not destinatario:
+        return
+
+    cfg = _ACCIONES_CORREO.get(accion, _ACCIONES_CORREO["registrada"])
+    asunto = cfg["titulo"]
+
+    fecha_guardia_str = fecha_guardia.strftime("%d/%m/%Y") if isinstance(fecha_guardia, date) else (str(fecha_guardia) if fecha_guardia else "—")
+    fecha_compensacion_str = fecha_compensacion.strftime("%d/%m/%Y") if isinstance(fecha_compensacion, date) else (str(fecha_compensacion) if fecha_compensacion else "—")
+
+    tipo_guardia_str = "Soporte" if tipo == "soporte" else "Guardia"
+
+    if isinstance(fecha_guardia, date):
+        dia = DIAS_ES[fecha_guardia.weekday()]
+    else:
+        dia = str(fecha_guardia) if fecha_guardia else "—"
+    dia_guardia_str = f"{dia} (Feriado: {feriado})" if feriado else dia
+
+    cuerpo = f"""
+    <div style="margin:0; padding:0; background-color:#f1f5f9;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:24px 0;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
+              <tr>
+                <td style="background-color:{cfg['header_bg']}; padding:20px 24px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align:middle;">
+                        <img src="cid:logo_siggo" width="44" height="44" alt="SIGGO" style="display:block; border-radius:8px; background-color:#ffffff;">
+                      </td>
+                      <td style="vertical-align:middle; padding-left:12px;">
+                        <img src="cid:logo_small" width="124" height="30" alt="" style="display:block;">
+                      </td>
+                    </tr>
+                  </table>
+                  <div style="font-family:'Segoe UI',Arial,sans-serif; color:{cfg['subtitle_color']}; font-size:12px; margin-top:10px;">{cfg['titulo']}</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px; font-family:'Segoe UI',Arial,sans-serif; color:#0f172a; line-height:1.6; font-size:14px;">
+                  <p style="margin:0 0 12px;">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p style="margin:0 0 16px;">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                    <tr>
+                      <td style="padding:16px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de la guardia</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_guardia_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Tipo de guardia</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{tipo_guardia_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Día de la guardia</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{dia_guardia_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de compensación</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a;">{fecha_compensacion_str}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin:16px 0 0;">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:16px 24px; font-family:'Segoe UI',Arial,sans-serif; font-size:12px; color:#64748b;">
+                  <p style="margin:0 0 4px;">{cfg['footer_label']}: <strong style="color:#0f172a;">{admin_nombre}</strong></p>
+                  <p style="margin:0; color:#2563eb;">{admin_correo}</p>
+                  <p style="margin:10px 0 0; font-size:11px; color:#94a3b8;">Este es un mensaje automático. No responda a este correo.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    """
+
+    enviar_correo(
+        destinatario,
+        asunto,
+        cuerpo,
+        imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
+    )
 
 
 def registrar_rutas(app):
@@ -230,9 +363,10 @@ def registrar_rutas(app):
                 return error_response("Solo se puede generar compensación para asistencias válidas")
 
             cursor.execute("""
-                SELECT fecha_guardia
-                FROM guardias
-                WHERE id_guardia = %s
+                SELECT g.fecha_guardia, g.tipo, f.descripcion
+                FROM guardias g
+                LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
+                WHERE g.id_guardia = %s
             """, (id_guardia,))
 
             fila_guardia = cursor.fetchone()
@@ -241,6 +375,8 @@ def registrar_rutas(app):
                 return no_encontrado("Guardia no encontrada")
 
             fecha_guardia = fila_guardia[0]
+            tipo_guardia = fila_guardia[1]
+            feriado_guardia = fila_guardia[2]
 
             try:
                 fecha_compensacion = datetime.strptime(fecha, "%Y-%m-%d").date()
@@ -251,6 +387,14 @@ def registrar_rutas(app):
             if fecha_compensacion < fecha_guardia:
                 flash("La fecha de compensación no puede ser anterior a la fecha de la guardia", "error")
                 return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
+
+            # Determinar si es un registro nuevo o una actualización (para el correo)
+            cursor.execute("""
+                SELECT id_compensacion
+                FROM compensaciones
+                WHERE id_guardia = %s
+            """, (id_guardia,))
+            accion = "editada" if cursor.fetchone() else "registrada"
 
             # Insertar o actualizar compensación
             cursor.execute("""
@@ -280,23 +424,36 @@ def registrar_rutas(app):
             """, (id_guardia,))
             info_usuario = cursor.fetchone()
             if info_usuario and info_usuario[0]:
-                fecha_compensacion_str = fecha_compensacion.strftime("%d/%m/%Y")
-                fecha_guardia_str = fecha_guardia.strftime("%d/%m/%Y") if isinstance(fecha_guardia, date) else str(fecha_guardia)
                 nombre_completo = info_usuario[1] or "Fiscalizador"
-                asunto = "Compensación registrada"
-                cuerpo = f"""
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-                    <h2 style="color: #2563eb; margin: 0 0 12px;">Compensación registrada</h2>
-                    <p>Hola <strong>{nombre_completo}</strong>,</p>
-                    <p>Se registró una compensación asociada a tu guardia del <strong>{fecha_guardia_str}</strong>.</p>
-                    <p><strong>Fecha de compensación:</strong> {fecha_compensacion_str}</p>
-                    <p>Puedes revisar el detalle en el sistema SIGGO.</p>
-                </div>
-                """
-                enviar_correo(info_usuario[0], asunto, cuerpo)
 
-            registrar_auditoria("compensacion_registrada", f"Compensación guardada: guardia {id_guardia}")
-            flash("Compensación registrada correctamente", "success")
+                # Datos del administrador que registró/actualizó la compensación
+                cursor.execute("""
+                    SELECT correo, CONCAT(nombre,' ',apellidos)
+                    FROM usuarios
+                    WHERE id_usuario = %s
+                """, (session.get("id_usuario"),))
+                admin_info = cursor.fetchone()
+                admin_nombre = admin_info[1] if admin_info and admin_info[1] else "Administración"
+                admin_correo = admin_info[0] if admin_info and admin_info[0] else ""
+
+                _enviar_correo_compensacion(
+                    info_usuario[0],
+                    nombre_completo,
+                    fecha_guardia,
+                    fecha_compensacion,
+                    tipo_guardia,
+                    feriado_guardia,
+                    accion,
+                    admin_nombre=admin_nombre,
+                    admin_correo=admin_correo,
+                )
+
+            if accion == "editada":
+                registrar_auditoria("compensacion_editada", f"Compensación actualizada: guardia {id_guardia}")
+                flash("Compensación actualizada correctamente", "success")
+            else:
+                registrar_auditoria("compensacion_registrada", f"Compensación guardada: guardia {id_guardia}")
+                flash("Compensación registrada correctamente", "success")
             return redirigir_con_filtros("compensaciones_admin", "filtro_compensaciones")
 
         except Exception as e:
@@ -325,12 +482,48 @@ def registrar_rutas(app):
 
         try:
 
+            # Obtener datos antes de eliminar para notificar al fiscalizador
+            cursor.execute("""
+                SELECT g.fecha_guardia, u.correo, CONCAT(u.nombre,' ',u.apellidos),
+                       c.fecha_compensacion, g.tipo, f.descripcion
+                FROM guardias g
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+                LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
+                WHERE g.id_guardia = %s
+            """, (id_guardia,))
+            info = cursor.fetchone()
+
             cursor.execute("""
                 DELETE FROM compensaciones
                 WHERE id_guardia = %s
             """, (id_guardia,))
 
             conexion.commit()
+
+            if info and info[1]:
+                nombre_completo = info[2] or "Fiscalizador"
+
+                cursor.execute("""
+                    SELECT correo, CONCAT(nombre,' ',apellidos)
+                    FROM usuarios
+                    WHERE id_usuario = %s
+                """, (session.get("id_usuario"),))
+                admin_info = cursor.fetchone()
+                admin_nombre = admin_info[1] if admin_info and admin_info[1] else "Administración"
+                admin_correo = admin_info[0] if admin_info and admin_info[0] else ""
+
+                _enviar_correo_compensacion(
+                    info[1],
+                    nombre_completo,
+                    info[0],
+                    info[3],
+                    info[4],
+                    info[5],
+                    "eliminada",
+                    admin_nombre=admin_nombre,
+                    admin_correo=admin_correo,
+                )
 
             registrar_auditoria("compensacion_eliminada", f"Compensación eliminada: guardia {id_guardia}")
             flash("Compensación eliminada correctamente", "success")
@@ -374,13 +567,57 @@ def registrar_rutas(app):
 
         try:
             placeholders = ",".join(["%s"] * len(ids_int))
+
+            # Obtener datos antes de eliminar para notificar a cada fiscalizador
+            cursor.execute(
+                f"""
+                SELECT g.fecha_guardia, u.correo, CONCAT(u.nombre,' ',u.apellidos),
+                       c.fecha_compensacion, g.tipo, f.descripcion
+                FROM guardias g
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                LEFT JOIN compensaciones c ON g.id_guardia = c.id_guardia
+                LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
+                WHERE g.id_guardia IN ({placeholders})
+                """,
+                tuple(ids_int),
+            )
+            info_guardias = cursor.fetchall()
+
             cursor.execute(
                 f"DELETE FROM compensaciones WHERE id_guardia IN ({placeholders})",
                 tuple(ids_int),
             )
+            eliminadas = cursor.rowcount
             conexion.commit()
-            registrar_auditoria("compensaciones_eliminadas", f"Eliminadas {cursor.rowcount} compensaciones")
-            flash(f"Se eliminaron {cursor.rowcount} compensaciones correctamente", "success")
+
+            # Datos del administrador que elimina
+            cursor.execute("""
+                SELECT correo, CONCAT(nombre,' ',apellidos)
+                FROM usuarios
+                WHERE id_usuario = %s
+            """, (session.get("id_usuario"),))
+            admin_info = cursor.fetchone()
+            admin_nombre = admin_info[1] if admin_info and admin_info[1] else "Administración"
+            admin_correo = admin_info[0] if admin_info and admin_info[0] else ""
+
+            for g in info_guardias:
+                if not g[1]:
+                    continue
+                nombre_completo = g[2] or "Fiscalizador"
+                _enviar_correo_compensacion(
+                    g[1],
+                    nombre_completo,
+                    g[0],
+                    g[3],
+                    g[4],
+                    g[5],
+                    "eliminada",
+                    admin_nombre=admin_nombre,
+                    admin_correo=admin_correo,
+                )
+
+            registrar_auditoria("compensaciones_eliminadas", f"Eliminadas {eliminadas} compensaciones")
+            flash(f"Se eliminaron {eliminadas} compensaciones correctamente", "success")
         except Exception as e:
             conexion.rollback()
             print("ERROR ELIMINAR COMPENSACIONES:", e)

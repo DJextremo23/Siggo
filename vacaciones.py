@@ -1,5 +1,6 @@
 """Rutas de gestión de vacaciones (admin y fiscalizador)."""
 
+import os
 from flask import render_template, request, session, redirect, url_for, flash
 from conexion import conexion as _obtener_conexion
 conexion = _obtener_conexion()
@@ -8,9 +9,145 @@ from utils import (
     acceso_no_autorizado, datos_invalidos, no_encontrado, error_interno,
     guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
+from correo import enviar_correo
 from helpers import DIAS_ES, balance_vacaciones_fifo
 import mysql.connector.errors
 from datetime import datetime, date, timedelta
+
+# Logos incrustados en los correos de notificación
+LOGO_SIGGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "img", "logo.png")
+LOGO_SMALL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "ppt", "logo_small.jpg")
+
+# Configuración visual de los correos de vacaciones según la acción
+_ACCIONES_VACACIONES = {
+    "registrada": {
+        "titulo": "Vacaciones registradas",
+        "header_bg": "#1e3a8a",
+        "subtitle_color": "#bfdbfe",
+        "mensaje": "Se le informa que se han registrado vacaciones a su nombre. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Registrado por",
+    },
+    "actualizada": {
+        "titulo": "Vacaciones actualizadas",
+        "header_bg": "#92400e",
+        "subtitle_color": "#fde68a",
+        "mensaje": "Se le informa que se han actualizado sus vacaciones. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Actualizado por",
+    },
+    "eliminada": {
+        "titulo": "Vacaciones eliminadas",
+        "header_bg": "#991b1b",
+        "subtitle_color": "#fecaca",
+        "mensaje": "Se le informa que se han eliminado sus vacaciones. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Eliminado por",
+    },
+}
+
+
+def _datos_admin(cursor):
+    """Obtiene nombre y correo del administrador con sesión activa (mejor esfuerzo)."""
+    cursor.execute("""
+        SELECT correo, CONCAT(nombre,' ',apellidos) AS nombre_completo
+        FROM usuarios
+        WHERE id_usuario = %s
+    """, (session.get("id_usuario"),))
+    info = cursor.fetchone()
+    if info:
+        return info["nombre_completo"] or "Administración", info["correo"] or ""
+    return "Administración", ""
+
+
+def _enviar_correo_vacacion(destinatario, nombre_completo, fecha_inicio, fecha_fin,
+                            accion, admin_nombre="", admin_correo=""):
+    """Notifica al fiscalizador vacaciones registradas/actualizadas/eliminadas (mejor esfuerzo)."""
+    if not destinatario:
+        return
+
+    cfg = _ACCIONES_VACACIONES.get(accion, _ACCIONES_VACACIONES["registrada"])
+    asunto = cfg["titulo"]
+
+    fecha_inicio_str = fecha_inicio.strftime("%d/%m/%Y") if isinstance(fecha_inicio, date) else (str(fecha_inicio) if fecha_inicio else "—")
+    fecha_fin_str = fecha_fin.strftime("%d/%m/%Y") if isinstance(fecha_fin, date) else (str(fecha_fin) if fecha_fin else "—")
+
+    if isinstance(fecha_inicio, date) and isinstance(fecha_fin, date):
+        dias = (fecha_fin - fecha_inicio).days + 1
+    else:
+        dias = "—"
+
+    cuerpo = f"""
+    <div style="margin:0; padding:0; background-color:#f1f5f9;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:24px 0;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
+              <tr>
+                <td style="background-color:{cfg['header_bg']}; padding:20px 24px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align:middle;">
+                        <img src="cid:logo_siggo" width="44" height="44" alt="SIGGO" style="display:block; border-radius:8px; background-color:#ffffff;">
+                      </td>
+                      <td style="vertical-align:middle; padding-left:12px;">
+                        <img src="cid:logo_small" width="124" height="30" alt="" style="display:block;">
+                      </td>
+                    </tr>
+                  </table>
+                  <div style="font-family:'Segoe UI',Arial,sans-serif; color:{cfg['subtitle_color']}; font-size:12px; margin-top:10px;">{cfg['titulo']}</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px; font-family:'Segoe UI',Arial,sans-serif; color:#0f172a; line-height:1.6; font-size:14px;">
+                  <p style="margin:0 0 12px;">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p style="margin:0 0 16px;">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                    <tr>
+                      <td style="padding:16px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de inicio</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_inicio_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de fin</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_fin_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Total de días</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a;">{dias}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin:16px 0 0;">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:16px 24px; font-family:'Segoe UI',Arial,sans-serif; font-size:12px; color:#64748b;">
+                  <p style="margin:0 0 4px;">{cfg['footer_label']}: <strong style="color:#0f172a;">{admin_nombre}</strong></p>
+                  <p style="margin:0; color:#2563eb;">{admin_correo}</p>
+                  <p style="margin:10px 0 0; font-size:11px; color:#94a3b8;">Este es un mensaje automático. No responda a este correo.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    """
+
+    enviar_correo(
+        destinatario,
+        asunto,
+        cuerpo,
+        imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
+    )
 
 
 def registrar_rutas(app):
@@ -313,7 +450,8 @@ def registrar_rutas(app):
         try:
             cursor.execute("""
                 SELECT id_usuario, fecha_inicio AS fecha_inicio_ant, fecha_fin AS fecha_fin_ant,
-                       (SELECT CONCAT(nombre,' ',apellidos) FROM usuarios WHERE id_usuario = vacaciones.id_usuario) AS nombre_completo
+                       (SELECT CONCAT(nombre,' ',apellidos) FROM usuarios WHERE id_usuario = vacaciones.id_usuario) AS nombre_completo,
+                       (SELECT correo FROM usuarios WHERE id_usuario = vacaciones.id_usuario) AS correo
                 FROM vacaciones
                 WHERE id_vacacion = %s
             """, (id,))
@@ -423,6 +561,17 @@ def registrar_rutas(app):
                     "Vacaciones actualizadas",
                     f"Vacaciones modificadas: del {inicio_dt.strftime('%d/%m/%Y')} al {fin_dt.strftime('%d/%m/%Y')} (antes: {old_data['fecha_inicio_ant'].strftime('%d/%m/%Y')} al {old_data['fecha_fin_ant'].strftime('%d/%m/%Y')}) para {old_data['nombre_completo']}."
                 ))
+
+                nombre_admin, correo_admin = _datos_admin(cursor)
+                _enviar_correo_vacacion(
+                    old_data["correo"],
+                    old_data["nombre_completo"],
+                    inicio_dt,
+                    fin_dt,
+                    "actualizada",
+                    admin_nombre=nombre_admin,
+                    admin_correo=correo_admin,
+                )
 
             conexion.commit()
 
@@ -583,7 +732,7 @@ def registrar_rutas(app):
             # NOTIFICACIÓN AL USUARIO
             # =========================
             cursor.execute("""
-                SELECT CONCAT(nombre,' ',apellidos) AS nombre_completo
+                SELECT CONCAT(nombre,' ',apellidos) AS nombre_completo, correo
                 FROM usuarios
                 WHERE id_usuario = %s
             """, (id_usuario,))
@@ -597,6 +746,17 @@ def registrar_rutas(app):
                     "Vacaciones registradas",
                     f"Se han registrado vacaciones del {inicio_dt.strftime('%d/%m/%Y')} al {fin_dt.strftime('%d/%m/%Y')} para {user_info['nombre_completo']}."
                 ))
+
+                nombre_admin, correo_admin = _datos_admin(cursor)
+                _enviar_correo_vacacion(
+                    user_info["correo"],
+                    user_info["nombre_completo"],
+                    inicio_dt,
+                    fin_dt,
+                    "registrada",
+                    admin_nombre=nombre_admin,
+                    admin_correo=correo_admin,
+                )
 
             conexion.commit()
 
@@ -638,7 +798,8 @@ def registrar_rutas(app):
             # Obtener datos antes de eliminar
             cursor.execute("""
                 SELECT v.id_usuario, v.fecha_inicio, v.fecha_fin,
-                       CONCAT(u.nombre,' ',u.apellidos) AS nombre_completo
+                       CONCAT(u.nombre,' ',u.apellidos) AS nombre_completo,
+                       u.correo
                 FROM vacaciones v
                 INNER JOIN usuarios u ON v.id_usuario = u.id_usuario
                 WHERE v.id_vacacion = %s
@@ -660,6 +821,17 @@ def registrar_rutas(app):
                     "Vacaciones eliminadas",
                     f"Se han eliminado las vacaciones del {vac_data['fecha_inicio'].strftime('%d/%m/%Y')} al {vac_data['fecha_fin'].strftime('%d/%m/%Y')} de {vac_data['nombre_completo']}."
                 ))
+
+                nombre_admin, correo_admin = _datos_admin(cursor)
+                _enviar_correo_vacacion(
+                    vac_data["correo"],
+                    vac_data["nombre_completo"],
+                    vac_data["fecha_inicio"],
+                    vac_data["fecha_fin"],
+                    "eliminada",
+                    admin_nombre=nombre_admin,
+                    admin_correo=correo_admin,
+                )
 
             conexion.commit()
 
@@ -703,7 +875,8 @@ def registrar_rutas(app):
             placeholders = ",".join(["%s"] * len(ids_int))
             cursor.execute(f"""
                 SELECT v.id_usuario, v.fecha_inicio, v.fecha_fin,
-                       CONCAT(u.nombre,' ',u.apellidos) AS nombre_completo
+                       CONCAT(u.nombre,' ',u.apellidos) AS nombre_completo,
+                       u.correo
                 FROM vacaciones v
                 INNER JOIN usuarios u ON v.id_usuario = u.id_usuario
                 WHERE v.id_vacacion IN ({placeholders})
@@ -715,6 +888,8 @@ def registrar_rutas(app):
                 tuple(ids_int),
             )
 
+            nombre_admin, correo_admin = _datos_admin(cursor)
+
             for vac in vacaciones_data:
                 cursor.execute("""
                     INSERT INTO notificaciones (id_usuario, titulo, mensaje)
@@ -724,6 +899,16 @@ def registrar_rutas(app):
                     "Vacaciones eliminadas",
                     f"Se han eliminado las vacaciones del {vac['fecha_inicio'].strftime('%d/%m/%Y')} al {vac['fecha_fin'].strftime('%d/%m/%Y')} de {vac['nombre_completo']}."
                 ))
+
+                _enviar_correo_vacacion(
+                    vac["correo"],
+                    vac["nombre_completo"],
+                    vac["fecha_inicio"],
+                    vac["fecha_fin"],
+                    "eliminada",
+                    admin_nombre=nombre_admin,
+                    admin_correo=correo_admin,
+                )
 
             conexion.commit()
             registrar_auditoria("vacaciones_eliminadas", f"Eliminadas {len(vacaciones_data)} vacaciones")

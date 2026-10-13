@@ -26,6 +26,7 @@ from compensaciones import registrar_rutas as registrar_rutas_compensaciones
 from vacaciones import registrar_rutas as registrar_rutas_vacaciones
 from guardias import registrar_rutas as registrar_rutas_guardias
 from asistencia import registrar_rutas as registrar_rutas_asistencia
+from alertas_automaticas import iniciar_alerta_vacaciones_diaria
 import mysql.connector.errors
 
 """
@@ -954,4 +955,8 @@ if __name__ == "__main__":
     print("  SIGGO - Guardia OIG")
     print(f"  http://{host}:{port}")
     print(f"{'='*60}\n")
+
+    # Alerta automática diaria al administrador sobre habilitación de vacaciones
+    iniciar_alerta_vacaciones_diaria()
+
     serve(app, host=host, port=port, threads=threads)
