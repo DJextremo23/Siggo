@@ -8,6 +8,10 @@ DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Dom
 # Meses abreviados en español para los bloques de fecha
 MESES_ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
+# Nombres completos de los meses en español
+MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
 
 def balance_vacaciones_fifo(anio_ingreso, dias_tomados_total):
     """Calcula el balance de vacaciones con atribución FIFO (igual que reportes).
