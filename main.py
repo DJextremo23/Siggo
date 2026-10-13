@@ -678,6 +678,32 @@ def inicio():
                 g["dia_numero"] = "—"
                 g["mes_abrev"] = ""
 
+        # PRÓXIMOS SOPORTES: turnos tipo soporte programados a futuro
+        cursor.execute("""
+            SELECT g.id_guardia, g.fecha_guardia, g.tipo, f.descripcion AS feriado
+            FROM guardias g
+            LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
+            WHERE g.id_usuario = (
+                SELECT id_usuario FROM usuarios WHERE usuario = %s
+            )
+              AND g.fecha_guardia >= CURDATE()
+              AND g.tipo = 'soporte'
+            ORDER BY g.fecha_guardia ASC
+            LIMIT 2
+        """, (session["usuario"],))
+        proximos_soportes = cursor.fetchall()
+        for g in proximos_soportes:
+            g["es_feriado"] = g.get("feriado") is not None
+            fecha = g["fecha_guardia"]
+            if isinstance(fecha, date):
+                g["dia_semana"] = DIAS_ES[fecha.weekday()]
+                g["dia_numero"] = fecha.day
+                g["mes_abrev"] = MESES_ABREV[fecha.month - 1]
+            else:
+                g["dia_semana"] = ""
+                g["dia_numero"] = "—"
+                g["mes_abrev"] = ""
+
         return render_template(
             "fiscalizador.html",
             datos=datos,
@@ -685,7 +711,8 @@ def inicio():
             notif_no_leidas=notif_no_leidas,
             alertas=alertas,
             estado_guardias=estado_guardias,
-            proximas_guardias=proximas_guardias
+            proximas_guardias=proximas_guardias,
+            proximos_soportes=proximos_soportes
         )
 
     except Exception as e:
