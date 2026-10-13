@@ -421,7 +421,7 @@ def registrar_rutas(app):
                 """, (
                     old_data['id_usuario'],
                     "Vacaciones actualizadas",
-                    f"Vacaciones modificadas: del {inicio} al {fin} (antes: {old_data['fecha_inicio_ant']} al {old_data['fecha_fin_ant']}) para {old_data['nombre_completo']}."
+                    f"Vacaciones modificadas: del {inicio_dt.strftime('%d/%m/%Y')} al {fin_dt.strftime('%d/%m/%Y')} (antes: {old_data['fecha_inicio_ant'].strftime('%d/%m/%Y')} al {old_data['fecha_fin_ant'].strftime('%d/%m/%Y')}) para {old_data['nombre_completo']}."
                 ))
 
             conexion.commit()
@@ -595,7 +595,7 @@ def registrar_rutas(app):
                 """, (
                     id_usuario,
                     "Vacaciones registradas",
-                    f"Se han registrado vacaciones del {inicio} al {fin} para {user_info['nombre_completo']}."
+                    f"Se han registrado vacaciones del {inicio_dt.strftime('%d/%m/%Y')} al {fin_dt.strftime('%d/%m/%Y')} para {user_info['nombre_completo']}."
                 ))
 
             conexion.commit()
@@ -658,7 +658,7 @@ def registrar_rutas(app):
                 """, (
                     vac_data['id_usuario'],
                     "Vacaciones eliminadas",
-                    f"Se han eliminado las vacaciones del {vac_data['fecha_inicio']} al {vac_data['fecha_fin']} de {vac_data['nombre_completo']}."
+                    f"Se han eliminado las vacaciones del {vac_data['fecha_inicio'].strftime('%d/%m/%Y')} al {vac_data['fecha_fin'].strftime('%d/%m/%Y')} de {vac_data['nombre_completo']}."
                 ))
 
             conexion.commit()
@@ -722,7 +722,7 @@ def registrar_rutas(app):
                 """, (
                     vac["id_usuario"],
                     "Vacaciones eliminadas",
-                    f"Se han eliminado las vacaciones del {vac['fecha_inicio']} al {vac['fecha_fin']} de {vac['nombre_completo']}."
+                    f"Se han eliminado las vacaciones del {vac['fecha_inicio'].strftime('%d/%m/%Y')} al {vac['fecha_fin'].strftime('%d/%m/%Y')} de {vac['nombre_completo']}."
                 ))
 
             conexion.commit()
