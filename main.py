@@ -12,7 +12,7 @@ from conexion import conexion as obtener_conexion
 from mis_reportes import mis_reportes_bp
 from csrf import generate_token, validate_csrf
 from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros, registrar_auditoria
-from helpers import DIAS_ES, MESES_ABREV, MESES_ES, balance_vacaciones_fifo
+from helpers import DIAS_ES, MESES_ABREV, balance_vacaciones_fifo
 
 from datetime import datetime, timedelta, date
 from login import login_bp
@@ -434,7 +434,7 @@ def administrador():
                 balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
             fv = a.get("fecha_vacaciones")
             if isinstance(fv, date):
-                a["fecha_vacaciones_str"] = f"{fv.day} de {MESES_ES[fv.month - 1]} de {fv.year}"
+                a["fecha_vacaciones_str"] = fv.strftime("%d/%m/%Y")
             else:
                 a["fecha_vacaciones_str"] = formatear_fecha(fv)
 
@@ -642,7 +642,7 @@ def inicio():
                 balance_vacaciones_fifo(a["anio_ingreso"], a["dias_tomados_total"])
             fv = a.get("fecha_vacaciones")
             if isinstance(fv, date):
-                a["fecha_vacaciones_str"] = f"{fv.day} de {MESES_ES[fv.month - 1]} de {fv.year}"
+                a["fecha_vacaciones_str"] = fv.strftime("%d/%m/%Y")
             else:
                 a["fecha_vacaciones_str"] = formatear_fecha(fv)
 
