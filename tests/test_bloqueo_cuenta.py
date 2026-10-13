@@ -87,13 +87,13 @@ def test_login_fallido_muestra_intentos_restantes(client, monkeypatch):
     monkeypatch.setattr(login_module, "_purga_periodica", lambda: None)
     monkeypatch.setattr(login_module, "_esta_bloqueado", lambda *a, **k: False)
     monkeypatch.setattr(login_module, "_registrar_fallo", lambda *a, **k: None)
-    monkeypatch.setattr(login_module, "_contar_intentos_db", lambda *a, **k: 2)
+    monkeypatch.setattr(login_module, "_contar_intentos_db", lambda *a, **k: 1)
     monkeypatch.setattr(login_module, "check_password_hash", lambda *a, **k: False)
 
     resp = client.post("/login", data={"usuario": "pepe", "password": "mala"})
 
     texto = resp.get_data(as_text=True)
-    assert "Le quedan 3 intentos" in texto
+    assert "Le quedan 2 intentos" in texto
 
 
 def test_login_cuenta_bloqueada_precede_bloqueo_temporal(client, monkeypatch):

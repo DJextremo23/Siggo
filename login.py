@@ -20,7 +20,7 @@ bloqueo por intentos fallidos.
 login_bp = Blueprint("login", __name__)
 
 # Configuración de bloqueo por intentos fallidos
-MAX_INTENTOS_LOGIN = 5
+MAX_INTENTOS_LOGIN = 3
 BLOQUEO_MINUTOS = 15
 
 # Tras N ciclos de bloqueo temporal, la cuenta se bloquea de forma "dura":
