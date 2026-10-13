@@ -446,7 +446,7 @@ def _eliminar_pendiente_2fa(token):
 # LOGIN — Inicio de sesión con validación de credenciales y bloqueo
 # ==========================
 @login_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def login():
     _purga_periodica()
 
@@ -512,6 +512,16 @@ def login():
             else:
                 identificador_bloqueo = usuario.lower()
 
+            # Bloqueo duro de cuenta: si fue marcada por intentos fallidos repetidos,
+            # solo un administrador puede reactivarla. Se informa genéricamente para
+            # no confirmar la existencia del usuario. Se evalúa antes que el bloqueo
+            # temporal para que el mensaje siempre indique contactar al administrador.
+            if user and user.get("cuenta_bloqueada"):
+                return render_template(
+                    "login.html",
+                    error="Cuenta bloqueada por seguridad. Contacte al administrador."
+                )
+
             # Bloqueo temporal con duración progresiva según los ciclos previos de la cuenta
             minutos_bloqueo = _minutos_bloqueo(user["bloqueos_consecutivos"] if user else 0)
             if _esta_bloqueado(identificador_bloqueo, minutos=minutos_bloqueo):
@@ -524,15 +534,6 @@ def login():
                     error=mensaje
                 )
 
-            # Bloqueo duro de cuenta: si fue marcada por intentos fallidos repetidos,
-            # solo un administrador puede reactivarla. Se informa genéricamente para
-            # no confirmar la existencia del usuario.
-            if user and user.get("cuenta_bloqueada"):
-                return render_template(
-                    "login.html",
-                    error="Cuenta bloqueada por seguridad. Contacte al administrador."
-                )
-
             # Comparar siempre contra un hash (real o dummy) para igualar tiempos de respuesta
             if user and user["estado"] == "activo":
                 hash_a_comparar = user["password"]
@@ -543,14 +544,26 @@ def login():
 
             if not user or user["estado"] != "activo" or not password_ok:
                 _registrar_fallo(identificador_bloqueo)
+                intentos_actuales = _contar_intentos_db(identificador_bloqueo, minutos=minutos_bloqueo)
                 # Si este fallo cruza el umbral de bloqueo temporal, escala el
                 # contador de bloqueos consecutivos de la cuenta.
-                if _contar_intentos_db(identificador_bloqueo, minutos=minutos_bloqueo) >= MAX_INTENTOS_LOGIN:
+                if intentos_actuales >= MAX_INTENTOS_LOGIN:
                     if user:
                         _escalar_bloqueo_cuenta(user["id_usuario"])
+
+                restantes = MAX_INTENTOS_LOGIN - intentos_actuales
+                if restantes > 0:
+                    mensaje_error = (
+                        f"Credenciales inválidas. Le quedan {restantes} "
+                        f"intento{'s' if restantes != 1 else ''} antes del bloqueo."
+                    )
+                else:
+                    mensaje_error = (
+                        "Demasiados intentos fallidos. Su cuenta ha sido bloqueada temporalmente."
+                    )
                 return render_template(
                     "login.html",
-                    error="Credenciales inválidas"
+                    error=mensaje_error
                 )
 
             _limpiar_bloqueo(identificador_bloqueo)

@@ -543,6 +543,13 @@ def desbloquear_usuario(id):
             WHERE id_usuario = %s
         """, (id,))
 
+        # Limpia también los intentos fallidos pendientes de la cuenta, para que
+        # el bloqueo temporal no siga activo tras el desbloqueo del administrador.
+        cursor.execute(
+            "DELETE FROM intentos_login WHERE identificador = %s",
+            (f"uid:{id}",)
+        )
+
         conn.commit()
         registrar_auditoria("cuenta_desbloqueada", f"Cuenta reactivada por admin: {row['usuario']}")
 

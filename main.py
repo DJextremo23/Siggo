@@ -916,6 +916,18 @@ def handle_400(error):
 
 @app.errorhandler(429)
 def handle_429(error):
+    # En el flujo de autenticación el límite de peticiones se muestra inline
+    # sobre el propio formulario (login/2FA), no en una pantalla de error aparte.
+    if request.path == "/login":
+        return render_template(
+            "login.html",
+            error="Demasiados intentos. Espere un momento e intente nuevamente."
+        ), 429
+    if request.path == "/verificar_2fa":
+        return render_template(
+            "verificar_2fa.html",
+            error="Demasiados intentos. Espere un momento e intente nuevamente."
+        ), 429
     return render_template(
         "error.html",
         codigo="Error 429",
