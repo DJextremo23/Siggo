@@ -295,11 +295,11 @@
         <div class="section-card">
             <div class="section-header">
                 <h3>
-                    <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    <svg class="section-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1Z"/>
+                        <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/>
+                        <path d="M4 15v-3a6 6 0 0 1 6-6"/>
+                        <path d="M14 6a6 6 0 0 1 6 6v3"/>
                     </svg>
                     Próximos soportes
                 </h3>
@@ -414,7 +414,7 @@
             {% endif %}
 
             <div class="resumen-acciones">
-                <a href="{{ url_for('mis_guardias') }}" class="ver-todas-btn">
+                <a href="{{ url_for('mis_guardias', tipo='guardia') }}" class="ver-todas-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="5" y1="12" x2="19" y2="12"/>
                         <polyline points="12 5 19 12 12 19"/>
