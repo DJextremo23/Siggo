@@ -48,7 +48,12 @@
                     <line x1="12" y1="8" x2="12" y2="12"/>
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
-                {{ error }}
+                <div class="alert-error-text">
+                    <span>{{ error }}</span>
+                    {% if bloqueo_segundos %}
+                    <strong class="bloqueo-countdown" id="bloqueoCountdown"></strong>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
 
@@ -94,6 +99,34 @@
     </div>
 
 </div>
+
+{% if bloqueo_segundos %}
+<script>
+(function () {
+    var seg = {{ bloqueo_segundos }};
+    var el = document.getElementById('bloqueoCountdown');
+    if (!el) return;
+
+    function fmt(s) {
+        var m = Math.floor(s / 60);
+        var ss = s % 60;
+        return (m < 10 ? '0' + m : m) + ':' + (ss < 10 ? '0' + ss : ss);
+    }
+
+    function tick() {
+        if (seg <= 0) {
+            el.textContent = 'Ya puede intentar de nuevo.';
+            return;
+        }
+        el.textContent = 'Tiempo restante: ' + fmt(seg);
+        seg--;
+        setTimeout(tick, 1000);
+    }
+
+    tick();
+})();
+</script>
+{% endif %}
 
 </body>
 </html>

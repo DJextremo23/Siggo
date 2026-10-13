@@ -97,6 +97,32 @@ def _minutos_bloqueo(ciclos):
     return 1440
 
 
+# Calcula los segundos restantes de bloqueo temporal para un identificador.
+# El bloqueo se levanta cuando el intento número MAX_INTENTOS_LOGIN (el más
+# reciente de los que mantienen el bloqueo) sale de la ventana. Se calcula con
+# el reloj de la BD (NOW()) para evitar el desfase de zona horaria.
+def _tiempo_bloqueo_restante(identificador, minutos):
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(intento_en, INTERVAL %s MINUTE)) AS restante "
+                "FROM intentos_login WHERE identificador = %s "
+                "ORDER BY intento_en DESC LIMIT 1 OFFSET %s",
+                (minutos, identificador, MAX_INTENTOS_LOGIN - 1)
+            )
+            row = cursor.fetchone()
+            if not row or row.get("restante") is None:
+                return None
+            return max(0, int(row["restante"]))
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception:
+        return None
+
+
 # Registra un nuevo intento fallido en la base de datos
 def _registrar_fallo(identificador):
     try:
@@ -533,7 +559,8 @@ def login():
                     mensaje = f"Demasiados intentos fallidos. Intente de nuevo en {minutos_bloqueo} minutos."
                 return render_template(
                     "login.html",
-                    error=mensaje
+                    error=mensaje,
+                    bloqueo_segundos=_tiempo_bloqueo_restante(identificador_bloqueo, minutos_bloqueo)
                 )
 
             # Comparar siempre contra un hash (real o dummy) para igualar tiempos de respuesta

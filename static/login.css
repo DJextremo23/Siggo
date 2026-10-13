@@ -348,6 +348,18 @@ button,
     animation: slideDown 0.3s ease;
 }
 
+.alert-error-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bloqueo-countdown {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+}
+
 .alert-success {
     display: flex;
     align-items: center;
