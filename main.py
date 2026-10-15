@@ -119,8 +119,9 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 SESSION_IDLE_MINUTOS = int(os.getenv("SESSION_IDLE_MINUTOS", "60"))     # inactividad: 1 hora
 SESSION_ABSOLUTO_HORAS = int(os.getenv("SESSION_ABSOLUTO_HORAS", "8"))  # tope máximo: 8 horas
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_ABSOLUTO_HORAS)
-# Límite duro de subida: evita recibir archivos enormes (las fotos se comprimen en el cliente a <1 MB)
-app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 6 MB
+# Límite duro de subida: evita recibir archivos enormes. Se deja por encima del
+# límite de informes (10 MB) para que MAX_FILE_SIZE sea el tope efectivo.
+app.config["MAX_CONTENT_LENGTH"] = 11 * 1024 * 1024  # 11 MB
 
 # Cookie de sesión con nombre propio (reduce huella del framework y evita colisiones con otras apps)
 app.config["SESSION_COOKIE_NAME"] = "siggo_session"
@@ -152,12 +153,13 @@ def formatear_fecha(valor, con_hora=False):
 
 app.jinja_env.filters["fecha"] = formatear_fecha
 
-# Rate limiting global (límites por IP)
+# Rate limiting global (por cuenta autenticada o IP según haya sesión)
 limiter._default_limits = ["200 per hour", "20 per minute"]
 limiter.init_app(app)
 
 # HTTPS forzado (según variable de entorno) y cabeceras de seguridad
-FORCE_HTTPS = os.getenv("FORCE_HTTPS", "false").lower() == "true"
+# Seguro por defecto: si no se define, se fuerza HTTPS y cookies seguras.
+FORCE_HTTPS = os.getenv("FORCE_HTTPS", "true").lower() == "true"
 Talisman(
     app,
     force_https=False,
@@ -812,6 +814,7 @@ def marcar_todas_leidas():
         cursor.close()
 
 @app.route("/notificaciones/nuevas")
+@limiter.limit("30 per minute")
 def notificaciones_nuevas():
     if "usuario" not in session:
         return {"ok": False, "error": "No autorizado"}, 401

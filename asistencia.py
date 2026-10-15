@@ -259,7 +259,7 @@ def registrar_rutas(app):
     # ==========================
     # FISCALIZADOR — MARCAR ASISTENCIA PROPIA
     # ==========================
-    # Permite al fiscalizador registrar su asistencia del día
+    # Permite al fiscalizador registrar su asistencia (hoy o ayer, ventana de 48 h)
 
     @app.route("/registrar_asistencia")
     def mi_asistencia():
@@ -342,7 +342,7 @@ def registrar_rutas(app):
 
         try:
 
-            # Verificar que la guardia pertenece al fiscalizador y es de hoy
+            # Verificar que la guardia pertenece al fiscalizador y esté dentro de la ventana (hoy o ayer)
             cursor.execute("""
                 SELECT id_guardia, fecha_guardia
                 FROM guardias

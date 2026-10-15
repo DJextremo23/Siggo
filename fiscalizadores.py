@@ -409,7 +409,7 @@ def actualizar_usuario(id):
 # ==========================
 # ELIMINAR USUARIO
 # ==========================
-# Elimina un usuario si no tiene guardias; si las tiene, solo cambia su estado (toggle activo/inactivo)
+# Elimina un usuario si no tiene guardias ni vacaciones; si las tiene, cambia su estado (activo/inactivo)
 
 
 def _cambiar_estado_usuario(cursor, id):

@@ -918,6 +918,7 @@ def _temp_secret_2fa_valido():
 
 
 @login_bp.route("/configurar_2fa", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def configurar_2fa():
     if "usuario" not in session:
         return redirect(url_for("login.login"))
