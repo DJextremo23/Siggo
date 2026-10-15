@@ -130,12 +130,13 @@
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
                 <input
-                    type="text"
+                    type="search"
                     id="buscador"
                     name="buscador"
                     placeholder="Buscar..."
                     aria-label="Buscar en la lista"
                     autocomplete="off"
+                    readonly
                 >
             </div>
 
@@ -465,6 +466,12 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(filtrarTabla, 0);
         });
         buscador.addEventListener("search", filtrarTabla);
+        buscador.addEventListener("mousedown", function() {
+            buscador.removeAttribute("readonly");
+        });
+        buscador.addEventListener("focus", function() {
+            buscador.removeAttribute("readonly");
+        });
         limpiarBuscador();
     }
 
