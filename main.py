@@ -296,11 +296,16 @@ def verificar_sesion_revocada():
         cursor = conexion.cursor(dictionary=True)
         try:
             cursor.execute(
-                "SELECT session_version FROM usuarios WHERE id_usuario = %s",
+                "SELECT session_version, estado, cuenta_bloqueada FROM usuarios WHERE id_usuario = %s",
                 (id_usuario,)
             )
             row = cursor.fetchone()
-            if not row or row["session_version"] != session.get("session_version"):
+            if (
+                not row
+                or row["session_version"] != session.get("session_version")
+                or row["estado"] != "activo"
+                or row["cuenta_bloqueada"]
+            ):
                 session.clear()
                 return redirect(url_for("login.login"))
         finally:

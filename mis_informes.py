@@ -260,6 +260,7 @@ def registrar_informe():
 # EDITAR INFORME (título, descripción y archivo)
 # ==========================================
 @informe_bp.route("/editar_informe/<int:id_informe>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def editar_informe(id_informe):
 
     if "usuario" not in session:
@@ -1569,6 +1570,7 @@ def analizar_informe_imagen(id_informe, indice):
 
 
 @informe_bp.route("/analizar_informe/<int:id_informe>/ppt", methods=["POST"])
+@limiter.limit("5 per minute")
 def generar_ppt_analisis(id_informe):
     """Genera una presentación PPTX profesional con los resultados del análisis."""
 
@@ -1592,7 +1594,7 @@ def generar_ppt_analisis(id_informe):
 
         if perfil == "admin":
             cursor.execute("""
-                SELECT i.titulo, i.nombre_archivo, i.tipo_archivo, i.ruta_archivo,
+                SELECT i.titulo, i.nombre_archivo, i.tipo_archivo, i.ruta_archivo, i.resultado_analisis,
                        g.fecha_guardia,
                        CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador
                 FROM informes i
@@ -1602,7 +1604,7 @@ def generar_ppt_analisis(id_informe):
             """, (id_informe,))
         else:
             cursor.execute("""
-                SELECT i.titulo, i.nombre_archivo, i.tipo_archivo, i.ruta_archivo,
+                SELECT i.titulo, i.nombre_archivo, i.tipo_archivo, i.ruta_archivo, i.resultado_analisis,
                        g.fecha_guardia,
                        CONCAT(u.nombre, ' ', u.apellidos) AS fiscalizador
                 FROM informes i
@@ -1614,6 +1616,20 @@ def generar_ppt_analisis(id_informe):
 
         if not informe:
             return jsonify({"error": "Informe no encontrado"}), 404
+
+        # Preferir el análisis persistido en la BD como fuente de verdad, para no
+        # confiar en el JSON que envía el cliente. Solo se usa el del cliente si
+        # no existe un resultado cacheado.
+        cache = informe.get("resultado_analisis")
+        if cache:
+            try:
+                import json as _json
+                if isinstance(cache, str):
+                    cache = _json.loads(cache)
+                if isinstance(cache, dict):
+                    data = cache
+            except Exception:
+                pass
 
         # Re-extraer las imágenes incrustadas en el archivo para incluirlas en el PPT
         imagenes_archivo = _extraer_imagenes_archivo({

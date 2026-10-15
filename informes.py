@@ -248,6 +248,7 @@ def admin_registrar_informe():
 
 # ── Editar informe (título, descripción y reemplazo de archivo) ──
 @informes_bp.route("/editar_informes/<int:id_informe>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def admin_editar_informe(id_informe):
 
     if "usuario" not in session:

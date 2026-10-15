@@ -461,9 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var buscador = document.getElementById("buscador");
     if (buscador) {
         buscador.addEventListener("input", filtrarTabla);
-        if (buscador.value !== '') {
-            filtrarTabla();
-        }
+        limpiarBuscador();
     }
 
     var toggleBtns = document.querySelectorAll(".btn-estado");
@@ -524,13 +522,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-window.addEventListener('pageshow', function() {
+function limpiarBuscador() {
     var buscador = document.getElementById("buscador");
     if (buscador) {
         buscador.value = "";
         filtrarTabla();
     }
-});
+}
+
+window.addEventListener('load', limpiarBuscador);
+window.addEventListener('pageshow', limpiarBuscador);
+setTimeout(limpiarBuscador, 250);
 </script>
 
 </body>

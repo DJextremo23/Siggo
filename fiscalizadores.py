@@ -293,6 +293,7 @@ def actualizar_usuario(id):
             ))
 
         # Guardar la foto de perfil si el archivo es válido y no excede el tamaño máximo
+        foto_nueva = None
         foto = request.files.get("foto")
         if foto and foto.filename and foto_permitida(foto.filename):
             # Rechaza antes de leer el archivo completo si el tamaño declarado excede el límite
@@ -320,10 +321,23 @@ def actualizar_usuario(id):
                     "UPDATE usuarios SET foto = %s WHERE id_usuario = %s",
                     (nombre_foto, id)
                 )
+                foto_nueva = nombre_foto
 
         # Reasignar el rol del usuario: eliminar roles previos e insertar el nuevo
         # (evita que un administrador cambie su propio rol)
         if id_rol and id != session.get("id_usuario"):
+
+            # Detectar si el rol realmente cambia para invalidar la sesión solo
+            # cuando corresponda (un cambio de rol debe cerrar la sesión activa).
+            cursor.execute("""
+                SELECT r.nombre_rol
+                FROM usuarios_roles ur
+                INNER JOIN roles r ON ur.id_rol = r.id_rol
+                WHERE ur.id_usuario = %s
+            """, (id,))
+            roles_actuales = {fila[0] for fila in cursor.fetchall()}
+            es_admin_actual = "admin" in roles_actuales
+            sera_admin = (rol == "admin")
 
             cursor.execute("""
                 DELETE FROM usuarios_roles
@@ -347,12 +361,29 @@ def actualizar_usuario(id):
                     VALUES (%s, %s)
                 """, (id, fiscalizador_id))
 
+            # Si el rol cambió, invalidar las sesiones activas del usuario afectado
+            if es_admin_actual != sera_admin:
+                cursor.execute("""
+                    UPDATE usuarios SET session_version = session_version + 1 WHERE id_usuario = %s
+                """, (id,))
+
         elif id_rol and id == session.get("id_usuario") and rol not in session.get("roles", []):
             flash("No puedes cambiar tu propio rol", "error")
             conn.rollback()
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
         conn.commit()
+
+        # Si el admin se editó a sí mismo desde este panel, sincronizar la sesión
+        # para que el menú y las vistas reflejen los cambios sin cerrar sesión.
+        if id == session.get("id_usuario"):
+            session["nombre"] = f"{nombre} {apellidos}"
+            session["usuario"] = usuario_form
+            if foto_nueva:
+                session["foto"] = foto_nueva
+            if password:
+                session["session_version"] = session.get("session_version", 0) + 1
+
         registrar_auditoria("usuario_actualizado", f"Usuario ID {id} actualizado")
 
         flash("Usuario actualizado correctamente", "success")
@@ -382,14 +413,17 @@ def actualizar_usuario(id):
 
 
 def _cambiar_estado_usuario(cursor, id):
-    """Alterna el estado (activo/inactivo) de un usuario. Devuelve el nuevo estado o None."""
+    """Alterna el estado (activo/inactivo) de un usuario. Devuelve el nuevo estado o None.
+
+    Al cambiar de estado se incrementa session_version para invalidar cualquier
+    sesión activa del usuario (un usuario desactivado no debe seguir navegando)."""
     cursor.execute("SELECT estado FROM usuarios WHERE id_usuario = %s", (id,))
     usuario = cursor.fetchone()
     if not usuario:
         return None
     nuevo_estado = "inactivo" if usuario["estado"] == "activo" else "activo"
     cursor.execute(
-        "UPDATE usuarios SET estado = %s WHERE id_usuario = %s",
+        "UPDATE usuarios SET estado = %s, session_version = session_version + 1 WHERE id_usuario = %s",
         (nuevo_estado, id)
     )
     return nuevo_estado

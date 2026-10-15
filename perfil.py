@@ -116,7 +116,7 @@ def actualizar_mi_perfil():
 
         # Obtiene los valores actuales de dos_factores y foto para pasarlos al helper de error
         cursor.execute(
-            "SELECT dos_factores_activo, foto, password, correo FROM usuarios WHERE id_usuario = %s",
+            "SELECT dos_factores_activo, foto, password, correo, usuario FROM usuarios WHERE id_usuario = %s",
             (id_usuario,)
         )
         current = cursor.fetchone()
@@ -124,6 +124,7 @@ def actualizar_mi_perfil():
         foto_actual = current["foto"] if current else None
         password_hash_actual = current["password"] if current else None
         correo_actual = current["correo"] if current else ""
+        usuario_actual = current["usuario"] if current else ""
 
         # Valida que los campos no excedan las longitudes máximas permitidas
         valido, msg = validar_longitudes({
@@ -162,13 +163,15 @@ def actualizar_mi_perfil():
                 usuario=_datos_error(dos_factores, foto_actual)
             )
 
-        # Si cambia contraseña o correo, exige reautenticación con la contraseña actual
+        # Si cambia contraseña, correo o nombre de usuario, exige reautenticación
+        # con la contraseña actual.
         cambia_correo = bool(correo_actual) and correo.lower() != correo_actual.lower()
-        if password or cambia_correo:
+        cambia_usuario = bool(usuario_actual) and usuario_form != usuario_actual
+        if password or cambia_correo or cambia_usuario:
             if not password_hash_actual or not check_password_hash(password_hash_actual, password_actual):
                 return render_template(
                     "editar_mi_perfil.html",
-                    error="Debe ingresar su contraseña actual para cambiar la contraseña o el correo.",
+                    error="Debe ingresar su contraseña actual para cambiar la contraseña, el correo o el nombre de usuario.",
                     usuario=_datos_error(dos_factores, foto_actual)
                 )
 
