@@ -415,10 +415,12 @@ def eliminar_usuario(id):
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT (SELECT COUNT(*) FROM guardias WHERE id_usuario = %s) AS cnt
+            SELECT
+                (SELECT COUNT(*) FROM guardias WHERE id_usuario = %s) AS cnt_guardias,
+                (SELECT COUNT(*) FROM vacaciones WHERE id_usuario = %s) AS cnt_vacaciones
             FROM usuarios u
             WHERE u.id_usuario = %s
-        """, (id, id))
+        """, (id, id, id))
 
         usuario = cursor.fetchone()
 
@@ -426,12 +428,13 @@ def eliminar_usuario(id):
             flash("Usuario no encontrado", "error")
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
-        # Si el usuario tiene guardias registradas, alternar estado en lugar de eliminar
-        if usuario["cnt"] > 0:
+        # Si el usuario tiene guardias o vacaciones registradas, alternar estado
+        # en lugar de eliminar para preservar el historial.
+        if usuario["cnt_guardias"] > 0 or usuario["cnt_vacaciones"] > 0:
             nuevo_estado = _cambiar_estado_usuario(cursor, id)
             conn.commit()
-            registrar_auditoria("usuario_estado_cambiado", f"Usuario ID {id} -> {nuevo_estado} (tenía guardias)")
-            flash(f"Usuario {'desactivado' if nuevo_estado == 'inactivo' else 'activado'} (tiene guardias registradas)", "success")
+            registrar_auditoria("usuario_estado_cambiado", f"Usuario ID {id} -> {nuevo_estado} (tenía historial)")
+            flash(f"Usuario {'desactivado' if nuevo_estado == 'inactivo' else 'activado'} (tiene historial registrado)", "success")
         else:
             cursor.execute(
                 "DELETE FROM usuarios_roles WHERE id_usuario = %s",

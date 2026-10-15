@@ -134,6 +134,7 @@
                     id="buscador"
                     placeholder="Buscar usuario..."
                     aria-label="Buscar usuario"
+                    autocomplete="off"
                     value="{{ request.args.get('buscar','') }}"
                 >
             </div>
@@ -521,6 +522,14 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelarUnlock();
         }
     });
+});
+
+window.addEventListener('pageshow', function() {
+    var buscador = document.getElementById("buscador");
+    if (buscador) {
+        buscador.value = "";
+        filtrarTabla();
+    }
 });
 </script>
 

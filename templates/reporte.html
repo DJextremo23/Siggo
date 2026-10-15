@@ -165,7 +165,7 @@
         <circle cx="11" cy="11" r="8"/>
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="buscar-resumen" name="buscar" form="form-filtros" class="input-lupa"
+      <input type="text" id="buscar-resumen" name="buscar" form="form-filtros" class="input-lupa" autocomplete="off"
         placeholder="Filtrar..."
         value="{{ request.args.get('buscar','') }}">
     </div>
@@ -248,7 +248,7 @@
         <circle cx="11" cy="11" r="8"/>
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="buscar-detalle" name="buscar_detalle" form="form-filtros" class="input-lupa"
+      <input type="text" id="buscar-detalle" name="buscar_detalle" form="form-filtros" class="input-lupa" autocomplete="off"
         placeholder="Filtrar tabla..."
         value="{{ request.args.get('buscar_detalle','') }}">
     </div>
@@ -366,7 +366,7 @@
         <circle cx="11" cy="11" r="8"/>
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="buscar-resumen-vacaciones" name="buscar_resumen_vac" form="form-filtros" class="input-lupa"
+      <input type="text" id="buscar-resumen-vacaciones" name="buscar_resumen_vac" form="form-filtros" class="input-lupa" autocomplete="off"
         placeholder="Filtrar..."
         value="{{ request.args.get('buscar_resumen_vac','') }}">
     </div>
@@ -447,7 +447,7 @@
         <circle cx="11" cy="11" r="8"/>
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="buscar-vacaciones" name="buscar_vac" form="form-filtros" class="input-lupa"
+      <input type="text" id="buscar-vacaciones" name="buscar_vac" form="form-filtros" class="input-lupa" autocomplete="off"
         placeholder="Filtrar tabla..."
         value="{{ request.args.get('buscar_vac','') }}">
     </div>
