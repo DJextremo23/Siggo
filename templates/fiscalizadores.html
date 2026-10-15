@@ -136,7 +136,6 @@
                     placeholder="Buscar..."
                     aria-label="Buscar en la lista"
                     autocomplete="off"
-                    readonly
                 >
             </div>
 
@@ -461,15 +460,11 @@ function cancelarUnlock() {
 document.addEventListener('DOMContentLoaded', function() {
     var buscador = document.getElementById("buscador");
     if (buscador) {
-        buscador.addEventListener("input", filtrarTabla);
-        buscador.addEventListener("mousedown", function(e) {
-            e.preventDefault();
-            buscador.removeAttribute("readonly");
-            buscador.focus();
+        buscador.addEventListener("keyup", filtrarTabla);
+        buscador.addEventListener("paste", function() {
+            setTimeout(filtrarTabla, 0);
         });
-        buscador.addEventListener("keydown", function() {
-            buscador.removeAttribute("readonly");
-        });
+        buscador.addEventListener("search", filtrarTabla);
         limpiarBuscador();
     }
 
