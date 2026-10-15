@@ -4,6 +4,7 @@ from conexion import conexion
 from datetime import datetime, timedelta
 from limiter_instance import limiter
 from utils import registrar_auditoria
+from utils.validators import password_segura
 import pyotp
 import qrcode
 import qrcode.image.svg
@@ -179,8 +180,16 @@ def _escalar_bloqueo_cuenta(id_usuario):
             contador = cursor.fetchone()["bloqueos_consecutivos"]
 
             if contador >= MAX_LOCKOUTS_ANTES_BLOQUEO:
+                # Marca la cuenta como bloqueada, invalida las sesiones activas,
+                # obliga a renovar la contraseña y elimina los dispositivos confiables.
                 cursor.execute(
-                    "UPDATE usuarios SET cuenta_bloqueada = TRUE WHERE id_usuario = %s",
+                    "UPDATE usuarios SET cuenta_bloqueada = TRUE, "
+                    "debe_cambiar_password = TRUE, "
+                    "session_version = session_version + 1 WHERE id_usuario = %s",
+                    (id_usuario,)
+                )
+                cursor.execute(
+                    "DELETE FROM dispositivos_confiables WHERE id_usuario = %s",
                     (id_usuario,)
                 )
                 registrar_auditoria(
@@ -517,6 +526,7 @@ def login():
                     u.dos_factores_activo,
                     u.cuenta_bloqueada,
                     u.bloqueos_consecutivos,
+                    u.debe_cambiar_password,
                     u.session_version,
                     r.nombre_rol
                 FROM usuarios u
@@ -629,6 +639,7 @@ def login():
                         "foto": user.get("foto") or "",
                         "roles": roles,
                         "session_version": user.get("session_version", 0),
+                        "debe_cambiar_password": bool(user.get("debe_cambiar_password")),
                         "token": token,
                     }
                     session["_2fa_pendiente_expira"] = (datetime.now() + timedelta(minutes=TOKEN_2FA_TTL_MINUTOS)).timestamp()
@@ -646,6 +657,11 @@ def login():
 
             registrar_auditoria("login", f"Inicio de sesión: {user['usuario']}")
             _detectar_nuevo_dispositivo(user["id_usuario"])
+
+            # Redirige al cambio de contraseña si está pendiente de renovación
+            if user.get("debe_cambiar_password"):
+                session["_forzar_cambio_password"] = True
+                return redirect(url_for("login.cambiar_password_forzado"))
 
             if len(roles) == 1:
                 session["perfil_activo"] = roles[0]
@@ -710,6 +726,79 @@ def logout():
 
 
 # ==========================
+# CAMBIO DE CONTRASEÑA FORZADO
+# ==========================
+# Renueva la contraseña del usuario tras un desbloqueo o bloqueo duro de cuenta.
+@login_bp.route("/cambiar_password_forzado", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
+def cambiar_password_forzado():
+    if not session.get("_forzar_cambio_password") or not session.get("id_usuario"):
+        return redirect(url_for("login.login"))
+
+    if request.method == "POST":
+        password_nueva = request.form.get("password_nueva", "")
+        password_confirm = request.form.get("password_confirm", "")
+
+        error = None
+        if not password_nueva or not password_confirm:
+            error = "Complete ambos campos."
+        elif len(password_nueva) > 128:
+            error = "La contraseña es demasiado larga."
+        elif password_nueva != password_confirm:
+            error = "Las contraseñas no coinciden."
+        elif not password_segura(password_nueva):
+            error = (
+                "La contraseña es débil: mínimo 10 caracteres, con mayúscula, "
+                "minúscula, número y símbolo."
+            )
+
+        if error:
+            return render_template("cambiar_password_forzado.html", error=error)
+
+        conn = None
+        cursor = None
+        try:
+            conn = conexion()
+            cursor = conn.cursor()
+
+            password_hash = generate_password_hash(password_nueva)
+            cursor.execute(
+                "UPDATE usuarios SET password = %s, debe_cambiar_password = FALSE, "
+                "session_version = session_version + 1 WHERE id_usuario = %s",
+                (password_hash, session["id_usuario"])
+            )
+            conn.commit()
+
+            # La sesión actual adopta la nueva versión; cualquier otra sesión
+            # abierta queda invalidada por el incremento en BD.
+            session["session_version"] = session.get("session_version", 0) + 1
+            session.pop("_forzar_cambio_password", None)
+            registrar_auditoria(
+                "password_cambiada",
+                f"Cambio de contraseña forzado por seguridad: {session.get('usuario', '')}"
+            )
+
+            flash("Contraseña actualizada correctamente.", "success")
+            return redirect(url_for("inicio"))
+
+        except Exception as e:
+            if conn is not None:
+                conn.rollback()
+            print("ERROR cambiar_password_forzado:", e)
+            return render_template(
+                "cambiar_password_forzado.html",
+                error="Error interno del servidor. Intente nuevamente."
+            )
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
+
+    return render_template("cambiar_password_forzado.html")
+
+
+# ==========================
 # 2FA — VERIFICAR CÓDIGO TOTP durante el inicio de sesión
 # ==========================
 @login_bp.route("/verificar_2fa", methods=["GET", "POST"])
@@ -767,6 +856,11 @@ def verificar_2fa():
 
         registrar_auditoria("login_2fa", f"Inicio de sesión con 2FA: {pendiente['usuario']}")
         _detectar_nuevo_dispositivo(pendiente["id_usuario"])
+
+        # Redirige al cambio de contraseña si está pendiente de renovación
+        if pendiente.get("debe_cambiar_password"):
+            session["_forzar_cambio_password"] = True
+            return redirect(url_for("login.cambiar_password_forzado"))
 
         if len(pendiente["roles"]) == 1:
             session["perfil_activo"] = pendiente["roles"][0]

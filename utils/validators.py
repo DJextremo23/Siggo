@@ -2,6 +2,8 @@
 
 import re
 import os
+import string
+import secrets
 
 ALLOWED_EXTENSIONS = {"xlsx", "xlsm"}
 MIME_MAP = {
@@ -67,6 +69,31 @@ def password_segura(password):
         bool(re.search(r"[0-9]", password)),
         bool(re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password))
     ])
+
+
+# Símbolos admitidos por password_segura()
+_ESPECIALES = "!@#$%^&*()-_=+[]{};:,.<>?/"
+
+
+# Genera una contraseña temporal aleatoria que cumple con password_segura()
+def generar_password_temporal(longitud=12):
+    longitud = max(longitud, 10)
+    while True:
+        obligatorios = [
+            secrets.choice(string.ascii_uppercase),
+            secrets.choice(string.ascii_lowercase),
+            secrets.choice(string.digits),
+            secrets.choice(_ESPECIALES),
+        ]
+        relleno = [
+            secrets.choice(string.ascii_letters + string.digits + _ESPECIALES)
+            for _ in range(longitud - len(obligatorios))
+        ]
+        candidato = obligatorios + relleno
+        secrets.SystemRandom().shuffle(candidato)
+        password = "".join(candidato)
+        if password_segura(password):
+            return password
 
 
 # Expresión regular para validar el formato básico de un correo electrónico

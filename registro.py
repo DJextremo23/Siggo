@@ -35,7 +35,7 @@ def foto_permitida(nombre):
 @limiter.limit("5 per minute")
 def registro():
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     if request.method == "POST":

@@ -33,28 +33,131 @@ def test_escalar_bloqueo_cuenta_activa_bloqueo(monkeypatch):
 
 
 def test_desbloquear_usuario_limpia_intentos_login(client, monkeypatch):
-    """Al desbloquear, se limpian los intentos fallidos para evitar bloqueo temporal residual."""
+    """Al desbloquear, se limpian los intentos fallidos y se fuerza el cambio de contraseña."""
     import fiscalizadores
+    import main as main_module
 
     cursor = MagicMock()
-    cursor.fetchone.return_value = {"usuario": "pepe"}
+    cursor.fetchone.side_effect = [
+        {"usuario": "pepe"},        # SELECT del usuario a desbloquear
+        {"password": "hash_admin"},  # SELECT del password del admin (reautenticación)
+    ]
     conn = MagicMock()
     conn.cursor.return_value = cursor
 
+    # Evita que el before_request de sesión revocada (main) redirija al login:
+    # simula que la sesión actual sigue siendo válida.
+    rev_cursor = MagicMock()
+    rev_cursor.fetchone.return_value = {"session_version": 0}
+    rev_conn = MagicMock()
+    rev_conn.cursor.return_value = rev_cursor
+
     monkeypatch.setattr(fiscalizadores, "conexion", lambda: conn)
+    monkeypatch.setattr(main_module, "conexion", rev_conn)
+    monkeypatch.setattr(fiscalizadores, "check_password_hash", lambda h, p: True)
+    monkeypatch.setattr(fiscalizadores, "generar_password_temporal", lambda: "TempClave1!")
 
     with client.session_transaction() as sess:
         sess["usuario"] = "admin_test"
         sess["perfil_activo"] = "admin"
+        sess["id_usuario"] = 99
+        sess["session_version"] = 0
 
-    resp = client.post("/desbloquear_usuario/7")
+    resp = client.post("/desbloquear_usuario/7", data={"password": "adminpass"})
     assert resp.status_code == 302
 
     llamadas = [(c.args[0], c.args[1] if len(c.args) > 1 else None)
                 for c in cursor.execute.call_args_list]
+    sqls = [sql for sql, args in llamadas]
     borrado = [args for sql, args in llamadas if "DELETE FROM intentos_login" in sql]
-    assert borrado, "No se ejecutó el DELETE de intentos_login"
     assert any(args == ("uid:7",) for args in borrado)
+    assert any("debe_cambiar_password = TRUE" in s for s in sqls)
+    assert any("session_version = session_version + 1" in s for s in sqls)
+
+
+def test_desbloquear_usuario_exige_password_admin(client, monkeypatch):
+    """Sin la contraseña correcta del admin no se desbloquea ni se rota la contraseña."""
+    import fiscalizadores
+    import main as main_module
+
+    cursor = MagicMock()
+    cursor.fetchone.side_effect = [
+        {"usuario": "pepe"},
+        {"password": "hash_admin"},
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    rev_cursor = MagicMock()
+    rev_cursor.fetchone.return_value = {"session_version": 0}
+    rev_conn = MagicMock()
+    rev_conn.cursor.return_value = rev_cursor
+
+    monkeypatch.setattr(fiscalizadores, "conexion", lambda: conn)
+    monkeypatch.setattr(main_module, "conexion", rev_conn)
+    monkeypatch.setattr(fiscalizadores, "check_password_hash", lambda h, p: False)
+
+    with client.session_transaction() as sess:
+        sess["usuario"] = "admin_test"
+        sess["perfil_activo"] = "admin"
+        sess["id_usuario"] = 99
+        sess["session_version"] = 0
+
+    resp = client.post("/desbloquear_usuario/7", data={"password": "mala"})
+    assert resp.status_code == 302
+
+    llamadas = [c.args[0] for c in cursor.execute.call_args_list]
+    assert not any("debe_cambiar_password" in s for s in llamadas)
+    assert not any("DELETE FROM intentos_login" in s for s in llamadas)
+
+
+def test_login_exitoso_redirige_a_cambio_forzado(client, monkeypatch):
+    """Con debe_cambiar_password activo, el login redirige al cambio de contraseña."""
+    import login as login_module
+
+    user = {
+        "id_usuario": 7,
+        "nombre": "A",
+        "apellidos": "B",
+        "usuario": "pepe",
+        "correo": "pepe@x.com",
+        "password": "hash",
+        "estado": "activo",
+        "foto": None,
+        "totp_secret": None,
+        "dos_factores_activo": False,
+        "cuenta_bloqueada": False,
+        "bloqueos_consecutivos": 0,
+        "debe_cambiar_password": True,
+        "session_version": 0,
+        "nombre_rol": "fiscalizador",
+    }
+
+    cursor = MagicMock()
+    cursor.fetchall.return_value = [user]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    monkeypatch.setattr(login_module, "conexion", lambda: conn)
+    monkeypatch.setattr(login_module, "_purga_periodica", lambda: None)
+    monkeypatch.setattr(login_module, "_esta_bloqueado", lambda *a, **k: False)
+    monkeypatch.setattr(login_module, "_limpiar_bloqueo", lambda *a, **k: None)
+    monkeypatch.setattr(login_module, "_resetear_bloqueos_cuenta", lambda *a, **k: None)
+    monkeypatch.setattr(login_module, "_detectar_nuevo_dispositivo", lambda *a, **k: None)
+    monkeypatch.setattr(login_module, "registrar_auditoria", lambda *a, **k: None)
+    monkeypatch.setattr(login_module, "check_password_hash", lambda *a, **k: True)
+
+    resp = client.post("/login", data={"usuario": "pepe", "password": "correcta"})
+
+    assert resp.status_code == 302
+    assert "/cambiar_password_forzado" in resp.headers["Location"]
+
+
+def test_cambiar_password_forzado_requiere_bandera(client):
+    """Sin la bandera de sesión, la pantalla de cambio forzado redirige al login."""
+    resp = client.get("/cambiar_password_forzado")
+    assert resp.status_code == 302
+    assert "/login" in resp.headers["Location"]
 
 
 def test_login_fallido_muestra_intentos_restantes(client, monkeypatch):

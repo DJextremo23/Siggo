@@ -153,7 +153,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         guardar_filtros("filtro_compensaciones")
@@ -274,7 +274,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         cursor = conexion.cursor(dictionary=True)
@@ -337,7 +337,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         fecha = request.form.get("fecha_compensacion", "").strip()
@@ -475,7 +475,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         cursor = conexion.cursor()
@@ -548,7 +548,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         ids = request.form.getlist("ids_compensacion")

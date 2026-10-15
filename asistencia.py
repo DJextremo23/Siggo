@@ -21,7 +21,7 @@ def registrar_rutas(app):
             return redirect(url_for("home"))
 
         # Validar que el perfil activo sea admin
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         if estado not in ["asistio", "falta", "justificado"]:
@@ -94,7 +94,7 @@ def registrar_rutas(app):
             return redirect(url_for("home"))
 
         # Validar que el perfil activo sea admin
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         guardar_filtros("filtro_asistencias")

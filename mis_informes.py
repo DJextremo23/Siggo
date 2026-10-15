@@ -47,7 +47,7 @@ def mis_informes():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     guardar_filtros("filtro_mis_informes")
@@ -125,7 +125,7 @@ def registrar_informe():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     conn = None
@@ -265,7 +265,7 @@ def editar_informe(id_informe):
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     conn = None
@@ -407,7 +407,7 @@ def descargar_informe(id_informe):
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     conn = None
@@ -463,7 +463,7 @@ def eliminar_informe(id_informe):
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     conn = None
@@ -519,7 +519,7 @@ def exportar_informes_pdf():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     fecha_desde = request.args.get("fecha_desde")
@@ -630,7 +630,7 @@ def exportar_informes_excel():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     fecha_desde = request.args.get("fecha_desde")
@@ -1387,7 +1387,7 @@ def analizar_informe(id_informe):
     """Página de análisis del documento con Gemini."""
     if "usuario" not in session:
         return redirect(url_for("home"))
-    perfil = session.get("perfil_activo")
+    perfil = session.get("perfil_activo", "").lower()
     if perfil not in ("fiscalizador", "admin"):
         return acceso_no_autorizado()
 
@@ -1436,7 +1436,7 @@ def analizar_informe_api(id_informe):
     fuerza (?force=1). El resultado se guarda únicamente en la base de datos."""
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
-    perfil = session.get("perfil_activo")
+    perfil = session.get("perfil_activo", "").lower()
     if perfil not in ("fiscalizador", "admin"):
         return jsonify({"error": "Acceso no autorizado"}), 403
 
@@ -1523,7 +1523,7 @@ def analizar_informe_imagen(id_informe, indice):
     """Sirve la imagen incrustada en el Excel en la posición indicada (1-based)."""
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
-    perfil = session.get("perfil_activo")
+    perfil = session.get("perfil_activo", "").lower()
     if perfil not in ("fiscalizador", "admin"):
         return jsonify({"error": "Acceso no autorizado"}), 403
 
@@ -1575,7 +1575,7 @@ def generar_ppt_analisis(id_informe):
     # Validar sesión y datos de entrada
     if "usuario" not in session:
         return jsonify({"error": "No autorizado"}), 401
-    perfil = session.get("perfil_activo")
+    perfil = session.get("perfil_activo", "").lower()
     if perfil not in ("fiscalizador", "admin"):
         return jsonify({"error": "Acceso no autorizado"}), 403
 

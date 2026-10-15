@@ -535,6 +535,31 @@
     box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
 }
 
+.modal-input {
+    width: 100%;
+    padding: 12px 14px;
+    margin: 0 0 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #0f172a;
+    background: #f8fafc;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    background: #ffffff;
+}
+
+.modal-input-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
 @keyframes modalIn {
     from { opacity: 0; transform: scale(0.96); }
     to   { opacity: 1; transform: scale(1); }

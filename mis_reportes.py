@@ -189,7 +189,7 @@ def mis_reportes():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session.get("id_usuario")
@@ -391,7 +391,7 @@ def exportar_pdf():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session["id_usuario"]
@@ -518,7 +518,7 @@ def exportar_excel():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session["id_usuario"]
@@ -630,7 +630,7 @@ def exportar_excel():
 def exportar_resumen_pdf():
     if "usuario" not in session:
         return redirect(url_for("home"))
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
     id_usuario = session["id_usuario"]
     nombre = session.get("nombre", "—")
@@ -723,7 +723,7 @@ def exportar_resumen_pdf():
 def exportar_resumen_excel():
     if "usuario" not in session:
         return redirect(url_for("home"))
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
     id_usuario = session["id_usuario"]
     nombre = session.get("nombre", "—")
@@ -804,7 +804,7 @@ def exportar_vacaciones_pdf():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session["id_usuario"]
@@ -922,7 +922,7 @@ def exportar_vacaciones_excel():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session["id_usuario"]
@@ -1034,7 +1034,7 @@ def exportar_resumen_vacaciones_pdf():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session["id_usuario"]
@@ -1099,7 +1099,7 @@ def exportar_resumen_vacaciones_excel():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "fiscalizador":
+    if session.get("perfil_activo", "").lower() != "fiscalizador":
         return acceso_no_autorizado()
 
     id_usuario = session["id_usuario"]

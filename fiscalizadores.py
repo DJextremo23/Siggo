@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from conexion import conexion
-from utils.validators import validar_mime_real, validar_longitudes, password_segura
+from utils.validators import validar_mime_real, validar_longitudes, password_segura, generar_password_temporal
 from utils import registrar_auditoria
 from limiter_instance import limiter
 import os
@@ -36,7 +36,7 @@ def foto_permitida(nombre):
 @fiscalizadores_bp.route("/admin/fiscalizadores")
 def listar_fiscalizadores():
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     conn = None
@@ -107,7 +107,7 @@ def listar_fiscalizadores():
 @fiscalizadores_bp.route("/editar_usuario/<int:id>")
 def editar_usuario(id):
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     conn = None
@@ -157,7 +157,7 @@ def editar_usuario(id):
 @limiter.limit("10 per minute")
 def actualizar_usuario(id):
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     nombre = request.form.get("nombre", "").strip()
@@ -399,7 +399,7 @@ def _cambiar_estado_usuario(cursor, id):
 @limiter.limit("10 per minute")
 def eliminar_usuario(id):
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     conn = None
@@ -470,7 +470,7 @@ def eliminar_usuario(id):
 @limiter.limit("10 per minute")
 def toggle_usuario(id):
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     conn = None
@@ -514,12 +514,14 @@ def toggle_usuario(id):
 # ==========================
 # DESBLOQUEAR CUENTA (ADMIN)
 # ==========================
-# Reactiva una cuenta marcada como bloqueada por intentos fallidos repetidos.
+# Reactiva una cuenta bloqueada por intentos fallidos: verifica la contraseña del
+# administrador, genera una contraseña temporal, limpia los intentos y revoca los
+# dispositivos confiables.
 @fiscalizadores_bp.route("/desbloquear_usuario/<int:id>", methods=["POST"])
 @limiter.limit("10 per minute")
 def desbloquear_usuario(id):
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     conn = None
@@ -535,25 +537,57 @@ def desbloquear_usuario(id):
         )
         row = cursor.fetchone()
         if not row:
+            flash("Usuario no encontrado", "error")
             return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+        # Verifica la contraseña del administrador
+        password_admin = request.form.get("password", "")
+        cursor.execute(
+            "SELECT password FROM usuarios WHERE id_usuario = %s",
+            (session.get("id_usuario"),)
+        )
+        admin_row = cursor.fetchone()
+        if not admin_row or not check_password_hash(admin_row["password"], password_admin):
+            flash("Contraseña de administrador incorrecta", "error")
+            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+
+        # Genera una contraseña temporal para el usuario
+        password_temporal = generar_password_temporal()
+        password_hash = generate_password_hash(password_temporal)
 
         cursor.execute("""
             UPDATE usuarios
-            SET cuenta_bloqueada = FALSE, bloqueos_consecutivos = 0
+            SET cuenta_bloqueada = FALSE,
+                bloqueos_consecutivos = 0,
+                debe_cambiar_password = TRUE,
+                password = %s,
+                session_version = session_version + 1
             WHERE id_usuario = %s
-        """, (id,))
+        """, (password_hash, id))
 
-        # Limpia también los intentos fallidos pendientes de la cuenta, para que
-        # el bloqueo temporal no siga activo tras el desbloqueo del administrador.
+        # Elimina los intentos fallidos pendientes de la cuenta
         cursor.execute(
             "DELETE FROM intentos_login WHERE identificador = %s",
             (f"uid:{id}",)
         )
 
-        conn.commit()
-        registrar_auditoria("cuenta_desbloqueada", f"Cuenta reactivada por admin: {row['usuario']}")
+        # Elimina los dispositivos confiables de la cuenta
+        cursor.execute(
+            "DELETE FROM dispositivos_confiables WHERE id_usuario = %s",
+            (id,)
+        )
 
-        flash(f"Cuenta de {row['usuario']} desbloqueada correctamente", "success")
+        conn.commit()
+        registrar_auditoria(
+            "cuenta_desbloqueada",
+            f"Cuenta reactivada por admin con rotación de contraseña: {row['usuario']}"
+        )
+
+        flash(
+            f"Cuenta de {row['usuario']} desbloqueada. Contraseña temporal: {password_temporal} "
+            "— entréguela al usuario por un canal seguro; deberá cambiarla al iniciar sesión.",
+            "success"
+        )
 
         return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
 
@@ -579,7 +613,7 @@ def desbloquear_usuario(id):
 @limiter.limit("10 per minute")
 def resetear_2fa(id):
 
-    if "usuario" not in session or session.get("perfil_activo") != "admin":
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
     conn = None

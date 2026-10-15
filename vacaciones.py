@@ -157,7 +157,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         guardar_filtros("filtro_vacaciones")
@@ -298,7 +298,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         cursor = None
@@ -391,7 +391,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         cursor = None
@@ -424,7 +424,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         inicio = request.form.get("fecha_inicio", "").strip()
@@ -594,7 +594,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         id_usuario = request.form.get("id_usuario", "").strip()
@@ -789,7 +789,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         cursor = conexion.cursor(dictionary=True)
@@ -854,7 +854,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "admin":
+        if session.get("perfil_activo", "").lower() != "admin":
             return acceso_no_autorizado()
 
         ids = request.form.getlist("ids_vacacion")
@@ -940,7 +940,7 @@ def registrar_rutas(app):
         if "usuario" not in session:
             return redirect(url_for("home"))
 
-        if session.get("perfil_activo") != "fiscalizador":
+        if session.get("perfil_activo", "").lower() != "fiscalizador":
             return acceso_no_autorizado()
 
         # La conexión ya es un objeto singleton (no se usa ())

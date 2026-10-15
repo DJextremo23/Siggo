@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     dos_factores_activo TINYINT(1) DEFAULT 0,
     cuenta_bloqueada TINYINT(1) DEFAULT 0,
     bloqueos_consecutivos INT DEFAULT 0,
+    debe_cambiar_password TINYINT(1) DEFAULT 0,
     session_version INT DEFAULT 0,
     ultimo_user_agent VARCHAR(500) DEFAULT NULL,
     INDEX idx_usuario_estado (estado)

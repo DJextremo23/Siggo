@@ -309,6 +309,16 @@ def verificar_sesion_revocada():
         pass
 
 
+@app.before_request
+def forzar_cambio_password():
+    """Redirige al cambio de contraseña mientras esté pendiente de renovación."""
+    if not session.get("_forzar_cambio_password"):
+        return
+    if request.endpoint in ("login.cambiar_password_forzado", "login.logout", "static"):
+        return
+    return redirect(url_for("login.cambiar_password_forzado"))
+
+
 @app.after_request
 def no_cache(resp):
     """Evita que el navegador almacene en caché páginas y respuestas de API con datos sensibles."""
@@ -398,7 +408,7 @@ def administrador():
     if "usuario" not in session:
         return redirect(url_for("home"))
 
-    if session.get("perfil_activo") != "admin":
+    if session.get("perfil_activo", "").lower() != "admin":
         return acceso_no_autorizado()
 
     cursor = None
