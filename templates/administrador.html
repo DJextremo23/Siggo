@@ -290,7 +290,7 @@
                             <line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
                     </div>
-                    <h4>Guardias por mes</h4>
+                    <h4>Guardias realizadas por mes</h4>
                 </div>
                 <select id="selector-anio-guardias" class="resumen-select" aria-label="Seleccionar año"></select>
             </div>
@@ -530,7 +530,7 @@
                         var desde = anio + '-' + (mes < 10 ? '0' + mes : mes) + '-01';
                         var ultimoDia = new Date(anio, mes, 0).getDate();
                         var hasta = anio + '-' + (mes < 10 ? '0' + mes : mes) + '-' + (ultimoDia < 10 ? '0' + ultimoDia : ultimoDia);
-                        window.location.href = '{{ url_for("ver_guardias") }}?fecha_desde=' + desde + '&fecha_hasta=' + hasta;
+                        window.location.href = '{{ url_for("ver_guardias") }}?fecha_desde=' + desde + '&fecha_hasta=' + hasta + '&tipo=guardia&asistencia=asistio';
                     }
                 },
                 plugins: { legend: { display: false } },
