@@ -48,15 +48,10 @@ def listar_fiscalizadores():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        # Filtro por estado, coherente con el gráfico del panel:
-        #   activo         -> activo sin vacaciones vigentes
-        #   en_vacaciones  -> activo con vacaciones vigentes
-        #   inactivo       -> inactivo
+        # Filtro opcional por estado (activo = sin vacaciones vigentes)
         filtro_estado = ""
         if estado == "activo":
             filtro_estado = " AND u.estado = 'activo' AND v.id_vacacion IS NULL "
-        elif estado == "en_vacaciones":
-            filtro_estado = " AND u.estado = 'activo' AND v.id_vacacion IS NOT NULL "
         elif estado == "inactivo":
             filtro_estado = " AND u.estado = 'inactivo' "
 
