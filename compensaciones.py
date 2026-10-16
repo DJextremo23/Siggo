@@ -42,6 +42,24 @@ _ACCIONES_CORREO = {
     },
 }
 
+# Configuración visual de los correos de compensación enviados al administrador
+_ACCIONES_CORREO_ADMIN = {
+    "editada": {
+        "titulo": "Compensación actualizada por un fiscalizador",
+        "header_bg": "#92400e",
+        "subtitle_color": "#fde68a",
+        "mensaje": "Se le informa que un fiscalizador ha actualizado su propia compensación. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Actualizada por",
+    },
+    "eliminada": {
+        "titulo": "Compensación eliminada por un fiscalizador",
+        "header_bg": "#991b1b",
+        "subtitle_color": "#fecaca",
+        "mensaje": "Se le informa que un fiscalizador ha eliminado su propia compensación. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Eliminada por",
+    },
+}
+
 
 def _enviar_correo_compensacion(destinatario, nombre_completo, fecha_guardia,
                                 fecha_compensacion, tipo, feriado, accion,
@@ -144,6 +162,152 @@ def _enviar_correo_compensacion(destinatario, nombre_completo, fecha_guardia,
         cuerpo,
         imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
     )
+
+
+def _enviar_correo_compensacion_admin(destinatario, nombre_admin, fiscalizador_nombre,
+                                      fecha_guardia, fecha_compensacion, tipo, feriado,
+                                      accion, fiscalizador_correo=""):
+    """Notifica al administrador cuando un fiscalizador edita/elimina su propia compensación."""
+    if not destinatario:
+        return
+
+    cfg = _ACCIONES_CORREO_ADMIN.get(accion, _ACCIONES_CORREO_ADMIN["editada"])
+    asunto = cfg["titulo"]
+
+    fecha_guardia_str = fecha_guardia.strftime("%d/%m/%Y") if isinstance(fecha_guardia, date) else (str(fecha_guardia) if fecha_guardia else "—")
+    fecha_compensacion_str = fecha_compensacion.strftime("%d/%m/%Y") if isinstance(fecha_compensacion, date) else (str(fecha_compensacion) if fecha_compensacion else "—")
+
+    tipo_guardia_str = "Soporte" if tipo == "soporte" else "Guardia"
+
+    if isinstance(fecha_guardia, date):
+        dia = DIAS_ES[fecha_guardia.weekday()]
+    else:
+        dia = str(fecha_guardia) if fecha_guardia else "—"
+    dia_guardia_str = f"{dia} (Feriado: {feriado})" if feriado else dia
+
+    cuerpo = f"""
+    <div style="margin:0; padding:0; background-color:#f1f5f9;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:24px 0;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
+              <tr>
+                <td style="background-color:{cfg['header_bg']}; padding:20px 24px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align:middle;">
+                        <img src="cid:logo_siggo" width="44" height="44" alt="SIGGO" style="display:block; border-radius:8px; background-color:#ffffff;">
+                      </td>
+                      <td style="vertical-align:middle; padding-left:12px;">
+                        <img src="cid:logo_small" width="124" height="30" alt="" style="display:block;">
+                      </td>
+                    </tr>
+                  </table>
+                  <div style="font-family:'Segoe UI',Arial,sans-serif; color:{cfg['subtitle_color']}; font-size:12px; margin-top:10px;">{cfg['titulo']}</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px; font-family:'Segoe UI',Arial,sans-serif; color:#0f172a; line-height:1.6; font-size:14px;">
+                  <p style="margin:0 0 12px;">Estimado(a) <strong>{nombre_admin}</strong>:</p>
+                  <p style="margin:0 0 16px;">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                    <tr>
+                      <td style="padding:16px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fiscalizador</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fiscalizador_nombre}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de la guardia</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_guardia_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Tipo de guardia</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{tipo_guardia_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Día de la guardia</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{dia_guardia_str}</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de compensación</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size:15px; font-weight:700; color:#0f172a;">{fecha_compensacion_str}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin:16px 0 0;">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:16px 24px; font-family:'Segoe UI',Arial,sans-serif; font-size:12px; color:#64748b;">
+                  <p style="margin:0 0 4px;">{cfg['footer_label']}: <strong style="color:#0f172a;">{fiscalizador_nombre}</strong></p>
+                  <p style="margin:0; color:#2563eb;">{fiscalizador_correo}</p>
+                  <p style="margin:10px 0 0; font-size:11px; color:#94a3b8;">Este es un mensaje automático. No responda a este correo.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    """
+
+    enviar_correo(
+        destinatario,
+        asunto,
+        cuerpo,
+        imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
+    )
+
+
+def _notificar_admins_compensacion(cursor, fiscalizador_nombre, fiscalizador_correo,
+                                   fecha_guardia, tipo_guardia, fecha_compensacion,
+                                   feriado, accion):
+    """Envía correo a todos los administradores activos (mejor esfuerzo)."""
+    try:
+        cursor.execute("""
+            SELECT DISTINCT u.correo, CONCAT(u.nombre,' ',u.apellidos)
+            FROM usuarios u
+            INNER JOIN usuarios_roles ur ON u.id_usuario = ur.id_usuario
+            INNER JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE r.nombre_rol = 'admin'
+              AND u.estado = 'activo'
+              AND u.correo IS NOT NULL
+              AND u.correo <> ''
+        """)
+        administradores = cursor.fetchall()
+    except Exception as e:
+        print("ERROR AL OBTENER ADMINISTRADORES PARA NOTIFICACIÓN:", e)
+        return
+
+    for admin in administradores:
+        try:
+            _enviar_correo_compensacion_admin(
+                admin[0],
+                admin[1] or "Administrador",
+                fiscalizador_nombre,
+                fecha_guardia,
+                fecha_compensacion,
+                tipo_guardia,
+                feriado,
+                accion,
+                fiscalizador_correo=fiscalizador_correo,
+            )
+        except Exception as e:
+            print("ERROR AL NOTIFICAR AL ADMINISTRADOR:", e)
 
 
 def registrar_rutas(app):
@@ -778,8 +942,17 @@ def registrar_rutas(app):
                 return datos_invalidos("La fecha de compensación es obligatoria")
 
             cursor.execute("""
-                SELECT g.id_usuario, g.fecha_guardia FROM compensaciones c
+                SELECT
+                    g.id_usuario,
+                    g.fecha_guardia,
+                    g.tipo,
+                    f.descripcion,
+                    CONCAT(u.nombre,' ',u.apellidos),
+                    u.correo
+                FROM compensaciones c
                 INNER JOIN guardias g ON c.id_guardia = g.id_guardia
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
                 WHERE c.id_compensacion = %s
             """, (id_compensacion,))
             row = cursor.fetchone()
@@ -788,6 +961,10 @@ def registrar_rutas(app):
             if row[0] != session.get("id_usuario"):
                 return acceso_no_autorizado()
             fecha_guardia = row[1]
+            tipo_guardia = row[2]
+            feriado = row[3]
+            fiscalizador_nombre = row[4] or "Fiscalizador"
+            fiscalizador_correo = row[5] or ""
 
             from datetime import date
             try:
@@ -823,6 +1000,12 @@ def registrar_rutas(app):
 
             conexion.commit()
 
+            # Notificar a los administradores por correo (mejor esfuerzo)
+            _notificar_admins_compensacion(
+                cursor, fiscalizador_nombre, fiscalizador_correo,
+                fecha_guardia, tipo_guardia, fecha_compensacion, feriado, "editada"
+            )
+
             registrar_auditoria("compensacion_propia_actualizada", f"Compensación propia actualizada: ID {id_compensacion}")
             flash("Compensación actualizada correctamente", "success")
             return redirigir_con_filtros("mis_compensaciones", "filtro_mis_compensaciones")
@@ -846,8 +1029,18 @@ def registrar_rutas(app):
 
         try:
             cursor.execute("""
-                SELECT g.id_usuario FROM compensaciones c
+                SELECT
+                    g.id_usuario,
+                    g.fecha_guardia,
+                    g.tipo,
+                    c.fecha_compensacion,
+                    f.descripcion,
+                    CONCAT(u.nombre,' ',u.apellidos),
+                    u.correo
+                FROM compensaciones c
                 INNER JOIN guardias g ON c.id_guardia = g.id_guardia
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                LEFT JOIN feriados f ON g.fecha_guardia = f.fecha
                 WHERE c.id_compensacion = %s
             """, (id_compensacion,))
             row = cursor.fetchone()
@@ -856,12 +1049,25 @@ def registrar_rutas(app):
             if row[0] != session.get("id_usuario"):
                 return acceso_no_autorizado()
 
+            fecha_guardia = row[1]
+            tipo_guardia = row[2]
+            fecha_compensacion = row[3]
+            feriado = row[4]
+            fiscalizador_nombre = row[5] or "Fiscalizador"
+            fiscalizador_correo = row[6] or ""
+
             cursor.execute("""
                 DELETE FROM compensaciones
                 WHERE id_compensacion = %s
             """, (id_compensacion,))
 
             conexion.commit()
+
+            # Notificar a los administradores por correo (mejor esfuerzo)
+            _notificar_admins_compensacion(
+                cursor, fiscalizador_nombre, fiscalizador_correo,
+                fecha_guardia, tipo_guardia, fecha_compensacion, feriado, "eliminada"
+            )
 
             registrar_auditoria("compensacion_propia_eliminada", f"Compensación propia eliminada: ID {id_compensacion}")
             flash("Compensación eliminada correctamente", "success")

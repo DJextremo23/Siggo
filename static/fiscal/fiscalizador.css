@@ -288,7 +288,7 @@ body {
 }
 
 /* =============================================
-   DESEMPEÑO + PRÓXIMOS SOPORTES GRID
+   GRID DE TARJETAS DEL DASHBOARD
    ============================================= */
 .desempeno-soportes-grid {
     display: grid;
@@ -297,7 +297,8 @@ body {
     margin-bottom: 28px;
 }
 
-.desempeno-soportes-grid .section-card {
+.desempeno-soportes-grid .section-card,
+.desempeno-soportes-grid .resumen-card {
     margin-bottom: 0;
     display: flex;
     flex-direction: column;
@@ -1118,7 +1119,7 @@ tbody tr:hover {
 .resumen-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: var(--radius);
     padding: 18px;
     box-shadow: var(--shadow-sm);
     display: flex;

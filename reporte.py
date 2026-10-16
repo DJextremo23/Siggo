@@ -125,16 +125,6 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     hoy = date.today().strftime("%Y-%m-%d")
     periodo_inicio = fecha_desde or (f"{anio}-01-01" if anio else None)
 
-    # Fin del período filtrado: respeta "Hasta"/año y nunca cuenta días futuros.
-    if fecha_hasta:
-        limite = fecha_hasta
-    elif anio:
-        limite = f"{anio}-12-31"
-    else:
-        limite = hoy
-    if limite > hoy:
-        limite = hoy
-
     # Periodo totalmente en el futuro: aún no hay registros de vacaciones
     if periodo_inicio and periodo_inicio > hoy:
         return []
@@ -144,8 +134,6 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
         anio_filtro = int(anio)
     elif fecha_desde:
         anio_filtro = int(fecha_desde[:4])
-    elif fecha_hasta:
-        anio_filtro = int(fecha_hasta[:4])
     else:
         anio_filtro = date.today().year
 
@@ -183,7 +171,7 @@ def _resumen_vacaciones_admin(cursor, anio=None, fecha_desde=None, fecha_hasta=N
     """
 
     params = (
-        [anio_filtro, limite, anio_filtro, anio_filtro, limite, anio_filtro, anio_filtro, anio_filtro, limite] +
+        [anio_filtro, hoy, anio_filtro, anio_filtro, hoy, anio_filtro, anio_filtro, anio_filtro, hoy] +
         params_usuarios
     )
 
