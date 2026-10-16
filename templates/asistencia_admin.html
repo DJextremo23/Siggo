@@ -261,7 +261,7 @@
                             {% if session.get('perfil_activo') == 'admin' %}
                             <td data-label="Acciones">
                                 {% if g.es_futuro %}
-                                <span class="estado pendiente" title="La asistencia se podrá registrar a partir de la fecha de la guardia">En espera</span>
+                                <span class="estado futuro" title="La asistencia se podrá registrar a partir de la fecha de la guardia">No disponible aún</span>
                                 {% else %}
                                 <div class="acciones-asistencia">
                                     <a href="#" class="btn-accion asistio" title="Marcar como Asistió" data-id-guardia="{{ g.id_guardia }}" data-estado="asistio">

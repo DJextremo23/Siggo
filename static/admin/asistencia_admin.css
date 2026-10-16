@@ -496,6 +496,19 @@ tbody tr:last-child td {
     background: #94a3b8;
 }
 
+.estado.futuro {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.estado.futuro::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0ea5e9;
+}
+
 /* =============================================
    BOTONES ACCIÓN (ASISTENCIA)
    ============================================= */
