@@ -39,6 +39,8 @@ def listar_fiscalizadores():
     if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
         return redirect(url_for("login.login"))
 
+    estado = request.args.get("estado", "").strip()
+
     conn = None
     cursor = None
 
@@ -46,7 +48,19 @@ def listar_fiscalizadores():
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("""
+        # Filtro por estado, coherente con el gráfico del panel:
+        #   activo         -> activo sin vacaciones vigentes
+        #   en_vacaciones  -> activo con vacaciones vigentes
+        #   inactivo       -> inactivo
+        filtro_estado = ""
+        if estado == "activo":
+            filtro_estado = " AND u.estado = 'activo' AND v.id_vacacion IS NULL "
+        elif estado == "en_vacaciones":
+            filtro_estado = " AND u.estado = 'activo' AND v.id_vacacion IS NOT NULL "
+        elif estado == "inactivo":
+            filtro_estado = " AND u.estado = 'inactivo' "
+
+        cursor.execute(f"""
             SELECT
                 u.id_usuario,
                 u.nombre,
@@ -66,6 +80,11 @@ def listar_fiscalizadores():
                 ON u.id_usuario = ur.id_usuario
             LEFT JOIN roles r
                 ON ur.id_rol = r.id_rol
+            LEFT JOIN vacaciones v
+                ON v.id_usuario = u.id_usuario
+                AND CURDATE() BETWEEN v.fecha_inicio AND v.fecha_fin
+            WHERE 1=1
+            {filtro_estado}
             GROUP BY
                 u.id_usuario,
                 u.nombre,
@@ -82,7 +101,8 @@ def listar_fiscalizadores():
 
         return render_template(
             "fiscalizadores.html",
-            fiscalizadores=lista_fiscalizadores
+            fiscalizadores=lista_fiscalizadores,
+            estado=estado
         )
 
     except Exception as e:
@@ -92,7 +112,8 @@ def listar_fiscalizadores():
         return render_template(
             "fiscalizadores.html",
             error="Error interno del servidor. Intente nuevamente.",
-            fiscalizadores=[]
+            fiscalizadores=[],
+            estado=estado
         )
 
     finally:

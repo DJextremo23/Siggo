@@ -66,6 +66,21 @@
         {% endif %}
         {% endwith %}
 
+        {% if estado %}
+        <div class="alert info" role="alert">
+            <span>
+                Filtrando por:
+                <strong>
+                    {% if estado == 'activo' %}Activos
+                    {% elif estado == 'en_vacaciones' %}En vacaciones
+                    {% elif estado == 'inactivo' %}Inactivos
+                    {% endif %}
+                </strong>
+            </span>
+            <a href="{{ url_for('usuarios.listar_fiscalizadores') }}" class="alert-clear">Quitar filtro</a>
+        </div>
+        {% endif %}
+
         <!-- KPI CARDS -->
         <div class="kpi-grid">
 

@@ -295,7 +295,7 @@
                 <select id="selector-anio-guardias" class="resumen-select" aria-label="Seleccionar año"></select>
             </div>
             <div class="resumen-chart-container">
-                <canvas id="chart-guardias-mes"></canvas>
+                <canvas id="chart-guardias-mes" style="cursor:pointer;"></canvas>
             </div>
         </div>
 
@@ -379,7 +379,7 @@
                 </div>
             </div>
             <div class="resumen-chart-container resumen-chart-container--donut">
-                <canvas id="chart-estado-fiscalizadores"></canvas>
+                <canvas id="chart-estado-fiscalizadores" style="cursor:pointer;"></canvas>
             </div>
         </div>
     </div>
@@ -523,6 +523,16 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: { padding: { top: 16 } },
+                onClick: function(evt, elements) {
+                    if (elements && elements.length) {
+                        var mes = elements[0].index + 1;
+                        var anio = parseInt(select.value, 10);
+                        var desde = anio + '-' + (mes < 10 ? '0' + mes : mes) + '-01';
+                        var ultimoDia = new Date(anio, mes, 0).getDate();
+                        var hasta = anio + '-' + (mes < 10 ? '0' + mes : mes) + '-' + (ultimoDia < 10 ? '0' + ultimoDia : ultimoDia);
+                        window.location.href = '{{ url_for("ver_guardias") }}?fecha_desde=' + desde + '&fecha_hasta=' + hasta;
+                    }
+                },
                 plugins: { legend: { display: false } },
                 scales: {
                     x: {
@@ -587,6 +597,15 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '62%',
+                onClick: function(evt, elements) {
+                    if (elements && elements.length) {
+                        var estados = ['activo', 'en_vacaciones', 'inactivo'];
+                        var valor = estados[elements[0].index];
+                        if (valor) {
+                            window.location.href = '{{ url_for("usuarios.listar_fiscalizadores") }}?estado=' + valor;
+                        }
+                    }
+                },
                 plugins: {
                     legend: {
                         position: 'bottom',
