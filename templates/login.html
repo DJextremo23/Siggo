@@ -100,6 +100,37 @@
 
 </div>
 
+<script>
+(function () {
+    // Bloquea el envío automático del formulario cuando el navegador
+    // rellena las credenciales guardadas; solo admite login explícito.
+    var form = document.querySelector('form[method="POST"]');
+    if (!form) return;
+
+    var enviadoPorUsuario = false;
+
+    form.addEventListener('click', function (e) {
+        if (e.target.closest('button[type="submit"]')) {
+            enviadoPorUsuario = true;
+        }
+    });
+
+    form.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            enviadoPorUsuario = true;
+        }
+    });
+
+    form.addEventListener('submit', function (e) {
+        if (!enviadoPorUsuario) {
+            e.preventDefault();
+            return;
+        }
+        enviadoPorUsuario = false;
+    });
+})();
+</script>
+
 {% if bloqueo_segundos %}
 <script>
 (function () {

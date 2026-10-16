@@ -680,4 +680,13 @@ tbody tr:last-child td {
     td {
         padding: 10px 8px;
     }
+
+    .alert {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .alert .alert-clear {
+        margin-left: 0;
+    }
 }
