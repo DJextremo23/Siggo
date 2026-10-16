@@ -32,12 +32,22 @@ def registrar_rutas(app):
         try:
             # Verificar que la guardia exista antes de insertar/actualizar asistencia
             cursor.execute("""
-                SELECT id_guardia
+                SELECT fecha_guardia
                 FROM guardias
                 WHERE id_guardia = %s
             """, (id_guardia,))
-            if not cursor.fetchone():
+            fila_guardia = cursor.fetchone()
+            if not fila_guardia:
                 return no_encontrado("Guardia no encontrada")
+
+            fecha_guardia = fila_guardia[0]
+            if isinstance(fecha_guardia, datetime):
+                fecha_guardia = fecha_guardia.date()
+
+            # No permitir registrar asistencia antes de la fecha de la guardia
+            if fecha_guardia and fecha_guardia > date.today():
+                flash("No se puede registrar la asistencia: la fecha de la guardia aún no ha llegado", "error")
+                return redirigir_con_filtros("asistencia_admin", "filtro_asistencias")
 
             cursor.execute("""
                 SELECT id_asistencia
@@ -142,12 +152,17 @@ def registrar_rutas(app):
             cursor.execute(sql, tuple(params))
             guardias = cursor.fetchall()
 
+            hoy = date.today()
             for g in guardias:
                 fecha = g.get('fecha_guardia')
+                if isinstance(fecha, datetime):
+                    fecha = fecha.date()
                 if isinstance(fecha, date):
                     g['dia_semana'] = DIAS_ES[fecha.weekday()]
+                    g['es_futuro'] = fecha > hoy
                 else:
                     g['dia_semana'] = str(fecha) if fecha else '—'
+                    g['es_futuro'] = False
 
             # =========================
             # 2. FISCALIZADORES
