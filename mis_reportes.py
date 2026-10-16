@@ -148,8 +148,6 @@ def _resumen_vacaciones_fiscalizador(cursor, id_usuario, anio, fecha_desde, fech
     dias_pendientes_anteriores = 0
 
     if user and user.get("total_dias") is not None:
-        total_dias = user["total_dias"]
-
         cursor.execute("""
             SELECT COALESCE(SUM(DATEDIFF(v.fecha_fin, v.fecha_inicio) + 1), 0) AS total
             FROM vacaciones v

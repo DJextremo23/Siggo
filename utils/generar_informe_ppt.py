@@ -22,7 +22,6 @@ from io import BytesIO
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.oxml.ns import qn
 
@@ -173,19 +172,6 @@ def _set_text_at(slide, left, top, text, tol=0.06):
             _set_text(sh, text)
             return True
     return False
-
-
-def _shapes_at(slide, left, top, tol=0.2):
-    result = []
-    for sh in slide.shapes:
-        try:
-            l = Emu(sh.left).inches
-            t = Emu(sh.top).inches
-        except Exception:
-            continue
-        if abs(l - left) <= tol and abs(t - top) <= tol:
-            result.append(sh)
-    return result
 
 
 def _delete_slides(prs, slides_to_delete):
@@ -383,22 +369,6 @@ def _fill_tarjetas(slide, titulo, evidencias, fotos, mes_ano, num):
                                 TARJETAS_PHOTO_W[i], TARJETAS_PHOTO_H)
 
 
-def _render_evidencias(prs, tarjetas_layout, tarjetas_shapes, mes_ano, num, titulo, evidencias, imagenes_archivo):
-    evidencias = _as_list(evidencias)
-    if not evidencias:
-        return num
-    por_slide = 3
-    for i in range(0, len(evidencias), por_slide):
-        chunk = evidencias[i:i + por_slide]
-        fotos = []
-        for ev in chunk:
-            fotos.append(_imagen_por_indice(imagenes_archivo, _as_dict(ev).get("imagen_indice")))
-        slide = _duplicate_slide(prs, tarjetas_layout, tarjetas_shapes)
-        _fill_tarjetas(slide, titulo, chunk, fotos, mes_ano, num)
-        num += 1
-    return num
-
-
 # ── Layout "resumen" (indicadores y listas) ─────────────────────────────────
 def _add_items(slide, x, y, items, size=11, color=RGBColor(0x10, 0x2A, 0x43), max_items=6, max_chars=80):
     """Añade ítems de lista con el estilo de la plantilla dentro de una tarjeta."""
@@ -496,13 +466,6 @@ def _fill_resumen(slide, titulo, seccion, data, mes_ano, num):
     if pendientes:
         _set_text_at(slide, *RESUMEN_PEND_TITULO, "Pendientes (relevantes):")
         _add_items(slide, 4.60, 5.60, pendientes, max_items=3)
-
-
-def _render_resumen(prs, resumen_layout, resumen_shapes, mes_ano, num, seccion, data):
-    slide = _duplicate_slide(prs, resumen_layout, resumen_shapes)
-    titulo = seccion.get("titulo") or "Resumen ejecutivo"
-    _fill_resumen(slide, titulo, seccion, data, mes_ano, num)
-    return num + 1
 
 
 # ── Derivar secciones desde registro_guardia (respaldo de caché viejo) ──────

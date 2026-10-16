@@ -70,7 +70,7 @@
             <div class="sidebar-section-label">Administración</div>
 
             {% if session.get('perfil_activo') == 'admin' %}
-            <a href="{{ url_for('fiscalizadores.listar_fiscalizadores') }}" class="{{ 'active' if active_page == 'fiscalizadores' else '' }}">
+            <a href="{{ url_for('usuarios.listar_fiscalizadores') }}" class="{{ 'active' if active_page == 'fiscalizadores' else '' }}">
                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>

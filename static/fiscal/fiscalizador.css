@@ -523,12 +523,6 @@ tbody tr:hover {
 /* =============================================
    QUICK ACTIONS
    ============================================= */
-.quick-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 18px;
-}
-
 .action-card {
     background: #ffffff;
     text-decoration: none;
@@ -1464,10 +1458,6 @@ tbody tr:hover {
 
     .kpi-info .kpi-number {
         font-size: 24px;
-    }
-
-    .quick-actions {
-        grid-template-columns: 1fr;
     }
 
     .section-header {

@@ -22,7 +22,6 @@ import os
 import json
 import re
 from dotenv import load_dotenv
-from limiter_instance import limiter
 
 # Cargar variables de entorno desde archivo .env
 load_dotenv()

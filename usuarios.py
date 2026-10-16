@@ -8,11 +8,11 @@ import os
 from datetime import datetime
 
 """
-Blueprint de gestión de fiscalizadores/usuarios: listar, editar,
-actualizar, eliminar, toggle activo/inactivo.
+Blueprint de gestión de usuarios: listar, editar, actualizar,
+eliminar, toggle activo/inactivo.
 """
 
-fiscalizadores_bp = Blueprint("fiscalizadores", __name__)
+usuarios_bp = Blueprint("usuarios", __name__)
 
 FOTOS_FOLDER = os.getenv("FOTOS_FOLDER", os.path.join("static", "fotos"))
 ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "jfif", "gif", "webp"}
@@ -30,10 +30,10 @@ def foto_permitida(nombre):
 
 
 # ==========================
-# LISTAR FISCALIZADORES (ADMIN)
+# LISTAR USUARIOS (ADMIN)
 # ==========================
 # Muestra todos los usuarios con sus roles en la vista de administración
-@fiscalizadores_bp.route("/admin/fiscalizadores")
+@usuarios_bp.route("/admin/fiscalizadores")
 def listar_fiscalizadores():
 
     if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
@@ -104,7 +104,7 @@ def listar_fiscalizadores():
 # EDITAR USUARIO (GET)
 # ==========================
 # Carga los datos de un usuario específico para mostrar el formulario de edición
-@fiscalizadores_bp.route("/editar_usuario/<int:id>")
+@usuarios_bp.route("/editar_usuario/<int:id>")
 def editar_usuario(id):
 
     if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
@@ -131,7 +131,7 @@ def editar_usuario(id):
         usuario = cursor.fetchone()
 
         if not usuario:
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         return render_template(
             "editar_fiscalizador.html",
@@ -142,7 +142,7 @@ def editar_usuario(id):
 
         print("ERROR EDITAR USUARIO:", e)
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     finally:
 
@@ -153,7 +153,7 @@ def editar_usuario(id):
 # ACTUALIZAR USUARIO (POST)
 # ==========================
 # Procesa el formulario de edición: actualiza datos, contraseña, foto y rol del usuario
-@fiscalizadores_bp.route("/actualizar_usuario/<int:id>", methods=["POST"])
+@usuarios_bp.route("/actualizar_usuario/<int:id>", methods=["POST"])
 @limiter.limit("10 per minute")
 def actualizar_usuario(id):
 
@@ -370,7 +370,7 @@ def actualizar_usuario(id):
         elif id_rol and id == session.get("id_usuario") and rol not in session.get("roles", []):
             flash("No puedes cambiar tu propio rol", "error")
             conn.rollback()
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         conn.commit()
 
@@ -387,7 +387,7 @@ def actualizar_usuario(id):
         registrar_auditoria("usuario_actualizado", f"Usuario ID {id} actualizado")
 
         flash("Usuario actualizado correctamente", "success")
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     except Exception as e:
 
@@ -429,7 +429,7 @@ def _cambiar_estado_usuario(cursor, id):
     return nuevo_estado
 
 
-@fiscalizadores_bp.route("/eliminar_usuario/<int:id>", methods=["POST"])
+@usuarios_bp.route("/eliminar_usuario/<int:id>", methods=["POST"])
 @limiter.limit("10 per minute")
 def eliminar_usuario(id):
 
@@ -443,7 +443,7 @@ def eliminar_usuario(id):
         # Evitar que un admin se elimine a sí mismo
         if id == session.get("id_usuario"):
             flash("No puedes eliminar tu propia cuenta", "error")
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         conn = conexion()
         cursor = conn.cursor(dictionary=True)
@@ -460,7 +460,7 @@ def eliminar_usuario(id):
 
         if not usuario:
             flash("Usuario no encontrado", "error")
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         # Si el usuario tiene guardias o vacaciones registradas, alternar estado
         # en lugar de eliminar para preservar el historial.
@@ -482,7 +482,7 @@ def eliminar_usuario(id):
             registrar_auditoria("usuario_eliminado", f"Usuario ID {id} eliminado")
             flash("Usuario eliminado correctamente", "success")
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     except Exception as e:
 
@@ -491,7 +491,7 @@ def eliminar_usuario(id):
         print("ERROR ELIMINAR USUARIO:", e)
         flash("Error interno del servidor al eliminar usuario", "error")
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     finally:
 
@@ -503,7 +503,7 @@ def eliminar_usuario(id):
 # TOGGLE USUARIO (ACTIVAR / DESACTIVAR)
 # ==========================
 # Alterna el estado de un usuario entre activo e inactivo
-@fiscalizadores_bp.route("/toggle_usuario/<int:id>", methods=["POST"])
+@usuarios_bp.route("/toggle_usuario/<int:id>", methods=["POST"])
 @limiter.limit("10 per minute")
 def toggle_usuario(id):
 
@@ -520,19 +520,19 @@ def toggle_usuario(id):
         # Evitar que un admin se desactive a sí mismo
         if id == session.get("id_usuario"):
             flash("No puedes desactivar tu propia cuenta", "error")
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         nuevo_estado = _cambiar_estado_usuario(cursor, id)
 
         if nuevo_estado is None:
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         conn.commit()
         registrar_auditoria("usuario_toggle", f"Usuario ID {id} -> {nuevo_estado}")
 
         flash(f"Usuario {'activado' if nuevo_estado == 'activo' else 'desactivado'} correctamente", "success")
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     except Exception as e:
 
@@ -541,7 +541,7 @@ def toggle_usuario(id):
         print("ERROR TOGGLE USUARIO:", e)
         flash("Error interno del servidor al cambiar estado", "error")
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     finally:
 
@@ -554,7 +554,7 @@ def toggle_usuario(id):
 # Reactiva una cuenta bloqueada por intentos fallidos: verifica la contraseña del
 # administrador, genera una contraseña temporal, limpia los intentos y revoca los
 # dispositivos confiables.
-@fiscalizadores_bp.route("/desbloquear_usuario/<int:id>", methods=["POST"])
+@usuarios_bp.route("/desbloquear_usuario/<int:id>", methods=["POST"])
 @limiter.limit("10 per minute")
 def desbloquear_usuario(id):
 
@@ -575,7 +575,7 @@ def desbloquear_usuario(id):
         row = cursor.fetchone()
         if not row:
             flash("Usuario no encontrado", "error")
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         # Verifica la contraseña del administrador
         password_admin = request.form.get("password", "")
@@ -586,7 +586,7 @@ def desbloquear_usuario(id):
         admin_row = cursor.fetchone()
         if not admin_row or not check_password_hash(admin_row["password"], password_admin):
             flash("Contraseña de administrador incorrecta", "error")
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         # Genera una contraseña temporal para el usuario
         password_temporal = generar_password_temporal()
@@ -626,7 +626,7 @@ def desbloquear_usuario(id):
             "success"
         )
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     except Exception as e:
 
@@ -635,7 +635,7 @@ def desbloquear_usuario(id):
         print("ERROR DESBLOQUEAR USUARIO:", e)
         flash("Error interno del servidor al desbloquear la cuenta", "error")
 
-        return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
 
     finally:
 
@@ -646,7 +646,7 @@ def desbloquear_usuario(id):
 # RESETEAR 2FA (ADMIN)
 # ==========================
 # Desactiva la autenticación en dos pasos de un usuario (por pérdida de código o cambio de dispositivo)
-@fiscalizadores_bp.route("/resetear_2fa/<int:id>", methods=["POST"])
+@usuarios_bp.route("/resetear_2fa/<int:id>", methods=["POST"])
 @limiter.limit("10 per minute")
 def resetear_2fa(id):
 
@@ -669,7 +669,7 @@ def resetear_2fa(id):
 
         if not usuario:
             flash("Usuario no encontrado", "error")
-            return redirect(url_for("fiscalizadores.listar_fiscalizadores"))
+            return redirect(url_for("usuarios.listar_fiscalizadores"))
 
         # Reautenticación del administrador antes de desactivar el 2FA de otro usuario
         password = request.form.get("password", "")
@@ -680,7 +680,7 @@ def resetear_2fa(id):
         admin_row = cursor.fetchone()
         if not admin_row or not check_password_hash(admin_row["password"], password):
             flash("Contraseña de administrador incorrecta", "error")
-            return redirect(url_for("fiscalizadores.editar_usuario", id=id))
+            return redirect(url_for("usuarios.editar_usuario", id=id))
 
         # Desactivar 2FA y limpiar el secreto TOTP
         cursor.execute("""
@@ -702,7 +702,7 @@ def resetear_2fa(id):
             f"Autenticación en dos pasos desactivada para {usuario['nombre']} {usuario['apellidos']}.",
             "success"
         )
-        return redirect(url_for("fiscalizadores.editar_usuario", id=id))
+        return redirect(url_for("usuarios.editar_usuario", id=id))
 
     except Exception as e:
 
@@ -711,7 +711,7 @@ def resetear_2fa(id):
         print("ERROR RESETEAR 2FA:", e)
         flash("Error interno del servidor al desactivar la autenticación en dos pasos", "error")
 
-        return redirect(url_for("fiscalizadores.editar_usuario", id=id))
+        return redirect(url_for("usuarios.editar_usuario", id=id))
 
     finally:
 
@@ -723,7 +723,7 @@ def resetear_2fa(id):
 # LISTA PÚBLICA FISCALIZADORES
 # ==========================
 # Muestra la lista de fiscalizadores para usuarios autenticados (vista de solo lectura)
-@fiscalizadores_bp.route("/fiscalizadores")
+@usuarios_bp.route("/fiscalizadores")
 def fiscalizadores():
 
     if "usuario" not in session:

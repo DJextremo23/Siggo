@@ -44,7 +44,7 @@ def registrar_rutas(app):
             if isinstance(fecha_guardia, datetime):
                 fecha_guardia = fecha_guardia.date()
 
-            # No permitir registrar asistencia antes de la fecha de la guardia
+            # Bloquear asistencia de guardias futuras
             if fecha_guardia and fecha_guardia > date.today():
                 flash("No se puede registrar la asistencia: la fecha de la guardia aún no ha llegado", "error")
                 return redirigir_con_filtros("asistencia_admin", "filtro_asistencias")

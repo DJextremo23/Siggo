@@ -30,7 +30,7 @@
 
     <div class="card">
 
-        <form action="{{ url_for('fiscalizadores.actualizar_usuario', id=usuario.id_usuario) }}" method="POST" enctype="multipart/form-data" class="form-grid">
+        <form action="{{ url_for('usuarios.actualizar_usuario', id=usuario.id_usuario) }}" method="POST" enctype="multipart/form-data" class="form-grid">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <!-- FOTO -->
@@ -168,7 +168,7 @@
 
             <!-- BOTONES -->
             <div class="form-actions">
-                <a href="{{ url_for('fiscalizadores.listar_fiscalizadores') }}" class="btn btn-cancel">
+                <a href="{{ url_for('usuarios.listar_fiscalizadores') }}" class="btn btn-cancel">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
@@ -191,7 +191,7 @@
         <div class="twofa-section">
             <h3>Autenticación en dos pasos</h3>
             <p>Este usuario tiene 2FA activo. Si perdió su código (cambió de dispositivo o eliminó su app de autenticación), desactívalo para que pueda volver a iniciar sesión con su contraseña y reactivarlo cuando quiera.</p>
-            <form action="{{ url_for('fiscalizadores.resetear_2fa', id=usuario.id_usuario) }}" method="POST" onsubmit="return confirm('¿Desactivar la autenticación en dos pasos de este usuario?');">
+            <form action="{{ url_for('usuarios.resetear_2fa', id=usuario.id_usuario) }}" method="POST" onsubmit="return confirm('¿Desactivar la autenticación en dos pasos de este usuario?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="field" style="margin:12px 0;">
                     <label class="field-label" for="adminPasswordReset2FA">Tu contraseña (confirmación)</label>

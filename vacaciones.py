@@ -10,9 +10,9 @@ from utils import (
     guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
 from correo import enviar_correo
-from helpers import DIAS_ES, balance_vacaciones_fifo
+from helpers import balance_vacaciones_fifo
 import mysql.connector.errors
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 # Logos incrustados en los correos de notificación
 LOGO_SIGGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "img", "logo.png")

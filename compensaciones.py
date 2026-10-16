@@ -167,7 +167,7 @@ def _enviar_correo_compensacion(destinatario, nombre_completo, fecha_guardia,
 def _enviar_correo_compensacion_admin(destinatario, nombre_admin, fiscalizador_nombre,
                                       fecha_guardia, fecha_compensacion, tipo, feriado,
                                       accion, fiscalizador_correo=""):
-    """Notifica al administrador cuando un fiscalizador edita/elimina su propia compensación."""
+    """Notifica al administrador una compensación editada/eliminada (mejor esfuerzo)."""
     if not destinatario:
         return
 
@@ -276,7 +276,7 @@ def _enviar_correo_compensacion_admin(destinatario, nombre_admin, fiscalizador_n
 def _notificar_admins_compensacion(cursor, fiscalizador_nombre, fiscalizador_correo,
                                    fecha_guardia, tipo_guardia, fecha_compensacion,
                                    feriado, accion):
-    """Envía correo a todos los administradores activos (mejor esfuerzo)."""
+    """Envía el correo a los administradores activos (mejor esfuerzo)."""
     try:
         cursor.execute("""
             SELECT DISTINCT u.correo, CONCAT(u.nombre,' ',u.apellidos)
@@ -1000,7 +1000,7 @@ def registrar_rutas(app):
 
             conexion.commit()
 
-            # Notificar a los administradores por correo (mejor esfuerzo)
+            # Notificar a los administradores
             _notificar_admins_compensacion(
                 cursor, fiscalizador_nombre, fiscalizador_correo,
                 fecha_guardia, tipo_guardia, fecha_compensacion, feriado, "editada"
@@ -1063,7 +1063,7 @@ def registrar_rutas(app):
 
             conexion.commit()
 
-            # Notificar a los administradores por correo (mejor esfuerzo)
+            # Notificar a los administradores
             _notificar_admins_compensacion(
                 cursor, fiscalizador_nombre, fiscalizador_correo,
                 fecha_guardia, tipo_guardia, fecha_compensacion, feriado, "eliminada"

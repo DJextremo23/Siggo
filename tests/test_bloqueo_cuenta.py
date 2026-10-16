@@ -34,7 +34,7 @@ def test_escalar_bloqueo_cuenta_activa_bloqueo(monkeypatch):
 
 def test_desbloquear_usuario_limpia_intentos_login(client, monkeypatch):
     """Al desbloquear, se limpian los intentos fallidos y se fuerza el cambio de contraseña."""
-    import fiscalizadores
+    import usuarios
     import main as main_module
 
     cursor = MagicMock()
@@ -52,10 +52,10 @@ def test_desbloquear_usuario_limpia_intentos_login(client, monkeypatch):
     rev_conn = MagicMock()
     rev_conn.cursor.return_value = rev_cursor
 
-    monkeypatch.setattr(fiscalizadores, "conexion", lambda: conn)
+    monkeypatch.setattr(usuarios, "conexion", lambda: conn)
     monkeypatch.setattr(main_module, "conexion", rev_conn)
-    monkeypatch.setattr(fiscalizadores, "check_password_hash", lambda h, p: True)
-    monkeypatch.setattr(fiscalizadores, "generar_password_temporal", lambda: "TempClave1!")
+    monkeypatch.setattr(usuarios, "check_password_hash", lambda h, p: True)
+    monkeypatch.setattr(usuarios, "generar_password_temporal", lambda: "TempClave1!")
 
     with client.session_transaction() as sess:
         sess["usuario"] = "admin_test"
@@ -77,7 +77,7 @@ def test_desbloquear_usuario_limpia_intentos_login(client, monkeypatch):
 
 def test_desbloquear_usuario_exige_password_admin(client, monkeypatch):
     """Sin la contraseña correcta del admin no se desbloquea ni se rota la contraseña."""
-    import fiscalizadores
+    import usuarios
     import main as main_module
 
     cursor = MagicMock()
@@ -93,9 +93,9 @@ def test_desbloquear_usuario_exige_password_admin(client, monkeypatch):
     rev_conn = MagicMock()
     rev_conn.cursor.return_value = rev_cursor
 
-    monkeypatch.setattr(fiscalizadores, "conexion", lambda: conn)
+    monkeypatch.setattr(usuarios, "conexion", lambda: conn)
     monkeypatch.setattr(main_module, "conexion", rev_conn)
-    monkeypatch.setattr(fiscalizadores, "check_password_hash", lambda h, p: False)
+    monkeypatch.setattr(usuarios, "check_password_hash", lambda h, p: False)
 
     with client.session_transaction() as sess:
         sess["usuario"] = "admin_test"

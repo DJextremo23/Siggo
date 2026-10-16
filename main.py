@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for
 from flask_talisman import Talisman
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
@@ -11,7 +11,7 @@ from reporte import reporte_bp
 from conexion import conexion as obtener_conexion
 from mis_reportes import mis_reportes_bp
 from csrf import generate_token, validate_csrf
-from utils import error_response, acceso_no_autorizado, error_interno, datos_invalidos, no_encontrado, guardar_filtros, redirigir_con_filtros, registrar_auditoria
+from utils import error_response, acceso_no_autorizado, error_interno, registrar_auditoria
 from helpers import DIAS_ES, MESES_ABREV, balance_vacaciones_fifo
 
 from datetime import datetime, timedelta, date
@@ -19,7 +19,7 @@ from login import login_bp
 from registro import registro_bp
 from mis_informes import informe_bp
 from informes import informes_bp
-from fiscalizadores import fiscalizadores_bp
+from usuarios import usuarios_bp
 from perfil import perfil_bp
 from feriados import registrar_rutas as registrar_rutas_feriados
 from compensaciones import registrar_rutas as registrar_rutas_compensaciones
@@ -858,7 +858,7 @@ app.register_blueprint(registro_bp)
 app.register_blueprint(reporte_bp)
 app.register_blueprint(mis_reportes_bp, url_prefix="/mis_reportes")
 app.register_blueprint(informes_bp)
-app.register_blueprint(fiscalizadores_bp)
+app.register_blueprint(usuarios_bp)
 app.register_blueprint(perfil_bp)
 
 # Registro de rutas extraídas a módulos (mismos endpoints, url_for intactos)
