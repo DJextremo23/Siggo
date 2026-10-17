@@ -55,6 +55,7 @@
 .mail-message { margin: 0 0 16px; }
 .mail-section-title { margin: 16px 0 6px; font-size: 13px; font-weight: 700; color: #0f172a; }
 .mail-info { margin: 16px 0 0; }
+.mail-link { color: #2563eb; }
 
 .mail-detail {
     background-color: #f8fafc;

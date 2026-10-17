@@ -163,6 +163,17 @@ CREATE TABLE IF NOT EXISTS intentos_login (
     INDEX idx_identificador (identificador)
 );
 
+-- ── RESTABLECIMIENTO DE CONTRASEÑA (auto-servicio) ──
+CREATE TABLE IF NOT EXISTS restablecimientos_password (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    token VARCHAR(128) NOT NULL UNIQUE,
+    expira DATETIME NOT NULL,
+    usado TINYINT(1) NOT NULL DEFAULT 0,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+);
+
 -- ── DISPOSITIVOS CONFIABLES (2FA recordar dispositivo) ──
 CREATE TABLE IF NOT EXISTS dispositivos_confiables (
     id INT AUTO_INCREMENT PRIMARY KEY,

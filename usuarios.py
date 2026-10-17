@@ -636,13 +636,9 @@ def desbloquear_usuario(id):
             f"Cuenta reactivada por admin con rotación de contraseña: {row['usuario']}"
         )
 
-        flash(
-            f"Cuenta de {row['usuario']} desbloqueada. Contraseña temporal: {password_temporal} "
-            "— entréguela al usuario por un canal seguro; deberá cambiarla al iniciar sesión.",
-            "success"
-        )
-
-        return redirect(url_for("usuarios.listar_fiscalizadores"))
+        session["_temp_password"] = password_temporal
+        session["_temp_password_usuario"] = row["usuario"]
+        return redirect(url_for("usuarios.desbloqueo_exitoso"))
 
     except Exception as e:
 
@@ -657,6 +653,26 @@ def desbloquear_usuario(id):
 
         if cursor is not None: cursor.close()
         if conn is not None: conn.close()
+
+
+# Página de confirmación: muestra la contraseña temporal una sola vez
+@usuarios_bp.route("/desbloqueo_exitoso")
+def desbloqueo_exitoso():
+
+    if "usuario" not in session or session.get("perfil_activo", "").lower() != "admin":
+        return redirect(url_for("login.login"))
+
+    usuario = session.pop("_temp_password_usuario", None)
+    password_temporal = session.pop("_temp_password", None)
+
+    if not usuario or not password_temporal:
+        return redirect(url_for("usuarios.listar_fiscalizadores"))
+
+    return render_template(
+        "desbloqueo_exitoso.html",
+        usuario=usuario,
+        password_temporal=password_temporal
+    )
 
 # ==========================
 # RESETEAR 2FA (ADMIN)

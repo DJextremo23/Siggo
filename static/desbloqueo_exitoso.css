@@ -1,0 +1,17 @@
+/* Estilos específicos de la página de desbloqueo de cuenta */
+
+.password-box {
+    margin-top: 8px;
+}
+
+.password-box .field-input input {
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 1px;
+    font-size: 15px;
+    font-weight: 600;
+    user-select: all;
+}
+
+.copy-ok {
+    background: #16a34a;
+}

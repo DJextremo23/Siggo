@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from limiter_instance import limiter
 from utils import registrar_auditoria
 from utils.validators import password_segura
+from correo import enviar_correo, construir_correo
 import pyotp
 import qrcode
 import qrcode.image.svg
@@ -201,8 +202,8 @@ def _escalar_bloqueo_cuenta(id_usuario):
         finally:
             cursor.close()
             conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print("ERROR escalar_bloqueo_cuenta:", e)
 
 
 # Reinicia el contador de bloqueos consecutivos tras un inicio de sesión exitoso
@@ -550,16 +551,6 @@ def login():
             else:
                 identificador_bloqueo = usuario.lower()
 
-            # Bloqueo duro de cuenta: si fue marcada por intentos fallidos repetidos,
-            # solo un administrador puede reactivarla. Se informa genéricamente para
-            # no confirmar la existencia del usuario. Se evalúa antes que el bloqueo
-            # temporal para que el mensaje siempre indique contactar al administrador.
-            if user and user.get("cuenta_bloqueada"):
-                return render_template(
-                    "login.html",
-                    error="Cuenta bloqueada por seguridad. Contacte al administrador."
-                )
-
             # Bloqueo temporal con duración progresiva según los ciclos previos de la cuenta
             minutos_bloqueo = _minutos_bloqueo(user["bloqueos_consecutivos"] if user else 0)
             if _esta_bloqueado(identificador_bloqueo, minutos=minutos_bloqueo):
@@ -580,6 +571,16 @@ def login():
                 hash_a_comparar = _DUMMY_PASSWORD_HASH
 
             password_ok = check_password_hash(hash_a_comparar, password)
+
+            # Bloqueo duro: solo se revela si la contraseña es correcta (el dueño
+            # legítimo), para no confirmar la existencia de cuentas bloqueadas.
+            if user and user.get("cuenta_bloqueada"):
+                if password_ok:
+                    return render_template(
+                        "login.html",
+                        error="Cuenta bloqueada por seguridad. Contacte al administrador."
+                    )
+                return render_template("login.html", error="Credenciales inválidas.")
 
             if not user or user["estado"] != "activo" or not password_ok:
                 _registrar_fallo(identificador_bloqueo)
@@ -796,6 +797,135 @@ def cambiar_password_forzado():
                 conn.close()
 
     return render_template("cambiar_password_forzado.html")
+
+
+def _construir_correo_recuperacion(nombre, enlace):
+    cuerpo = f"""
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre}</strong>:</p>
+                  <p class="mail-message">Recibimos una solicitud para restablecer tu contraseña. Usa el siguiente enlace (válido por 30 minutos):</p>
+                  <p class="mail-info"><a class="mail-link" href="{enlace}">Restablecer contraseña</a></p>
+                  <p class="mail-info">Si no solicitaste este cambio, ignora este correo.</p>
+    """
+    pie = '<p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>'
+    return construir_correo("Restablecimiento de contraseña", "mail-header-blue", "mail-subtitle-blue", cuerpo, pie)
+
+
+# ==========================
+# RECUPERACIÓN DE CONTRASEÑA (auto-servicio)
+# ==========================
+@login_bp.route("/recuperar_password", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def recuperar_password():
+    if request.method == "POST":
+        identificador = request.form.get("identificador", "").strip()
+        if not identificador:
+            return render_template("recuperar_password.html", error="Ingrese su usuario o correo.")
+
+        conn = None
+        cursor = None
+        try:
+            conn = conexion()
+            cursor = conn.cursor(dictionary=True)
+
+            if "@" in identificador:
+                filtro = "LOWER(u.correo) = %s"
+                param = identificador.lower()
+            else:
+                filtro = "u.usuario = %s"
+                param = identificador
+
+            cursor.execute(f"""
+                SELECT u.id_usuario, u.correo, CONCAT(u.nombre,' ',u.apellidos) AS nombre
+                FROM usuarios u
+                WHERE {filtro} AND u.estado = 'activo' AND u.cuenta_bloqueada = FALSE
+            """, (param,))
+            user = cursor.fetchone()
+
+            if user:
+                token = secrets.token_urlsafe(32)
+                cursor.execute(
+                    "INSERT INTO restablecimientos_password (id_usuario, token, expira) "
+                    "VALUES (%s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))",
+                    (user["id_usuario"], token)
+                )
+                conn.commit()
+
+                enlace = url_for("login.restablecer_password", token=token, _external=True)
+                cuerpo_html = _construir_correo_recuperacion(user["nombre"], enlace)
+                enviar_correo(user["correo"], "Restablecimiento de contraseña", cuerpo_html)
+
+            return render_template("recuperar_password.html", exito=True)
+        except Exception as e:
+            print("ERROR recuperar_password:", e)
+            return render_template("recuperar_password.html", error="Error interno. Intente nuevamente.")
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
+
+    return render_template("recuperar_password.html")
+
+
+@login_bp.route("/restablecer_password/<token>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
+def restablecer_password(token):
+    conn = None
+    cursor = None
+    try:
+        conn = conexion()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT id_usuario FROM restablecimientos_password WHERE token = %s AND usado = 0 AND expira > NOW()",
+            (token,)
+        )
+        fila = cursor.fetchone()
+        if not fila:
+            return render_template("restablecer_password.html", token=token, error="El enlace no es válido o ha expirado.")
+
+        id_usuario = fila["id_usuario"]
+
+        if request.method == "POST":
+            password_nueva = request.form.get("password_nueva", "")
+            password_confirm = request.form.get("password_confirm", "")
+
+            error = None
+            if not password_nueva or not password_confirm:
+                error = "Complete ambos campos."
+            elif len(password_nueva) > 128:
+                error = "La contraseña es demasiado larga."
+            elif password_nueva != password_confirm:
+                error = "Las contraseñas no coinciden."
+            elif not password_segura(password_nueva):
+                error = "La contraseña es débil: mínimo 10 caracteres, con mayúscula, minúscula, número y símbolo."
+
+            if error:
+                return render_template("restablecer_password.html", token=token, error=error)
+
+            password_hash = generate_password_hash(password_nueva)
+            cursor.execute(
+                "UPDATE usuarios SET password = %s, debe_cambiar_password = FALSE, "
+                "bloqueos_consecutivos = 0, session_version = session_version + 1 WHERE id_usuario = %s",
+                (password_hash, id_usuario)
+            )
+            cursor.execute("DELETE FROM intentos_login WHERE identificador = %s", (f"uid:{id_usuario}",))
+            cursor.execute("UPDATE restablecimientos_password SET usado = 1 WHERE token = %s", (token,))
+            conn.commit()
+
+            registrar_auditoria("password_restablecida", f"Contraseña restablecida por correo: id_usuario {id_usuario}")
+
+            return render_template("restablecer_password.html", token=token, exito=True)
+
+        return render_template("restablecer_password.html", token=token)
+    except Exception as e:
+        print("ERROR restablecer_password:", e)
+        return render_template("restablecer_password.html", token=token, error="Error interno. Intente nuevamente.")
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
 
 
 # ==========================
