@@ -1,6 +1,5 @@
 """Rutas de gestión de compensaciones (admin y fiscalizador)."""
 
-import os
 from flask import render_template, request, session, redirect, url_for, flash
 from conexion import conexion as _obtener_conexion
 conexion = _obtener_conexion()
@@ -9,52 +8,46 @@ from utils import (
     acceso_no_autorizado, datos_invalidos, no_encontrado, error_interno,
     error_response, guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
-from correo import enviar_correo
+from correo import enviar_correo, construir_correo
 from helpers import DIAS_ES
 from datetime import datetime, date
 
-# Logos incrustados en los correos de notificación
-LOGO_SIGGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "img", "logo.png")
-LOGO_SMALL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "ppt", "logo_small.jpg")
-
-# Configuración visual de los correos de compensación según la acción
 _ACCIONES_CORREO = {
     "registrada": {
         "titulo": "Compensación registrada",
-        "header_bg": "#1e3a8a",
-        "subtitle_color": "#bfdbfe",
+        "clase_header": "mail-header-blue",
+        "clase_subtitulo": "mail-subtitle-blue",
         "mensaje": "Se le informa que se ha registrado una compensación asociada a una de sus guardias. A continuación se detallan los datos correspondientes:",
         "footer_label": "Registrado por",
     },
     "editada": {
         "titulo": "Compensación actualizada",
-        "header_bg": "#92400e",
-        "subtitle_color": "#fde68a",
+        "clase_header": "mail-header-orange",
+        "clase_subtitulo": "mail-subtitle-orange",
         "mensaje": "Se le informa que se ha actualizado la compensación asociada a una de sus guardias. A continuación se detallan los datos correspondientes:",
         "footer_label": "Actualizado por",
     },
     "eliminada": {
         "titulo": "Compensación eliminada",
-        "header_bg": "#991b1b",
-        "subtitle_color": "#fecaca",
+        "clase_header": "mail-header-red",
+        "clase_subtitulo": "mail-subtitle-red",
         "mensaje": "Se le informa que se ha eliminado la compensación asociada a una de sus guardias. A continuación se detallan los datos correspondientes:",
         "footer_label": "Eliminado por",
     },
 }
 
-# Configuración visual de los correos de compensación enviados al administrador
 _ACCIONES_CORREO_ADMIN = {
     "editada": {
         "titulo": "Compensación actualizada por un fiscalizador",
-        "header_bg": "#92400e",
-        "subtitle_color": "#fde68a",
+        "clase_header": "mail-header-orange",
+        "clase_subtitulo": "mail-subtitle-orange",
         "mensaje": "Se le informa que un fiscalizador ha actualizado su propia compensación. A continuación se detallan los datos correspondientes:",
         "footer_label": "Actualizada por",
     },
     "eliminada": {
         "titulo": "Compensación eliminada por un fiscalizador",
-        "header_bg": "#991b1b",
-        "subtitle_color": "#fecaca",
+        "clase_header": "mail-header-red",
+        "clase_subtitulo": "mail-subtitle-red",
         "mensaje": "Se le informa que un fiscalizador ha eliminado su propia compensación. A continuación se detallan los datos correspondientes:",
         "footer_label": "Eliminada por",
     },
@@ -83,85 +76,34 @@ def _enviar_correo_compensacion(destinatario, nombre_completo, fecha_guardia,
     dia_guardia_str = f"{dia} (Feriado: {feriado})" if feriado else dia
 
     cuerpo = f"""
-    <div style="margin:0; padding:0; background-color:#f1f5f9;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:24px 0;">
-        <tr>
-          <td align="center">
-            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
-              <tr>
-                <td style="background-color:{cfg['header_bg']}; padding:20px 24px;">
-                  <table role="presentation" cellpadding="0" cellspacing="0">
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p class="mail-message">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-detail">
                     <tr>
-                      <td style="vertical-align:middle;">
-                        <img src="cid:logo_siggo" width="44" height="44" alt="SIGGO" style="display:block; border-radius:8px; background-color:#ffffff;">
-                      </td>
-                      <td style="vertical-align:middle; padding-left:12px;">
-                        <img src="cid:logo_small" width="124" height="30" alt="" style="display:block;">
-                      </td>
-                    </tr>
-                  </table>
-                  <div style="font-family:'Segoe UI',Arial,sans-serif; color:{cfg['subtitle_color']}; font-size:12px; margin-top:10px;">{cfg['titulo']}</div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px; font-family:'Segoe UI',Arial,sans-serif; color:#0f172a; line-height:1.6; font-size:14px;">
-                  <p style="margin:0 0 12px;">Estimado(a) <strong>{nombre_completo}</strong>:</p>
-                  <p style="margin:0 0 16px;">{cfg['mensaje']}</p>
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
-                    <tr>
-                      <td style="padding:16px;">
+                      <td class="mail-detail-pad">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de la guardia</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_guardia_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Tipo de guardia</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{tipo_guardia_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Día de la guardia</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{dia_guardia_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de compensación</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a;">{fecha_compensacion_str}</td>
-                          </tr>
+                          <tr><td class="mail-label">Fecha de la guardia</td></tr>
+                          <tr><td class="mail-value">{fecha_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Tipo de guardia</td></tr>
+                          <tr><td class="mail-value">{tipo_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Día de la guardia</td></tr>
+                          <tr><td class="mail-value">{dia_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Fecha de compensación</td></tr>
+                          <tr><td class="mail-value-last">{fecha_compensacion_str}</td></tr>
                         </table>
                       </td>
                     </tr>
                   </table>
-                  <p style="margin:16px 0 0;">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:16px 24px; font-family:'Segoe UI',Arial,sans-serif; font-size:12px; color:#64748b;">
-                  <p style="margin:0 0 4px;">{cfg['footer_label']}: <strong style="color:#0f172a;">{admin_nombre}</strong></p>
-                  <p style="margin:0; color:#2563eb;">{admin_correo}</p>
-                  <p style="margin:10px 0 0; font-size:11px; color:#94a3b8;">Este es un mensaje automático. No responda a este correo.</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </div>
+                  <p class="mail-info">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+    """
+    pie = f"""
+                  <p class="mail-footer-label">{cfg['footer_label']}: <strong class="mail-footer-name">{admin_nombre}</strong></p>
+                  <p class="mail-footer-email">{admin_correo}</p>
+                  <p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>
     """
 
-    enviar_correo(
-        destinatario,
-        asunto,
-        cuerpo,
-        imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
-    )
+    cuerpo_html = construir_correo(cfg["titulo"], cfg["clase_header"], cfg["clase_subtitulo"], cuerpo, pie)
+    enviar_correo(destinatario, asunto, cuerpo_html)
 
 
 def _enviar_correo_compensacion_admin(destinatario, nombre_admin, fiscalizador_nombre,
@@ -186,91 +128,36 @@ def _enviar_correo_compensacion_admin(destinatario, nombre_admin, fiscalizador_n
     dia_guardia_str = f"{dia} (Feriado: {feriado})" if feriado else dia
 
     cuerpo = f"""
-    <div style="margin:0; padding:0; background-color:#f1f5f9;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:24px 0;">
-        <tr>
-          <td align="center">
-            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
-              <tr>
-                <td style="background-color:{cfg['header_bg']}; padding:20px 24px;">
-                  <table role="presentation" cellpadding="0" cellspacing="0">
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre_admin}</strong>:</p>
+                  <p class="mail-message">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-detail">
                     <tr>
-                      <td style="vertical-align:middle;">
-                        <img src="cid:logo_siggo" width="44" height="44" alt="SIGGO" style="display:block; border-radius:8px; background-color:#ffffff;">
-                      </td>
-                      <td style="vertical-align:middle; padding-left:12px;">
-                        <img src="cid:logo_small" width="124" height="30" alt="" style="display:block;">
-                      </td>
-                    </tr>
-                  </table>
-                  <div style="font-family:'Segoe UI',Arial,sans-serif; color:{cfg['subtitle_color']}; font-size:12px; margin-top:10px;">{cfg['titulo']}</div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px; font-family:'Segoe UI',Arial,sans-serif; color:#0f172a; line-height:1.6; font-size:14px;">
-                  <p style="margin:0 0 12px;">Estimado(a) <strong>{nombre_admin}</strong>:</p>
-                  <p style="margin:0 0 16px;">{cfg['mensaje']}</p>
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
-                    <tr>
-                      <td style="padding:16px;">
+                      <td class="mail-detail-pad">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fiscalizador</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fiscalizador_nombre}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de la guardia</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_guardia_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Tipo de guardia</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{tipo_guardia_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Día de la guardia</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{dia_guardia_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de compensación</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a;">{fecha_compensacion_str}</td>
-                          </tr>
+                          <tr><td class="mail-label">Fiscalizador</td></tr>
+                          <tr><td class="mail-value">{fiscalizador_nombre}</td></tr>
+                          <tr><td class="mail-label">Fecha de la guardia</td></tr>
+                          <tr><td class="mail-value">{fecha_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Tipo de guardia</td></tr>
+                          <tr><td class="mail-value">{tipo_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Día de la guardia</td></tr>
+                          <tr><td class="mail-value">{dia_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Fecha de compensación</td></tr>
+                          <tr><td class="mail-value-last">{fecha_compensacion_str}</td></tr>
                         </table>
                       </td>
                     </tr>
                   </table>
-                  <p style="margin:16px 0 0;">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:16px 24px; font-family:'Segoe UI',Arial,sans-serif; font-size:12px; color:#64748b;">
-                  <p style="margin:0 0 4px;">{cfg['footer_label']}: <strong style="color:#0f172a;">{fiscalizador_nombre}</strong></p>
-                  <p style="margin:0; color:#2563eb;">{fiscalizador_correo}</p>
-                  <p style="margin:10px 0 0; font-size:11px; color:#94a3b8;">Este es un mensaje automático. No responda a este correo.</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </div>
+                  <p class="mail-info">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+    """
+    pie = f"""
+                  <p class="mail-footer-label">{cfg['footer_label']}: <strong class="mail-footer-name">{fiscalizador_nombre}</strong></p>
+                  <p class="mail-footer-email">{fiscalizador_correo}</p>
+                  <p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>
     """
 
-    enviar_correo(
-        destinatario,
-        asunto,
-        cuerpo,
-        imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
-    )
+    cuerpo_html = construir_correo(cfg["titulo"], cfg["clase_header"], cfg["clase_subtitulo"], cuerpo, pie)
+    enviar_correo(destinatario, asunto, cuerpo_html)
 
 
 def _notificar_admins_compensacion(cursor, fiscalizador_nombre, fiscalizador_correo,

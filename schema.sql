@@ -73,6 +73,35 @@ CREATE TABLE IF NOT EXISTS asistencia (
     FOREIGN KEY (id_guardia) REFERENCES guardias(id_guardia) ON DELETE CASCADE
 );
 
+-- ── RECORDATORIOS DE ASISTENCIA (evita duplicar avisos de recordatorio) ──
+CREATE TABLE IF NOT EXISTS recordatorios_asistencia (
+    id_recordatorio INT AUTO_INCREMENT PRIMARY KEY,
+    id_guardia INT NOT NULL,
+    numero_recordatorio TINYINT NOT NULL,
+    enviado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_recordatorio (id_guardia, numero_recordatorio),
+    FOREIGN KEY (id_guardia) REFERENCES guardias(id_guardia) ON DELETE CASCADE
+);
+
+-- ── NOTIFICACIONES AL ADMIN POR ASISTENCIA (marcada / no marcada) ──
+CREATE TABLE IF NOT EXISTS notificaciones_asistencia_admin (
+    id_notificacion INT AUTO_INCREMENT PRIMARY KEY,
+    id_guardia INT NOT NULL,
+    tipo ENUM('marcada', 'no_marcada') NOT NULL,
+    enviado TINYINT(1) NOT NULL DEFAULT 0,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    enviado_en DATETIME DEFAULT NULL,
+    UNIQUE KEY uq_notificacion_admin (id_guardia, tipo),
+    FOREIGN KEY (id_guardia) REFERENCES guardias(id_guardia) ON DELETE CASCADE
+);
+
+-- ── ALERTA DE VACACIONES DIARIA (evita duplicar el envío por día) ──
+CREATE TABLE IF NOT EXISTS alertas_vacaciones_diarias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fecha DATE NOT NULL UNIQUE,
+    enviado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ── COMPENSACIONES ──
 CREATE TABLE IF NOT EXISTS compensaciones (
     id_compensacion INT AUTO_INCREMENT PRIMARY KEY,

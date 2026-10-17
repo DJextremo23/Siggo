@@ -10,8 +10,224 @@ from utils import (
     guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
 from helpers import DIAS_ES
+from correo import enviar_correo, construir_correo
 import mysql.connector.errors
 from datetime import datetime, date
+
+_ACCIONES_CORREO_GUARDIA = {
+    "registrada": {
+        "titulo": "Guardia asignada",
+        "clase_header": "mail-header-blue",
+        "clase_subtitulo": "mail-subtitle-blue",
+        "mensaje": "Se le informa que se le ha asignado una nueva guardia. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Registrado por",
+    },
+    "actualizada": {
+        "titulo": "Guardia actualizada",
+        "clase_header": "mail-header-orange",
+        "clase_subtitulo": "mail-subtitle-orange",
+        "mensaje": "Se le informa que se ha actualizado una de sus guardias asignadas. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Actualizado por",
+    },
+    "eliminada": {
+        "titulo": "Guardia eliminada",
+        "clase_header": "mail-header-red",
+        "clase_subtitulo": "mail-subtitle-red",
+        "mensaje": "Se le informa que se ha eliminado una de sus guardias asignadas. A continuación se detallan los datos correspondientes:",
+        "footer_label": "Eliminado por",
+    },
+}
+
+
+def _formatear_fecha(fecha):
+    """Devuelve (fecha dd/mm/aaaa, nombre del día) a partir de date, datetime o string."""
+    if isinstance(fecha, date) and not isinstance(fecha, datetime):
+        return fecha.strftime("%d/%m/%Y"), DIAS_ES[fecha.weekday()]
+    if isinstance(fecha, datetime):
+        return fecha.strftime("%d/%m/%Y"), DIAS_ES[fecha.weekday()]
+    if fecha:
+        try:
+            d = datetime.strptime(str(fecha), "%Y-%m-%d")
+            return d.strftime("%d/%m/%Y"), DIAS_ES[d.weekday()]
+        except ValueError:
+            return str(fecha), str(fecha)
+    return "—", "—"
+
+
+def _enviar_correo_guardia(destinatario, nombre_completo, fecha_guardia, tipo, accion,
+                           admin_nombre="", admin_correo=""):
+    """Notifica al fiscalizador una guardia registrada/actualizada/eliminada (mejor esfuerzo)."""
+    if not destinatario:
+        return
+
+    cfg = _ACCIONES_CORREO_GUARDIA.get(accion, _ACCIONES_CORREO_GUARDIA["registrada"])
+    asunto = cfg["titulo"]
+
+    fecha_guardia_str, dia_guardia_str = _formatear_fecha(fecha_guardia)
+    tipo_guardia_str = "Soporte" if tipo == "soporte" else "Guardia"
+
+    cuerpo = f"""
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p class="mail-message">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-detail">
+                    <tr>
+                      <td class="mail-detail-pad">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr><td class="mail-label">Fecha de la guardia</td></tr>
+                          <tr><td class="mail-value">{fecha_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Tipo de guardia</td></tr>
+                          <tr><td class="mail-value">{tipo_guardia_str}</td></tr>
+                          <tr><td class="mail-label">Día de la guardia</td></tr>
+                          <tr><td class="mail-value-last">{dia_guardia_str}</td></tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  <p class="mail-info">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+    """
+    pie = f"""
+                  <p class="mail-footer-label">{cfg['footer_label']}: <strong class="mail-footer-name">{admin_nombre}</strong></p>
+                  <p class="mail-footer-email">{admin_correo}</p>
+                  <p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>
+    """
+
+    cuerpo_html = construir_correo(cfg["titulo"], cfg["clase_header"], cfg["clase_subtitulo"], cuerpo, pie)
+    enviar_correo(destinatario, asunto, cuerpo_html)
+
+
+def _notificar_fiscalizador_guardia(cursor, id_usuario, fecha_guardia, tipo, accion):
+    """Consulta al fiscalizador y al admin y envía el correo de guardia (mejor esfuerzo)."""
+    try:
+        cursor.execute("""
+            SELECT correo, CONCAT(nombre,' ',apellidos) AS nombre_completo
+            FROM usuarios
+            WHERE id_usuario = %s
+        """, (id_usuario,))
+        info_usuario = cursor.fetchone()
+        if not info_usuario:
+            return
+        if isinstance(info_usuario, dict):
+            destinatario = info_usuario.get("correo")
+            nombre_completo = info_usuario.get("nombre_completo") or "Fiscalizador"
+        else:
+            destinatario = info_usuario[0]
+            nombre_completo = info_usuario[1] or "Fiscalizador"
+        if not destinatario:
+            return
+
+        cursor.execute("""
+            SELECT correo, CONCAT(nombre,' ',apellidos) AS nombre_completo
+            FROM usuarios
+            WHERE id_usuario = %s
+        """, (session.get("id_usuario"),))
+        admin_info = cursor.fetchone()
+        if isinstance(admin_info, dict):
+            admin_nombre = admin_info.get("nombre_completo") or "Administración"
+            admin_correo = admin_info.get("correo") or ""
+        else:
+            admin_nombre = admin_info[1] if admin_info and admin_info[1] else "Administración"
+            admin_correo = admin_info[0] if admin_info and admin_info[0] else ""
+
+        _enviar_correo_guardia(
+            destinatario,
+            nombre_completo,
+            fecha_guardia,
+            tipo,
+            accion,
+            admin_nombre=admin_nombre,
+            admin_correo=admin_correo,
+        )
+    except Exception as e:
+        print("ERROR AL NOTIFICAR AL FISCALIZADOR DE GUARDIA:", e)
+
+
+_MAX_LISTAR_ELIMINADAS = 20
+
+
+def _formatear_fecha_correo(fecha):
+    if isinstance(fecha, datetime):
+        fecha = fecha.date()
+    return fecha.strftime("%d/%m/%Y") if isinstance(fecha, date) else (str(fecha) if fecha else "—")
+
+
+def _enviar_correo_guardias_eliminadas(destinatario, nombre_completo, guardias,
+                                       admin_nombre="", admin_correo=""):
+    """Notifica al fiscalizador la eliminación masiva de sus guardias (un solo correo)."""
+    if not destinatario:
+        return
+
+    ordenadas = sorted(guardias, key=lambda g: g["fecha"])
+    total = len(ordenadas)
+    n_soporte = sum(1 for g in ordenadas if g["tipo"] == "soporte")
+    n_guardia = total - n_soporte
+
+    desde_str = _formatear_fecha_correo(ordenadas[0]["fecha"])
+    hasta_str = _formatear_fecha_correo(ordenadas[-1]["fecha"])
+
+    listado = ""
+    if total <= _MAX_LISTAR_ELIMINADAS:
+        for g in ordenadas:
+            fecha_str = _formatear_fecha_correo(g["fecha"])
+            dia = DIAS_ES[g["fecha"].weekday()] if isinstance(g["fecha"], date) else "—"
+            tipo_str = "Soporte" if g["tipo"] == "soporte" else "Guardia"
+            listado += f"""
+                        <tr>
+                          <td class="mail-list-cell">{fecha_str}</td>
+                          <td class="mail-list-cell-muted">{dia}</td>
+                          <td class="mail-list-cell-right">{tipo_str}</td>
+                        </tr>
+        """
+
+    seccion_listado = ""
+    if listado:
+        seccion_listado = f"""
+                  <p class="mail-section-title">Detalle de las guardias eliminadas</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-list">
+                    <tr>
+                      <td class="mail-list-pad">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td class="mail-list-head">Fecha</td>
+                            <td class="mail-list-head">Día</td>
+                            <td class="mail-list-head-right">Tipo</td>
+                          </tr>
+        {listado}
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+        """
+
+    cuerpo = f"""
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p class="mail-message">Se le informa que se han eliminado <strong>{total}</strong> de sus guardias asignadas. A continuación el resumen correspondiente:</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-detail">
+                    <tr>
+                      <td class="mail-detail-pad">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr><td class="mail-label">Total de guardias eliminadas</td></tr>
+                          <tr><td class="mail-value">{total}</td></tr>
+                          <tr><td class="mail-label">Rango de fechas</td></tr>
+                          <tr><td class="mail-value">{desde_str} — {hasta_str}</td></tr>
+                          <tr><td class="mail-label">Guardias</td></tr>
+                          <tr><td class="mail-value">{n_guardia}</td></tr>
+                          <tr><td class="mail-label">Soportes</td></tr>
+                          <tr><td class="mail-value-last">{n_soporte}</td></tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+        {seccion_listado}
+                  <p class="mail-info">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+    """
+    pie = f"""
+                  <p class="mail-footer-label">Eliminado por: <strong class="mail-footer-name">{admin_nombre}</strong></p>
+                  <p class="mail-footer-email">{admin_correo}</p>
+                  <p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>
+    """
+
+    cuerpo_html = construir_correo("Guardias eliminadas", "mail-header-red", "mail-subtitle-red", cuerpo, pie)
+    enviar_correo(destinatario, "Guardias eliminadas", cuerpo_html)
 
 
 def registrar_rutas(app):
@@ -171,6 +387,7 @@ def registrar_rutas(app):
 
             conexion.commit()
             registrar_auditoria("guardia_creada", f"Guardia creada: usuario {id_usuario}, fecha {fecha_guardia}")
+            _notificar_fiscalizador_guardia(cursor, id_usuario, fecha_guardia, tipo, "registrada")
             flash("Guardia registrada correctamente", "success")
             return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
@@ -266,6 +483,7 @@ def registrar_rutas(app):
 
                     conexion.commit()
                     registrar_auditoria("guardia_actualizada", f"Guardia actualizada: ID {id}")
+                    _notificar_fiscalizador_guardia(cursor, id_usuario, fecha_guardia, tipo, "actualizada")
                     flash("Guardia actualizada correctamente", "success")
                     return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
@@ -366,11 +584,20 @@ def registrar_rutas(app):
         cursor = conexion.cursor()
 
         try:
+            cursor.execute("""
+                SELECT id_usuario, fecha_guardia, tipo
+                FROM guardias
+                WHERE id_guardia = %s
+            """, (id,))
+            info = cursor.fetchone()
+
             _eliminar_guardias_con_archivos(cursor, [id])
 
             conexion.commit()
 
             registrar_auditoria("guardia_eliminada", f"Guardia eliminada: ID {id}")
+            if info:
+                _notificar_fiscalizador_guardia(cursor, info[0], info[1], info[2], "eliminada")
             flash("Guardia eliminada correctamente", "success")
             return redirigir_con_filtros("ver_guardias", "filtro_guardias")
 
@@ -411,10 +638,52 @@ def registrar_rutas(app):
         cursor = conexion.cursor()
 
         try:
+            placeholders = ",".join(["%s"] * len(ids_int))
+            cursor.execute(
+                f"""
+                SELECT g.fecha_guardia, g.tipo, u.correo, CONCAT(u.nombre,' ',u.apellidos)
+                FROM guardias g
+                INNER JOIN usuarios u ON g.id_usuario = u.id_usuario
+                WHERE g.id_guardia IN ({placeholders})
+                """,
+                tuple(ids_int),
+            )
+            info_guardias = cursor.fetchall()
+
             _eliminar_guardias_con_archivos(cursor, ids_int)
             conexion.commit()
-            registrar_auditoria("guardias_eliminadas", f"Eliminadas {cursor.rowcount} guardias")
-            flash(f"Se eliminaron {cursor.rowcount} guardias correctamente", "success")
+            total_eliminadas = cursor.rowcount
+            registrar_auditoria("guardias_eliminadas", f"Eliminadas {total_eliminadas} guardias")
+
+            por_correo = {}
+            for fila in info_guardias:
+                fecha, tipo, correo, nombre = fila
+                if not correo:
+                    continue
+                grupo = por_correo.setdefault(correo, {"nombre": nombre, "guardias": []})
+                grupo["guardias"].append({"fecha": fecha, "tipo": tipo})
+
+            cursor.execute(
+                "SELECT correo, CONCAT(nombre,' ',apellidos) FROM usuarios WHERE id_usuario = %s",
+                (session.get("id_usuario"),),
+            )
+            admin_info = cursor.fetchone()
+            admin_nombre = admin_info[1] if admin_info and admin_info[1] else "Administración"
+            admin_correo = admin_info[0] if admin_info and admin_info[0] else ""
+
+            for correo, grupo in por_correo.items():
+                try:
+                    _enviar_correo_guardias_eliminadas(
+                        correo,
+                        grupo["nombre"] or "Fiscalizador",
+                        grupo["guardias"],
+                        admin_nombre=admin_nombre,
+                        admin_correo=admin_correo,
+                    )
+                except Exception as e:
+                    print("ERROR AL NOTIFICAR ELIMINACIÓN MASIVA:", e)
+
+            flash(f"Se eliminaron {total_eliminadas} guardias correctamente", "success")
         except Exception as e:
             conexion.rollback()
             print("ERROR ELIMINAR GUARDIAS:", e)

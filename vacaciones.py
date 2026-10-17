@@ -1,6 +1,5 @@
 """Rutas de gestión de vacaciones (admin y fiscalizador)."""
 
-import os
 from flask import render_template, request, session, redirect, url_for, flash
 from conexion import conexion as _obtener_conexion
 conexion = _obtener_conexion()
@@ -9,35 +8,30 @@ from utils import (
     acceso_no_autorizado, datos_invalidos, no_encontrado, error_interno,
     guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
-from correo import enviar_correo
+from correo import enviar_correo, construir_correo
 from helpers import balance_vacaciones_fifo
 import mysql.connector.errors
 from datetime import datetime, date
 
-# Logos incrustados en los correos de notificación
-LOGO_SIGGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "img", "logo.png")
-LOGO_SMALL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "ppt", "logo_small.jpg")
-
-# Configuración visual de los correos de vacaciones según la acción
 _ACCIONES_VACACIONES = {
     "registrada": {
         "titulo": "Vacaciones registradas",
-        "header_bg": "#1e3a8a",
-        "subtitle_color": "#bfdbfe",
+        "clase_header": "mail-header-blue",
+        "clase_subtitulo": "mail-subtitle-blue",
         "mensaje": "Se le informa que se han registrado vacaciones a su nombre. A continuación se detallan los datos correspondientes:",
         "footer_label": "Registrado por",
     },
     "actualizada": {
         "titulo": "Vacaciones actualizadas",
-        "header_bg": "#92400e",
-        "subtitle_color": "#fde68a",
+        "clase_header": "mail-header-orange",
+        "clase_subtitulo": "mail-subtitle-orange",
         "mensaje": "Se le informa que se han actualizado sus vacaciones. A continuación se detallan los datos correspondientes:",
         "footer_label": "Actualizado por",
     },
     "eliminada": {
         "titulo": "Vacaciones eliminadas",
-        "header_bg": "#991b1b",
-        "subtitle_color": "#fecaca",
+        "clase_header": "mail-header-red",
+        "clase_subtitulo": "mail-subtitle-red",
         "mensaje": "Se le informa que se han eliminado sus vacaciones. A continuación se detallan los datos correspondientes:",
         "footer_label": "Eliminado por",
     },
@@ -75,79 +69,119 @@ def _enviar_correo_vacacion(destinatario, nombre_completo, fecha_inicio, fecha_f
         dias = "—"
 
     cuerpo = f"""
-    <div style="margin:0; padding:0; background-color:#f1f5f9;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:24px 0;">
-        <tr>
-          <td align="center">
-            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
-              <tr>
-                <td style="background-color:{cfg['header_bg']}; padding:20px 24px;">
-                  <table role="presentation" cellpadding="0" cellspacing="0">
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p class="mail-message">{cfg['mensaje']}</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-detail">
                     <tr>
-                      <td style="vertical-align:middle;">
-                        <img src="cid:logo_siggo" width="44" height="44" alt="SIGGO" style="display:block; border-radius:8px; background-color:#ffffff;">
-                      </td>
-                      <td style="vertical-align:middle; padding-left:12px;">
-                        <img src="cid:logo_small" width="124" height="30" alt="" style="display:block;">
-                      </td>
-                    </tr>
-                  </table>
-                  <div style="font-family:'Segoe UI',Arial,sans-serif; color:{cfg['subtitle_color']}; font-size:12px; margin-top:10px;">{cfg['titulo']}</div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px; font-family:'Segoe UI',Arial,sans-serif; color:#0f172a; line-height:1.6; font-size:14px;">
-                  <p style="margin:0 0 12px;">Estimado(a) <strong>{nombre_completo}</strong>:</p>
-                  <p style="margin:0 0 16px;">{cfg['mensaje']}</p>
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
-                    <tr>
-                      <td style="padding:16px;">
+                      <td class="mail-detail-pad">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de inicio</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_inicio_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Fecha de fin</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a; padding-bottom:14px;">{fecha_fin_str}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:11px; color:#64748b; padding-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Total de días</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size:15px; font-weight:700; color:#0f172a;">{dias}</td>
-                          </tr>
+                          <tr><td class="mail-label">Fecha de inicio</td></tr>
+                          <tr><td class="mail-value">{fecha_inicio_str}</td></tr>
+                          <tr><td class="mail-label">Fecha de fin</td></tr>
+                          <tr><td class="mail-value">{fecha_fin_str}</td></tr>
+                          <tr><td class="mail-label">Total de días</td></tr>
+                          <tr><td class="mail-value-last">{dias}</td></tr>
                         </table>
                       </td>
                     </tr>
                   </table>
-                  <p style="margin:16px 0 0;">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:16px 24px; font-family:'Segoe UI',Arial,sans-serif; font-size:12px; color:#64748b;">
-                  <p style="margin:0 0 4px;">{cfg['footer_label']}: <strong style="color:#0f172a;">{admin_nombre}</strong></p>
-                  <p style="margin:0; color:#2563eb;">{admin_correo}</p>
-                  <p style="margin:10px 0 0; font-size:11px; color:#94a3b8;">Este es un mensaje automático. No responda a este correo.</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </div>
+                  <p class="mail-info">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+    """
+    pie = f"""
+                  <p class="mail-footer-label">{cfg['footer_label']}: <strong class="mail-footer-name">{admin_nombre}</strong></p>
+                  <p class="mail-footer-email">{admin_correo}</p>
+                  <p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>
     """
 
-    enviar_correo(
-        destinatario,
-        asunto,
-        cuerpo,
-        imagenes_inline=[(LOGO_SIGGO, "logo_siggo"), (LOGO_SMALL, "logo_small")]
-    )
+    cuerpo_html = construir_correo(cfg["titulo"], cfg["clase_header"], cfg["clase_subtitulo"], cuerpo, pie)
+    enviar_correo(destinatario, asunto, cuerpo_html)
+
+
+_MAX_LISTAR_ELIMINADAS = 20
+
+
+def _enviar_correo_vacaciones_eliminadas(destinatario, nombre_completo, vacaciones,
+                                         admin_nombre="", admin_correo=""):
+    """Notifica al fiscalizador la eliminación masiva de sus vacaciones (un solo correo)."""
+    if not destinatario:
+        return
+
+    ordenadas = sorted(vacaciones, key=lambda v: v["inicio"])
+    total = len(ordenadas)
+
+    fecha_min = ordenadas[0]["inicio"]
+    fecha_max = ordenadas[-1]["fin"]
+
+    total_dias = 0
+    for v in ordenadas:
+        if isinstance(v["inicio"], date) and isinstance(v["fin"], date):
+            total_dias += (v["fin"] - v["inicio"]).days + 1
+
+    def _fmt(fecha):
+        if isinstance(fecha, datetime):
+            fecha = fecha.date()
+        return fecha.strftime("%d/%m/%Y") if isinstance(fecha, date) else (str(fecha) if fecha else "—")
+
+    listado = ""
+    if total <= _MAX_LISTAR_ELIMINADAS:
+        for v in ordenadas:
+            dias = (v["fin"] - v["inicio"]).days + 1 if isinstance(v["inicio"], date) and isinstance(v["fin"], date) else "—"
+            listado += f"""
+                        <tr>
+                          <td class="mail-list-cell">{_fmt(v['inicio'])}</td>
+                          <td class="mail-list-cell">{_fmt(v['fin'])}</td>
+                          <td class="mail-list-cell-right">{dias}</td>
+                        </tr>
+        """
+
+    seccion_listado = ""
+    if listado:
+        seccion_listado = f"""
+                  <p class="mail-section-title">Detalle de las vacaciones eliminadas</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-list">
+                    <tr>
+                      <td class="mail-list-pad">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td class="mail-list-head">Inicio</td>
+                            <td class="mail-list-head">Fin</td>
+                            <td class="mail-list-head-right">Días</td>
+                          </tr>
+        {listado}
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+        """
+
+    cuerpo = f"""
+                  <p class="mail-greeting">Estimado(a) <strong>{nombre_completo}</strong>:</p>
+                  <p class="mail-message">Se le informa que se han eliminado <strong>{total}</strong> de sus registros de vacaciones. A continuación el resumen correspondiente:</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="mail-detail">
+                    <tr>
+                      <td class="mail-detail-pad">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr><td class="mail-label">Total de registros eliminados</td></tr>
+                          <tr><td class="mail-value">{total}</td></tr>
+                          <tr><td class="mail-label">Rango de fechas</td></tr>
+                          <tr><td class="mail-value">{_fmt(fecha_min)} — {_fmt(fecha_max)}</td></tr>
+                          <tr><td class="mail-label">Total de días</td></tr>
+                          <tr><td class="mail-value-last">{total_dias}</td></tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+        {seccion_listado}
+                  <p class="mail-info">Para mayor detalle, puede consultar la información en el sistema SIGGO.</p>
+    """
+    pie = f"""
+                  <p class="mail-footer-label">Eliminado por: <strong class="mail-footer-name">{admin_nombre}</strong></p>
+                  <p class="mail-footer-email">{admin_correo}</p>
+                  <p class="mail-footer-note">Este es un mensaje automático. No responda a este correo.</p>
+    """
+
+    cuerpo_html = construir_correo("Vacaciones eliminadas", "mail-header-red", "mail-subtitle-red", cuerpo, pie)
+    enviar_correo(destinatario, "Vacaciones eliminadas", cuerpo_html)
 
 
 def registrar_rutas(app):
@@ -900,15 +934,24 @@ def registrar_rutas(app):
                     f"Se han eliminado las vacaciones del {vac['fecha_inicio'].strftime('%d/%m/%Y')} al {vac['fecha_fin'].strftime('%d/%m/%Y')} de {vac['nombre_completo']}."
                 ))
 
-                _enviar_correo_vacacion(
-                    vac["correo"],
-                    vac["nombre_completo"],
-                    vac["fecha_inicio"],
-                    vac["fecha_fin"],
-                    "eliminada",
-                    admin_nombre=nombre_admin,
-                    admin_correo=correo_admin,
-                )
+            por_correo = {}
+            for vac in vacaciones_data:
+                if not vac["correo"]:
+                    continue
+                grupo = por_correo.setdefault(vac["correo"], {"nombre": vac["nombre_completo"], "vacaciones": []})
+                grupo["vacaciones"].append({"inicio": vac["fecha_inicio"], "fin": vac["fecha_fin"]})
+
+            for correo, grupo in por_correo.items():
+                try:
+                    _enviar_correo_vacaciones_eliminadas(
+                        correo,
+                        grupo["nombre"] or "Fiscalizador",
+                        grupo["vacaciones"],
+                        admin_nombre=nombre_admin,
+                        admin_correo=correo_admin,
+                    )
+                except Exception as e:
+                    print("ERROR AL NOTIFICAR ELIMINACIÓN MASIVA DE VACACIONES:", e)
 
             conexion.commit()
             registrar_auditoria("vacaciones_eliminadas", f"Eliminadas {len(vacaciones_data)} vacaciones")

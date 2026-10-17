@@ -26,7 +26,7 @@ from compensaciones import registrar_rutas as registrar_rutas_compensaciones
 from vacaciones import registrar_rutas as registrar_rutas_vacaciones
 from guardias import registrar_rutas as registrar_rutas_guardias
 from asistencia import registrar_rutas as registrar_rutas_asistencia
-from alertas_automaticas import iniciar_alerta_vacaciones_diaria
+from alertas_automaticas import iniciar_alerta_vacaciones_diaria, iniciar_alerta_asistencia_diaria
 import mysql.connector.errors
 
 """
@@ -978,5 +978,8 @@ if __name__ == "__main__":
 
     # Alerta automática diaria al administrador sobre habilitación de vacaciones
     iniciar_alerta_vacaciones_diaria()
+
+    # Recordatorios de asistencia al fiscalizador (3 avisos en 48 h si no marca)
+    iniciar_alerta_asistencia_diaria()
 
     serve(app, host=host, port=port, threads=threads)

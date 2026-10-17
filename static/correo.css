@@ -1,0 +1,165 @@
+/* Estilos de los correos electrónicos de SIGGO-OIG */
+
+.mail-wrap {
+    margin: 0;
+    padding: 0;
+    background-color: #f1f5f9;
+}
+
+.mail-table {
+    background-color: #f1f5f9;
+    padding: 24px 0;
+}
+
+.mail-card {
+    max-width: 600px;
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.mail-header {
+    padding: 20px 24px;
+}
+
+.mail-header-blue { background-color: #1e3a8a; }
+.mail-header-orange { background-color: #92400e; }
+.mail-header-red { background-color: #991b1b; }
+
+.mail-logo-cell { vertical-align: middle; }
+.mail-logo-cell-pad { vertical-align: middle; padding-left: 12px; }
+.mail-logo-siggo { display: block; border-radius: 8px; background-color: #ffffff; }
+.mail-logo-oig { display: block; }
+
+.mail-subtitle {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.mail-subtitle-blue { color: #bfdbfe; }
+.mail-subtitle-orange { color: #fde68a; }
+.mail-subtitle-red { color: #fecaca; }
+
+.mail-body {
+    padding: 24px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #0f172a;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.mail-greeting { margin: 0 0 12px; }
+.mail-message { margin: 0 0 16px; }
+.mail-section-title { margin: 16px 0 6px; font-size: 13px; font-weight: 700; color: #0f172a; }
+.mail-info { margin: 16px 0 0; }
+
+.mail-detail {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.mail-detail-pad { padding: 16px; }
+
+.mail-label {
+    font-size: 11px;
+    color: #64748b;
+    padding-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mail-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    padding-bottom: 14px;
+}
+
+.mail-value-last {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.mail-list {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.mail-list-pad { padding: 12px 16px; }
+
+.mail-list-head {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 8px;
+}
+
+.mail-list-head-right {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 8px;
+    text-align: right;
+}
+
+.mail-list-cell {
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.mail-list-cell-muted {
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.mail-list-cell-right {
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #0f172a;
+    text-align: right;
+}
+
+.mail-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.mail-item-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.mail-item-note {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.mail-footer {
+    background-color: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 24px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.mail-footer-label { margin: 0 0 4px; }
+.mail-footer-name { color: #0f172a; }
+.mail-footer-email { margin: 0; color: #2563eb; }
+.mail-footer-note { margin: 10px 0 0; font-size: 11px; color: #94a3b8; }

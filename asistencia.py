@@ -8,7 +8,8 @@ from utils import (
     acceso_no_autorizado, datos_invalidos, no_encontrado, error_interno,
     guardar_filtros, redirigir_con_filtros, registrar_auditoria,
 )
-from helpers import DIAS_ES
+from helpers import DIAS_ES, hoy_local
+from alertas_automaticas import notificar_admins_asistencia
 from datetime import date, datetime, timedelta
 
 
@@ -45,7 +46,7 @@ def registrar_rutas(app):
                 fecha_guardia = fecha_guardia.date()
 
             # Bloquear asistencia de guardias futuras
-            if fecha_guardia and fecha_guardia > date.today():
+            if fecha_guardia and fecha_guardia > hoy_local():
                 flash("No se puede registrar la asistencia: la fecha de la guardia aún no ha llegado", "error")
                 return redirigir_con_filtros("asistencia_admin", "filtro_asistencias")
 
@@ -152,7 +153,7 @@ def registrar_rutas(app):
             cursor.execute(sql, tuple(params))
             guardias = cursor.fetchall()
 
-            hoy = date.today()
+            hoy = hoy_local()
             for g in guardias:
                 fecha = g.get('fecha_guardia')
                 if isinstance(fecha, datetime):
@@ -302,7 +303,7 @@ def registrar_rutas(app):
 
         datos = cursor.fetchall()
 
-        hoy = date.today()
+        hoy = hoy_local()
         limite = hoy - timedelta(days=1)  # ventana de 48 horas: permite hoy o ayer
 
         for d in datos:
@@ -369,7 +370,7 @@ def registrar_rutas(app):
             if not guardia:
                 return acceso_no_autorizado()
 
-            hoy = date.today()
+            hoy = hoy_local()
             limite = hoy - timedelta(days=1)  # ventana de 48 horas
             if not (limite <= guardia["fecha_guardia"] <= hoy):
                 return redirect(url_for("mi_asistencia"))
@@ -396,6 +397,7 @@ def registrar_rutas(app):
             conn.commit()
 
             registrar_auditoria("asistencia_autoservicio", f"Asistencia registrada: guardia {id_guardia}")
+            notificar_admins_asistencia(id_guardia, "marcada")
             flash("Asistencia registrada correctamente", "success")
 
             return redirect(url_for("mi_asistencia"))

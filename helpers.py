@@ -1,6 +1,7 @@
 """Constantes y funciones auxiliares compartidas entre blueprints."""
 
-from datetime import date
+import os
+from datetime import date, datetime, timedelta, timezone
 
 # Días de la semana en español para mostrar en las vistas
 DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -11,6 +12,22 @@ MESES_ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 # Nombres completos de los meses en español
 MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+def _zona_horaria():
+    valor = os.getenv("DB_TIMEZONE", "-05:00").strip()
+    try:
+        signo = -1 if valor.startswith("-") else 1
+        hh, mm = valor.lstrip("+-").split(":")
+        return timezone(signo * timedelta(hours=int(hh), minutes=int(mm)))
+    except Exception:
+        return timezone(timedelta(hours=-5))
+
+
+ZONA_HORARIA = _zona_horaria()
+
+
+def hoy_local():
+    return datetime.now(ZONA_HORARIA).date()
 
 
 def balance_vacaciones_fifo(anio_ingreso, dias_tomados_total):
